@@ -1,0 +1,856 @@
+{
+  "version": "2.0.0",
+  "description": "Complete field mappings from Docling JSON extract to XLSX template cells - covers ALL sheets",
+  "template_name": "Serafina UW Phoenix AZ Feb 14 2025",
+  "json_root": "structured_data[0]",
+  "last_updated": "2025-12-29",
+  
+  "source_types": {
+    "costar": {
+      "symbol": "✅",
+      "description": "Available from Docling PDF extraction of CoStar report",
+      "auto_fill": true
+    },
+    "external": {
+      "symbol": "🔶",
+      "description": "Requires manual input or separate data source",
+      "auto_fill": false,
+      "highlight": true
+    },
+    "formula": {
+      "symbol": "📊",
+      "description": "Calculated from other cells - DO NOT OVERWRITE",
+      "auto_fill": false,
+      "protect": true
+    },
+    "cross_sheet": {
+      "symbol": "🔗",
+      "description": "References data from another sheet",
+      "auto_fill": false
+    }
+  },
+  
+  "transforms": {
+    "divide_by_100": {
+      "description": "Convert percentage from whole number to decimal (6.0 -> 0.06)",
+      "implementation": "value / 100"
+    },
+    "to_number": {
+      "description": "Convert string to number, removing formatting ($27,450,000 -> 27450000)",
+      "implementation": "parseFloat(value.replace(/[^0-9.-]/g, ''))"
+    },
+    "years_since_purchase": {
+      "description": "Calculate years from purchase date string ('Purchased Mar 2019' -> 6)",
+      "implementation": "Extract year and calculate difference from current year"
+    },
+    "extract_property_name": {
+      "description": "Extract property name before unit count ('Serafina 183 Unit...' -> 'Serafina')",
+      "implementation": "match(/^(.+?)\\s+\\d+\\s+Unit/)[1]"
+    },
+    "extract_city": {
+      "description": "Extract city from location string ('Phoenix, Arizona - ...' -> 'Phoenix')",
+      "implementation": "split(',')[0].trim()"
+    },
+    "extract_state_abbrev": {
+      "description": "Convert full state name to abbreviation ('Arizona' -> 'AZ')",
+      "implementation": "state_abbrev_map[state_name]"
+    },
+    "bed_bath_label": {
+      "description": "Create unit type label from bed/bath ({bed: 2, bath: 1} -> '2B/1Ba')",
+      "implementation": "`${bed}B/${bath}Ba`"
+    },
+    "calc_occupied": {
+      "description": "Calculate occupied units from total and available",
+      "implementation": "total_units - available_units"
+    }
+  },
+
+  "sheets": {
+    "Property Summary": {
+      "description": "Core property information - primary summary view for decision makers",
+      "tables": [
+        {
+          "name": "Property Description",
+          "range": "B6:C16",
+          "description": "Basic property identification and location"
+        },
+        {
+          "name": "Property Size", 
+          "range": "E6:F10",
+          "description": "Physical characteristics"
+        },
+        {
+          "name": "Purchase Metrics",
+          "range": "H6:I13",
+          "description": "Financial acquisition data"
+        },
+        {
+          "name": "Seller Information",
+          "range": "B19:C28",
+          "description": "Seller details and broker contact"
+        }
+      ],
+      "mappings": [
+        {
+          "cell": "C6",
+          "label": "Property Name",
+          "type": "text",
+          "source": "costar",
+          "json_path": "property.name",
+          "fallback_path": "sections_raw[0].content[0]",
+          "fallback_transform": "extract_property_name"
+        },
+        {
+          "cell": "C7",
+          "label": "Street Address",
+          "type": "text",
+          "source": "costar",
+          "json_path": "property.address",
+          "fallback_path": "sections_raw[0].header"
+        },
+        {
+          "cell": "C8",
+          "label": "City",
+          "type": "text",
+          "source": "costar",
+          "json_path": "property.city",
+          "fallback_path": "sections_raw[0].content[1]",
+          "fallback_transform": "extract_city"
+        },
+        {
+          "cell": "C9",
+          "label": "State",
+          "type": "text",
+          "source": "costar",
+          "json_path": "property.state",
+          "fallback_path": "sections_raw[0].content[1]",
+          "fallback_transform": "extract_state_abbrev"
+        },
+        {
+          "cell": "C10",
+          "label": "County",
+          "type": "text",
+          "source": "external",
+          "notes": "Not available in CoStar PDF"
+        },
+        {
+          "cell": "C11",
+          "label": "Zip Code",
+          "type": "number",
+          "source": "external",
+          "notes": "Not available in CoStar PDF - could potentially geocode from address"
+        },
+        {
+          "cell": "C12",
+          "label": "Land Area",
+          "type": "number",
+          "format": "acres",
+          "source": "external",
+          "notes": "Not in CoStar PDF"
+        },
+        {
+          "cell": "C13",
+          "label": "Year Built",
+          "type": "number",
+          "source": "costar",
+          "json_path": "property.year_built"
+        },
+        {
+          "cell": "C14",
+          "label": "Year Renovated",
+          "type": "text",
+          "source": "external",
+          "notes": "Not in CoStar PDF"
+        },
+        {
+          "cell": "C15",
+          "label": "Management Type",
+          "type": "text",
+          "source": "external",
+          "validation": ["3rd Party Management", "Self Managed"],
+          "notes": "Dropdown selection"
+        },
+        {
+          "cell": "C16",
+          "label": "Management Company",
+          "type": "text",
+          "source": "costar",
+          "json_path": "property_manager.name"
+        },
+        {
+          "cell": "F6",
+          "label": "Total Units",
+          "type": "number",
+          "source": "costar",
+          "json_path": "property.no_of_units"
+        },
+        {
+          "cell": "F7",
+          "label": "Avg Unit Size",
+          "type": "number",
+          "format": "SF",
+          "source": "costar",
+          "json_path": "property.avg_unit_size"
+        },
+        {
+          "cell": "F8",
+          "label": "Current Vacancy",
+          "type": "percentage",
+          "source": "costar",
+          "json_path": "vacancy.current.rate",
+          "transform": "divide_by_100"
+        },
+        {
+          "cell": "F9",
+          "label": "Building(s)",
+          "type": "number",
+          "source": "external",
+          "notes": "Building count not in CoStar PDF"
+        },
+        {
+          "cell": "F10",
+          "label": "Floors",
+          "type": "number",
+          "source": "costar",
+          "json_path": "property.stories"
+        },
+        {
+          "cell": "I6",
+          "label": "Trailing 12 Revenue",
+          "type": "currency",
+          "source": "external",
+          "notes": "From property financials (OM or rent roll)"
+        },
+        {
+          "cell": "I7",
+          "label": "Trailing 12 Expenses",
+          "type": "currency",
+          "source": "external",
+          "notes": "From property financials (OM or rent roll)"
+        },
+        {
+          "cell": "I8",
+          "label": "Trailing 12 NOI",
+          "type": "currency",
+          "source": "formula",
+          "formula": "=I6-I7",
+          "depends_on": ["I6", "I7"]
+        },
+        {
+          "cell": "I10",
+          "label": "Guidance Price",
+          "type": "currency",
+          "source": "external",
+          "notes": "Deal-specific asking price"
+        },
+        {
+          "cell": "I11",
+          "label": "Implied Cap Rate",
+          "type": "percentage",
+          "source": "formula",
+          "formula": "=IFERROR(I8/I10,\"\")",
+          "depends_on": ["I8", "I10"]
+        },
+        {
+          "cell": "I12",
+          "label": "Price per Unit",
+          "type": "currency",
+          "source": "formula",
+          "formula": "=IFERROR(I10/F6,\"\")",
+          "depends_on": ["I10", "F6"]
+        },
+        {
+          "cell": "I13",
+          "label": "Call for Offers Date",
+          "type": "date",
+          "source": "external",
+          "notes": "Deal-specific"
+        },
+        {
+          "cell": "C19",
+          "label": "Seller Name",
+          "type": "text",
+          "source": "costar",
+          "json_path": "owner.name"
+        },
+        {
+          "cell": "C20",
+          "label": "How Long Have They Owned?",
+          "type": "number",
+          "format": "years",
+          "source": "costar",
+          "json_path": "owner.purchase_date",
+          "transform": "years_since_purchase"
+        },
+        {
+          "cell": "C21",
+          "label": "Last Sold Price",
+          "type": "currency",
+          "source": "costar",
+          "json_path": "owner.purchase_price_raw",
+          "transform": "to_number"
+        },
+        {
+          "cell": "C22",
+          "label": "Why Are They Selling?",
+          "type": "text",
+          "source": "external",
+          "notes": "From broker conversations"
+        },
+        {
+          "cell": "C23",
+          "label": "What Improvements Have They Made?",
+          "type": "text",
+          "source": "external",
+          "notes": "From broker/OM"
+        },
+        {
+          "cell": "C24",
+          "label": "What Matters Most to Them?",
+          "type": "text",
+          "source": "external",
+          "notes": "From broker conversations"
+        },
+        {
+          "cell": "C25",
+          "label": "Broker's Name",
+          "type": "text",
+          "source": "external"
+        },
+        {
+          "cell": "C26",
+          "label": "Brokerage",
+          "type": "text",
+          "source": "external"
+        },
+        {
+          "cell": "C27",
+          "label": "Broker's Email",
+          "type": "text",
+          "source": "external"
+        },
+        {
+          "cell": "C28",
+          "label": "Broker's Phone Number",
+          "type": "text",
+          "source": "external"
+        }
+      ],
+      "formulas": [
+        {
+          "cell": "B3",
+          "formula": "=C8&\", \"&C9",
+          "description": "City, State display",
+          "depends_on": ["C8", "C9"]
+        },
+        {
+          "cell": "I8",
+          "formula": "=I6-I7",
+          "description": "NOI calculation"
+        },
+        {
+          "cell": "I11",
+          "formula": "=IFERROR(I8/I10,\"\")",
+          "description": "Cap rate calculation"
+        },
+        {
+          "cell": "I12",
+          "formula": "=IFERROR(I10/F6,\"\")",
+          "description": "Price per unit calculation"
+        }
+      ]
+    },
+
+    "Unit Mix & Comps": {
+      "description": "Unit breakdown data from CoStar report - array-based filling",
+      "array_source": "unitBreakdown[1].rows",
+      "row_start": 7,
+      "max_rows": 30,
+      "clear_before_fill": true,
+      "clear_columns": ["B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"],
+      "delete_empty_rows": true,
+      "skip_rows_where": {
+        "field": "bed",
+        "contains_any": ["Totals", "All 1 Beds", "All 2 Beds", "All 3 Beds"]
+      },
+      "tables": [
+        {
+          "name": "Property Unit Mix",
+          "range": "B7:L27",
+          "description": "Detailed unit breakdown by type"
+        },
+        {
+          "name": "Market Rent Comparison",
+          "range": "N7:O10",
+          "description": "Current vs market rent analysis"
+        },
+        {
+          "name": "Renovated Rent Premiums",
+          "range": "N12:O15",
+          "description": "Expected renovation premiums"
+        },
+        {
+          "name": "Unit Type Legend",
+          "range": "N18:O22",
+          "description": "Classic/PU/U/Elite definitions"
+        }
+      ],
+      "mappings": [
+        {
+          "column": "B",
+          "label": "Unit Type",
+          "type": "text",
+          "source": "costar",
+          "json_field": "_computed",
+          "transform": "bed_bath_label",
+          "notes": "Computed from bed and bath fields"
+        },
+        {
+          "column": "C",
+          "label": "Avg SF",
+          "type": "number",
+          "source": "costar",
+          "json_field": "avgSf"
+        },
+        {
+          "column": "D",
+          "label": "Units",
+          "type": "number",
+          "source": "costar",
+          "json_field": "unitMix.units"
+        },
+        {
+          "column": "E",
+          "label": "Occupied Units",
+          "type": "number",
+          "source": "costar",
+          "json_field": "_computed",
+          "transform": "calc_occupied",
+          "notes": "Calculated: unitMix.units - availability.units"
+        },
+        {
+          "column": "F",
+          "label": "Renovation Units",
+          "type": "number",
+          "source": "external",
+          "notes": "From property inspection/rent roll"
+        },
+        {
+          "column": "G",
+          "label": "Unit Mix %",
+          "type": "percentage",
+          "source": "costar",
+          "json_field": "unitMix.mix%",
+          "transform": "divide_by_100"
+        },
+        {
+          "column": "H",
+          "label": "Current Advertised Rent",
+          "type": "currency",
+          "source": "costar",
+          "json_field": "avgAskingRent.perUnit"
+        },
+        {
+          "column": "I",
+          "label": "Gap to Achieved",
+          "type": "currency",
+          "source": "formula",
+          "formula": "=H{row}-J{row}"
+        },
+        {
+          "column": "J",
+          "label": "Average Effective Rent",
+          "type": "currency",
+          "source": "costar",
+          "json_field": "avgEffectiveRent.perUnit"
+        },
+        {
+          "column": "K",
+          "label": "Price per SF",
+          "type": "currency",
+          "source": "costar",
+          "json_field": "avgAskingRent.perSf"
+        },
+        {
+          "column": "L",
+          "label": "Rent per SF",
+          "type": "currency",
+          "source": "formula",
+          "formula": "=J{row}/C{row}"
+        }
+      ],
+      "static_mappings": [
+        {
+          "cell": "O7",
+          "label": "Market Avg Asking Rent",
+          "type": "currency",
+          "source": "external"
+        },
+        {
+          "cell": "O8",
+          "label": "Market Price per SF",
+          "type": "currency",
+          "source": "external"
+        },
+        {
+          "cell": "O12",
+          "label": "Market High Asking Rent",
+          "type": "currency",
+          "source": "external"
+        },
+        {
+          "cell": "O13",
+          "label": "Renovated Rent Target",
+          "type": "currency",
+          "source": "external"
+        }
+      ]
+    },
+
+    "Demos": {
+      "description": "Demographics analysis with weighted scoring - ALL EXTERNAL DATA",
+      "tables": [
+        {
+          "name": "CoStar Demographics",
+          "range": "B6:E10",
+          "description": "Population, income, home values by radius"
+        },
+        {
+          "name": "Crime Rates",
+          "range": "B12:E13",
+          "description": "Violent and property crime from Best Places"
+        },
+        {
+          "name": "School Ratings",
+          "range": "B15:C16",
+          "description": "Elementary and high school from Great Schools"
+        },
+        {
+          "name": "Walk/Transit Scores",
+          "range": "B18:C19",
+          "description": "From walkscore.com"
+        },
+        {
+          "name": "Submarket Analytics",
+          "range": "B21:C25",
+          "description": "CoStar Analytics data"
+        },
+        {
+          "name": "Scoring Matrix",
+          "range": "I6:T19",
+          "description": "Weighted scoring with configurable thresholds"
+        }
+      ],
+      "mappings": [
+        {"cell": "C6", "label": "Population (1 Mile)", "type": "number", "source": "external"},
+        {"cell": "D6", "label": "Population (3 Mile)", "type": "number", "source": "external"},
+        {"cell": "E6", "label": "Population (5 Mile)", "type": "number", "source": "external"},
+        {"cell": "C7", "label": "Population Growth (1 Mile)", "type": "percentage", "source": "external"},
+        {"cell": "D7", "label": "Population Growth (3 Mile)", "type": "percentage", "source": "external"},
+        {"cell": "E7", "label": "Population Growth (5 Mile)", "type": "percentage", "source": "external"},
+        {"cell": "C8", "label": "Median HH Income (1 Mile)", "type": "currency", "source": "external"},
+        {"cell": "D8", "label": "Median HH Income (3 Mile)", "type": "currency", "source": "external"},
+        {"cell": "E8", "label": "Median HH Income (5 Mile)", "type": "currency", "source": "external"},
+        {"cell": "C9", "label": "Median Home Value (1 Mile)", "type": "currency", "source": "external"},
+        {"cell": "D9", "label": "Median Home Value (3 Mile)", "type": "currency", "source": "external"},
+        {"cell": "E9", "label": "Median Home Value (5 Mile)", "type": "currency", "source": "external"},
+        {"cell": "C10", "label": "Renter Households % (1 Mile)", "type": "percentage", "source": "external"},
+        {"cell": "D10", "label": "Renter Households % (3 Mile)", "type": "percentage", "source": "external"},
+        {"cell": "E10", "label": "Renter Households % (5 Mile)", "type": "percentage", "source": "external"},
+        {"cell": "C12", "label": "Violent Crime (Zip)", "type": "number", "source": "external", "data_source": "bestplaces.net"},
+        {"cell": "D12", "label": "Violent Crime (National)", "type": "number", "source": "external", "default": 22.7},
+        {"cell": "C13", "label": "Property Crime (Zip)", "type": "number", "source": "external", "data_source": "bestplaces.net"},
+        {"cell": "D13", "label": "Property Crime (National)", "type": "number", "source": "external", "default": 35.4},
+        {"cell": "C15", "label": "Elementary School Rating", "type": "number", "source": "external", "data_source": "greatschools.org", "range": [1, 10]},
+        {"cell": "C16", "label": "High School Rating", "type": "number", "source": "external", "data_source": "greatschools.org", "range": [1, 10]},
+        {"cell": "C18", "label": "Walk Score", "type": "number", "source": "external", "data_source": "walkscore.com", "range": [0, 100]},
+        {"cell": "C19", "label": "Transit Score", "type": "number", "source": "external", "data_source": "walkscore.com", "range": [0, 100]},
+        {"cell": "C21", "label": "Submarket Vacancy", "type": "percentage", "source": "external"},
+        {"cell": "C22", "label": "Inventory Units", "type": "number", "source": "external"},
+        {"cell": "C23", "label": "Delivered Units (12mo)", "type": "number", "source": "external"},
+        {"cell": "C24", "label": "Under Construction %", "type": "percentage", "source": "external"},
+        {"cell": "C25", "label": "Submarket Cap Rate", "type": "percentage", "source": "external"}
+      ],
+      "scoring_config": {
+        "weighting_column": "J",
+        "increment_column": "K",
+        "threshold_columns": ["L", "M", "N", "O", "P", "Q", "R"],
+        "score_values": [10, 9, 8, 7, 6, 5, 4],
+        "figure_column": "S",
+        "score_column": "T",
+        "total_score_cell": "T20"
+      }
+    },
+
+    "Historical Financials": {
+      "description": "T12/T6/T3 actual financial performance - ALL EXTERNAL DATA",
+      "tables": [
+        {
+          "name": "Property Units",
+          "range": "C6:E8",
+          "description": "Unit count and occupancy"
+        },
+        {
+          "name": "Revenue",
+          "range": "B10:G18",
+          "description": "Income breakdown by period"
+        },
+        {
+          "name": "Operating Expenses",
+          "range": "B20:G32",
+          "description": "Expense breakdown by period"
+        },
+        {
+          "name": "Net Operating Income",
+          "range": "B34:G35",
+          "description": "NOI by period"
+        }
+      ],
+      "mappings": [
+        {"cell": "C6", "label": "Total Units", "source": "cross_sheet", "reference": "'Property Summary'!F6"},
+        {"cell": "C7", "label": "Occupied Units", "type": "number", "source": "external"},
+        {"cell": "C8", "label": "Occupancy %", "source": "formula", "formula": "=C7/C6"},
+        {"cell": "C10", "label": "Potential Rental Income (T12)", "type": "currency", "source": "external"},
+        {"cell": "C11", "label": "Loss to Lease (T12)", "type": "currency", "source": "external"},
+        {"cell": "C12", "label": "Vacancy Loss (T12)", "type": "currency", "source": "external"},
+        {"cell": "C13", "label": "Bad Debt (T12)", "type": "currency", "source": "external"},
+        {"cell": "C14", "label": "Concessions (T12)", "type": "currency", "source": "external"},
+        {"cell": "C16", "label": "RUBS Income (T12)", "type": "currency", "source": "external"},
+        {"cell": "C17", "label": "Other Income (T12)", "type": "currency", "source": "external"},
+        {"cell": "C20", "label": "G&A (T12)", "type": "currency", "source": "external"},
+        {"cell": "C21", "label": "Payroll (T12)", "type": "currency", "source": "external"},
+        {"cell": "C22", "label": "Leasing & Marketing (T12)", "type": "currency", "source": "external"},
+        {"cell": "C23", "label": "Utilities (T12)", "type": "currency", "source": "external"},
+        {"cell": "C24", "label": "Repairs & Maintenance (T12)", "type": "currency", "source": "external"},
+        {"cell": "C25", "label": "HOA (T12)", "type": "currency", "source": "external"},
+        {"cell": "C26", "label": "Turnover (T12)", "type": "currency", "source": "external"},
+        {"cell": "C27", "label": "Contract Services (T12)", "type": "currency", "source": "external"},
+        {"cell": "C28", "label": "Insurance (T12)", "type": "currency", "source": "external"},
+        {"cell": "C29", "label": "Property Taxes (T12)", "type": "currency", "source": "external"},
+        {"cell": "C30", "label": "Management Fees (T12)", "type": "currency", "source": "external"}
+      ],
+      "formula_rows": {
+        "15": "Total Rental Income = SUM of income lines",
+        "18": "Total Revenue = Rental + RUBS + Other",
+        "31": "Total OpEx = SUM of expense lines",
+        "32": "Expense Ratio = Total OpEx / Total Revenue",
+        "34": "NOI = Total Revenue - Total OpEx"
+      }
+    },
+
+    "Revenue": {
+      "description": "10-year revenue projections - mostly formulas with some assumptions",
+      "tables": [
+        {"name": "RUBS Assumptions", "range": "C6:D11"},
+        {"name": "Unit Renovations", "range": "B15:M20"},
+        {"name": "Income Growth Assumptions", "range": "B25:L30"},
+        {"name": "Annual Projections", "range": "B35:L50"}
+      ],
+      "key_assumptions": [
+        {"cell": "D6", "label": "Water/Sewer per Unit", "type": "currency", "source": "external"},
+        {"cell": "D7", "label": "Trash per Unit", "type": "currency", "source": "external"},
+        {"cell": "D8", "label": "Pest Control per Unit", "type": "currency", "source": "external"},
+        {"cell": "C15", "label": "Renovation Start Month", "type": "number", "source": "external"},
+        {"cell": "C16", "label": "Units per Month", "type": "number", "source": "external"},
+        {"cell": "C27", "label": "Rental Income Growth Year 1", "type": "percentage", "source": "external"},
+        {"cell": "C28", "label": "Vacancy Assumption Year 1", "type": "percentage", "source": "external"},
+        {"cell": "C29", "label": "Bad Debt Year 1", "type": "percentage", "source": "external"},
+        {"cell": "C30", "label": "Concessions Year 1", "type": "percentage", "source": "external"}
+      ],
+      "costar_available": [
+        {"cell": "varies", "label": "Market Rent Reference", "json_path": "asking_rents.submarket.per_unit", "notes": "Reference only"}
+      ]
+    },
+
+    "Expenses": {
+      "description": "10-year expense projections with payroll assumptions - ALL EXTERNAL",
+      "tables": [
+        {"name": "T12 vs Year 1 Comparison", "range": "B6:E18"},
+        {"name": "Payroll Assumptions", "range": "B22:H30"},
+        {"name": "Property Tax Assessment", "range": "B33:D38"},
+        {"name": "Expense Growth Assumptions", "range": "B42:L48"}
+      ],
+      "key_assumptions": [
+        {"cell": "C22", "label": "Manager Hourly Rate", "type": "currency", "source": "external"},
+        {"cell": "D22", "label": "Manager Hours/Week", "type": "number", "source": "external"},
+        {"cell": "C33", "label": "Purchase Price (for tax)", "type": "currency", "source": "cross_sheet"},
+        {"cell": "C34", "label": "Assessed Value %", "type": "percentage", "source": "external"},
+        {"cell": "C35", "label": "Tax Rate", "type": "percentage", "source": "external"},
+        {"cell": "C42", "label": "Insurance Growth %", "type": "percentage", "source": "external"},
+        {"cell": "C43", "label": "Payroll Growth %", "type": "percentage", "source": "external"},
+        {"cell": "C47", "label": "Management Fee %", "type": "percentage", "source": "external"}
+      ]
+    },
+
+    "CapEx": {
+      "description": "Capital expenditure budget - ALL EXTERNAL",
+      "tables": [
+        {"name": "Unit Renovations by Type", "range": "B6:H12"},
+        {"name": "Renovation Cost Breakdown", "range": "B15:D30"},
+        {"name": "General Improvements", "range": "B35:D50"}
+      ],
+      "key_inputs": [
+        {"cell": "C7", "label": "Classic Units Available", "type": "number", "source": "external"},
+        {"cell": "D7", "label": "Classic Units to Renovate", "type": "number", "source": "external"},
+        {"cell": "E7", "label": "Classic Cost per Unit", "type": "currency", "source": "external"},
+        {"cell": "G7", "label": "Classic Expected Premium", "type": "currency", "source": "external"},
+        {"cell": "C15", "label": "Appliances Cost", "type": "currency", "source": "external"},
+        {"cell": "C16", "label": "Vinyl Flooring Cost", "type": "currency", "source": "external"},
+        {"cell": "C35", "label": "Exterior Wood Repairs", "type": "currency", "source": "external"},
+        {"cell": "C36", "label": "Package Hub", "type": "currency", "source": "external"}
+      ]
+    },
+
+    "Project Budget": {
+      "description": "Sources and uses of funds - mostly EXTERNAL deal terms",
+      "tables": [
+        {"name": "Acquisition Costs", "range": "B6:F15"},
+        {"name": "CapEx Budget Summary", "range": "B20:D25"},
+        {"name": "Financing Costs", "range": "B30:D40"},
+        {"name": "Fees", "range": "B45:D50"}
+      ],
+      "key_inputs": [
+        {"cell": "D6", "label": "Purchase Price", "type": "currency", "source": "external"},
+        {"cell": "D7", "label": "Seller Credit", "type": "currency", "source": "external"},
+        {"cell": "D8", "label": "Buyer Legal", "type": "currency", "source": "external"},
+        {"cell": "D30", "label": "Loan Origination", "type": "currency", "source": "external"},
+        {"cell": "D31", "label": "Lender Legal", "type": "currency", "source": "external"}
+      ],
+      "cross_sheet_links": [
+        {"cell": "D20", "source": "'CapEx'!total_renovations"},
+        {"cell": "D21", "source": "'CapEx'!total_improvements"}
+      ]
+    },
+
+    "Capital Stack": {
+      "description": "Debt and equity structure - ALL EXTERNAL deal terms",
+      "tables": [
+        {"name": "Loan Information", "range": "B6:E20"},
+        {"name": "Treasury Rates", "range": "B25:C30"},
+        {"name": "Sources & Uses", "range": "B35:D45"}
+      ],
+      "key_inputs": [
+        {"cell": "C6", "label": "Acquisition Loan Term (months)", "type": "number", "source": "external"},
+        {"cell": "C7", "label": "Rate Index", "type": "text", "source": "external", "values": ["SOFR", "Treasury"]},
+        {"cell": "C8", "label": "Spread", "type": "percentage", "source": "external"},
+        {"cell": "C10", "label": "IO Period (months)", "type": "number", "source": "external"},
+        {"cell": "C11", "label": "Amortization (years)", "type": "number", "source": "external"},
+        {"cell": "C12", "label": "LTV", "type": "percentage", "source": "external"},
+        {"cell": "C13", "label": "Minimum DSCR", "type": "number", "source": "external"},
+        {"cell": "C25", "label": "3-Year Treasury", "type": "percentage", "source": "external"},
+        {"cell": "C26", "label": "5-Year Treasury", "type": "percentage", "source": "external"},
+        {"cell": "C27", "label": "7-Year Treasury", "type": "percentage", "source": "external"},
+        {"cell": "C28", "label": "10-Year Treasury", "type": "percentage", "source": "external"}
+      ]
+    },
+
+    "Cash Flows": {
+      "description": "Monthly and annual projections - ENTIRELY FORMULA-BASED",
+      "source": "formula",
+      "depends_on": ["Revenue", "Expenses", "Capital Stack", "CapEx"],
+      "tables": [
+        {"name": "Property Summary", "range": "B6:L10"},
+        {"name": "Total Revenue", "range": "B12:L25"},
+        {"name": "Operating Expenses", "range": "B27:L40"},
+        {"name": "NOI & Cash Flow", "range": "B42:L55"},
+        {"name": "Financial Metrics", "range": "B57:L62"},
+        {"name": "Monthly Details", "range": "B65:beyond"}
+      ],
+      "notes": "No direct input cells - all values calculated from other sheets"
+    },
+
+    "Waterfall": {
+      "description": "LP/GP return calculations - mix of EXTERNAL terms and FORMULAS",
+      "tables": [
+        {"name": "Equity & Waterfall Structure", "range": "B6:D15"},
+        {"name": "Disposition Assumptions", "range": "B20:D25"},
+        {"name": "LP Returns", "range": "B30:L40"},
+        {"name": "GP Returns", "range": "B45:L55"},
+        {"name": "Project Returns", "range": "B60:L70"}
+      ],
+      "key_inputs": [
+        {"cell": "C7", "label": "LP Equity %", "type": "percentage", "source": "external"},
+        {"cell": "C9", "label": "Preferred Return", "type": "percentage", "source": "external"},
+        {"cell": "C10", "label": "Hurdle Rate", "type": "percentage", "source": "external"},
+        {"cell": "C11", "label": "Tier 1 LP Share", "type": "percentage", "source": "external"},
+        {"cell": "C12", "label": "Tier 2 LP Share", "type": "percentage", "source": "external"},
+        {"cell": "C20", "label": "Exit Month", "type": "number", "source": "external"},
+        {"cell": "C21", "label": "Exit Cap Rate", "type": "percentage", "source": "external"},
+        {"cell": "C22", "label": "Selling Costs %", "type": "percentage", "source": "external"},
+        {"cell": "C23", "label": "Broker Fee %", "type": "percentage", "source": "external"}
+      ],
+      "calculated_outputs": [
+        {"cell": "L35", "label": "LP IRR", "source": "formula"},
+        {"cell": "L36", "label": "LP Equity Multiple", "source": "formula"},
+        {"cell": "L50", "label": "GP IRR", "source": "formula"},
+        {"cell": "L51", "label": "GP Equity Multiple", "source": "formula"}
+      ]
+    },
+
+    "Investment Summary": {
+      "description": "Executive summary with scoring - aggregates from all sheets",
+      "tables": [
+        {"name": "Property Description", "range": "B6:C16"},
+        {"name": "Property Size", "range": "E6:F10"},
+        {"name": "Purchase Metrics", "range": "H6:I12"},
+        {"name": "Timeframes", "range": "B18:C24"},
+        {"name": "Fee Structure", "range": "E18:F24"},
+        {"name": "Waterfall Structure", "range": "H18:I24"},
+        {"name": "Investment Returns", "range": "B28:I35"},
+        {"name": "Financial Metrics", "range": "B38:I45"},
+        {"name": "Rating Scorecard", "range": "B50:R60"},
+        {"name": "Investment Decision", "range": "B65:D68"},
+        {"name": "Annual Cash Flows", "range": "B72:I90"}
+      ],
+      "cross_sheet_references": [
+        {"cells": "B6:C16", "source": "'Property Summary'"},
+        {"cells": "E6:F10", "source": "'Property Summary'"},
+        {"cells": "B28:I35", "source": "'Waterfall'"},
+        {"cells": "B38:I45", "source": "'Cash Flows'"},
+        {"cells": "T50", "source": "'Demos'!T20"}
+      ],
+      "decision_thresholds": {
+        "submit_loi": 7.0,
+        "deeper_dive": 6.0,
+        "dont_submit": 6.0
+      }
+    }
+  },
+
+  "summary": {
+    "total_sheets": 12,
+    "costar_coverage": {
+      "Property Summary": "50%",
+      "Unit Mix & Comps": "70%",
+      "Demos": "0%",
+      "Historical Financials": "0%",
+      "Revenue": "2%",
+      "Expenses": "0%",
+      "CapEx": "0%",
+      "Project Budget": "0%",
+      "Capital Stack": "0%",
+      "Cash Flows": "0% (formula)",
+      "Waterfall": "0% (formula)",
+      "Investment Summary": "5%"
+    },
+    "primary_costar_paths": {
+      "property_info": "structured_data[0].property",
+      "owner_info": "structured_data[0].owner",
+      "property_manager": "structured_data[0].property_manager",
+      "vacancy_info": "structured_data[0].vacancy",
+      "rent_info": "structured_data[0].asking_rents",
+      "unit_breakdown": "structured_data[0].unitBreakdown[1].rows"
+    },
+    "external_data_sources_needed": [
+      "Offering Memorandum (OM) - T12 financials",
+      "Rent Roll - Unit-level occupancy and rents",
+      "CoStar Analytics - Demographics, submarket data",
+      "Best Places - Crime statistics",
+      "Great Schools - School ratings",
+      "Walk Score - Walk/transit scores",
+      "Deal Terms - Price, loan structure, equity split",
+      "Broker Conversations - Seller motivation, negotiations"
+    ]
+  }
+}
+
