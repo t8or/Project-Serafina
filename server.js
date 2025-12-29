@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import uploadRouter from './src/api/uploadHandler.js';
 import extractRouter from './src/api/extractHandler.js';
 import filesRouter from './src/api/filesHandler.js';
+import fillRouter from './src/api/fillHandler.js';
 
 // Load environment variables
 dotenv.config();
@@ -34,12 +35,15 @@ const createRequiredDirs = async () => {
   console.log('Initializing upload directories...');
   const uploadDir = join(process.cwd(), 'uploads');
   const extractedDir = join(uploadDir, 'extracted');
+  const filledDir = join(uploadDir, 'filled');
   
   await mkdir(uploadDir, { recursive: true });
   await mkdir(extractedDir, { recursive: true });
+  await mkdir(filledDir, { recursive: true });
   
   console.log('Upload directory:', uploadDir);
   console.log('Extracted files directory:', extractedDir);
+  console.log('Filled templates directory:', filledDir);
 };
 
 createRequiredDirs().catch(console.error);
@@ -48,6 +52,7 @@ createRequiredDirs().catch(console.error);
 app.use('/api', uploadRouter);
 app.use('/api', extractRouter);
 app.use('/api/files', filesRouter);
+app.use('/api/fill', fillRouter);
 
 // Error handling
 app.use((err, req, res, next) => {

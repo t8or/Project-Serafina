@@ -1,0 +1,1558 @@
+{
+  "processing_status": "success",
+  "structured_data": [
+    {
+      "property": {
+        "no_of_units": 148,
+        "stories": 2,
+        "avg_unit_size": 1021,
+        "property_type": "Apartments - All",
+        "rent_type": "Market",
+        "year_built": 1973,
+        "parking": 211
+      },
+      "property_manager": {
+        "name": "Chamberlin - 1609 WGlendale",
+        "phone": "(602) 441-2939"
+      },
+      "owner": {
+        "name": "Urban Communities",
+        "purchase_date": "Purchased Jun 2019",
+        "purchase_price": "$14,725,000 ($99,493/Unit)",
+        "purchase_price_raw": "14725000",
+        "price_per_unit": "$99,493/Unit"
+      },
+      "asking_rents": {
+        "current": {
+          "per_unit": 1480,
+          "per_sf": 1.45
+        },
+        "last_quarter": {
+          "per_unit": 1471,
+          "per_sf": 1.44
+        },
+        "year_ago": {
+          "per_unit": 1597,
+          "per_sf": 1.56
+        },
+        "competitors": {
+          "per_unit": 1223,
+          "per_sf": 1.58
+        },
+        "submarket": {
+          "per_unit": 1373,
+          "per_sf": 1.72
+        }
+      },
+      "vacancy": {
+        "current": {
+          "rate": 16.2,
+          "units": 24
+        },
+        "last_quarter": {
+          "rate": 16.2,
+          "units": 24
+        },
+        "year_ago": {
+          "rate": 5.4,
+          "units": 8
+        },
+        "competitors": {
+          "rate": 8.6,
+          "units": 80
+        },
+        "submarket": {
+          "rate": 9.1,
+          "units": 944
+        }
+      },
+      "absorption_rate": {
+        "current": -19,
+        "competitor_total": 17,
+        "competitor_avg": 3.4,
+        "submarket_total": 720,
+        "submarket_avg": 0.6
+      },
+      "unitBreakdown": [
+        {
+          "headers": [
+            "Bed",
+            "Bath",
+            "Avg SF",
+            "Unit Mix.Units",
+            "Unit Mix.Mix%",
+            "Availability.Units",
+            "Availability.Mix%",
+            "Avg Asking Rent.Per Unit",
+            "Avg Asking Rent.Per SF",
+            "Avg Effective Rent.Per Unit",
+            "Avg Effective Rent.Per SF",
+            "Concessions"
+          ],
+          "column_types": {
+            "Bed": "text",
+            "Bath": "text",
+            "Avg SF": "text",
+            "Unit Mix.Units": "text",
+            "Unit Mix.Mix%": "percentage",
+            "Availability.Units": "text",
+            "Availability.Mix%": "percentage",
+            "Avg Asking Rent.Per Unit": "text",
+            "Avg Asking Rent.Per SF": "text",
+            "Avg Effective Rent.Per Unit": "text",
+            "Avg Effective Rent.Per SF": "text",
+            "Concessions": "text"
+          },
+          "rows": [
+            {
+              "bed": 2,
+              "bath": 1,
+              "avgSf": 865,
+              "unitMix.units": 28,
+              "unitMix.mix%": 18.9,
+              "availability.units": 0,
+              "availability.mix%": 0,
+              "avgAskingRent.perUnit": 1385,
+              "avgAskingRent.perSf": 1.6,
+              "avgEffectiveRent.perUnit": 1371,
+              "avgEffectiveRent.perSf": 1.59,
+              "concessions": 1
+            },
+            {
+              "bed": 2,
+              "bath": 2,
+              "avgSf": 945,
+              "unitMix.units": 66,
+              "unitMix.mix%": 44.6,
+              "availability.units": 4,
+              "availability.mix%": 6.1,
+              "avgAskingRent.perUnit": 1349,
+              "avgAskingRent.perSf": 1.43,
+              "avgEffectiveRent.perUnit": 1336,
+              "avgEffectiveRent.perSf": 1.41,
+              "concessions": 1
+            },
+            {
+              "bed": 3,
+              "bath": 2,
+              "avgSf": 1080,
+              "unitMix.units": 26,
+              "unitMix.mix%": 17.6,
+              "availability.units": 1,
+              "availability.mix%": 3.9,
+              "avgAskingRent.perUnit": 1599,
+              "avgAskingRent.perSf": 1.48,
+              "avgEffectiveRent.perUnit": 1583,
+              "avgEffectiveRent.perSf": 1.47,
+              "concessions": 1
+            },
+            {
+              "bed": 3,
+              "bath": 2,
+              "avgSf": 1305,
+              "unitMix.units": 28,
+              "unitMix.mix%": 18.9,
+              "availability.units": 1,
+              "availability.mix%": 3.6,
+              "avgAskingRent.perUnit": 1774,
+              "avgAskingRent.perSf": 1.36,
+              "avgEffectiveRent.perUnit": 1756,
+              "avgEffectiveRent.perSf": 1.35,
+              "concessions": 1
+            },
+            {
+              "bed": "Totals",
+              "bath": "Totals",
+              "avgSf": "Avg SF",
+              "unitMix.units": "Units",
+              "unitMix.mix%": "Mix%",
+              "availability.units": "Units",
+              "availability.mix%": "Mix%",
+              "avgAskingRent.perUnit": "Per Unit",
+              "avgAskingRent.perSf": "Per SF",
+              "avgEffectiveRent.perUnit": "Per Unit",
+              "avgEffectiveRent.perSf": "Per SF",
+              "concessions": "Concessions"
+            },
+            {
+              "bed": "All 2 Beds",
+              "bath": "All 2 Beds",
+              "avgSf": 921,
+              "unitMix.units": 94,
+              "unitMix.mix%": 63.5,
+              "availability.units": 4,
+              "availability.mix%": 4.3,
+              "avgAskingRent.perUnit": 1360,
+              "avgAskingRent.perSf": 1.48,
+              "avgEffectiveRent.perUnit": 1346,
+              "avgEffectiveRent.perSf": 1.46,
+              "concessions": 1
+            },
+            {
+              "bed": "All 3 Beds",
+              "bath": "All 3 Beds",
+              "avgSf": 1197,
+              "unitMix.units": 54,
+              "unitMix.mix%": 36.5,
+              "availability.units": 2,
+              "availability.mix%": 3.7,
+              "avgAskingRent.perUnit": 1690,
+              "avgAskingRent.perSf": 1.41,
+              "avgEffectiveRent.perUnit": 1673,
+              "avgEffectiveRent.perSf": 1.4,
+              "concessions": 1
+            },
+            {
+              "bed": "Totals",
+              "bath": "Totals",
+              "avgSf": 1022,
+              "unitMix.units": 148,
+              "unitMix.mix%": 100,
+              "availability.units": 6,
+              "availability.mix%": 4.1,
+              "avgAskingRent.perUnit": 1480,
+              "avgAskingRent.perSf": 1.45,
+              "avgEffectiveRent.perUnit": 1465,
+              "avgEffectiveRent.perSf": 1.43,
+              "concessions": 1
+            }
+          ],
+          "summary": {
+            "total_units": 0,
+            "total_rows": 8
+          }
+        }
+      ],
+      "siteAmenities": [
+        "Clubhouse",
+        "Courtyard",
+        "Fitness Center",
+        "Laundry Facilities",
+        "Maintenance on site",
+        "Pet Play Area",
+        "Picnic Area",
+        "Planned Social Activities",
+        "Playground",
+        "Pool",
+        "Wi-Fi"
+      ],
+      "unitAmenities": [
+        "Air Conditioning",
+        "Balcony",
+        "Ceiling Fans",
+        "Dishwasher",
+        "Disposal",
+        "Double Pane Windows",
+        "Double Vanities",
+        "Eat-in Kitchen",
+        "Granite Countertops",
+        "Hardwood Floors",
+        "Heating",
+        "High Speed Internet Access",
+        "Kitchen",
+        "Pantry",
+        "Patio",
+        "Range",
+        "Stainless Steel Appliances",
+        "Tile Floors",
+        "Walk-In Closets",
+        "Washer/Dryer"
+      ],
+      "oneTimeExpenses": {
+        "admin_fee": 150,
+        "application_fee": 50
+      },
+      "petPolicy": {
+        "dogs_allowed": true,
+        "cats_allowed": true,
+        "restrictions": []
+      },
+      "otherTables": [
+        {
+          "table_index": 0,
+          "page_number": 2,
+          "headers": [
+            "Property Details",
+            "1"
+          ],
+          "column_types": {
+            "1": "numeric",
+            "Property Details": "text"
+          },
+          "rows": [
+            {
+              "1": "",
+              "Property Details": "RENT COMPS"
+            },
+            {
+              "1": "6",
+              "Property Details": "Map & List"
+            },
+            {
+              "1": "8",
+              "Property Details": "Photo Comparison"
+            },
+            {
+              "1": "9",
+              "Property Details": "Rent Comps Details"
+            },
+            {
+              "1": "15",
+              "Property Details": "Unit Mix Summary"
+            },
+            {
+              "1": "16",
+              "Property Details": "Ranking Chart By Bedroom"
+            },
+            {
+              "1": "18",
+              "Property Details": "Changes in Rent Comps"
+            },
+            {
+              "1": "20",
+              "Property Details": "Rent Trend Charts"
+            },
+            {
+              "1": "25",
+              "Property Details": "RentTrend Data"
+            },
+            {
+              "1": "",
+              "Property Details": "CONSTRUCTION"
+            },
+            {
+              "1": "27",
+              "Property Details": "Overall Construction Map & Summary"
+            },
+            {
+              "1": "28",
+              "Property Details": "Under Construction Map & List"
+            },
+            {
+              "1": "30",
+              "Property Details": "Under Construction Details"
+            },
+            {
+              "1": "33",
+              "Property Details": "Deliveries Past 12 Months Map & List"
+            },
+            {
+              "1": "35",
+              "Property Details": "Delivered Property Details"
+            },
+            {
+              "1": "44",
+              "Property Details": "Construction Summary"
+            },
+            {
+              "1": "",
+              "Property Details": "SALE COMPS"
+            },
+            {
+              "1": "50",
+              "Property Details": "Map & List"
+            },
+            {
+              "1": "52",
+              "Property Details": "Sale Comp Details"
+            },
+            {
+              "1": "60",
+              "Property Details": "Sales Volume"
+            },
+            {
+              "1": "61",
+              "Property Details": "Sales Pricing"
+            },
+            {
+              "1": "63",
+              "Property Details": "Cap Rates"
+            },
+            {
+              "1": "64",
+              "Property Details": "Top Buyers & Sellers"
+            },
+            {
+              "1": "",
+              "Property Details": "DEMOGRAPHICS"
+            },
+            {
+              "1": "67",
+              "Property Details": "Overview"
+            },
+            {
+              "1": "68",
+              "Property Details": "Age & Education"
+            },
+            {
+              "1": "69",
+              "Property Details": "Ethnicity"
+            },
+            {
+              "1": "",
+              "Property Details": "MULTI-FAMILY SUBMARKET REPORT"
+            },
+            {
+              "1": "71",
+              "Property Details": "Submarket Key Statistics"
+            },
+            {
+              "1": "72",
+              "Property Details": "Vacancy"
+            },
+            {
+              "1": "75",
+              "Property Details": "Rent"
+            },
+            {
+              "1": "77",
+              "Property Details": "Construction"
+            }
+          ],
+          "row_count": 32,
+          "column_count": 2,
+          "markdown": "|    | Property Details                     | 1   |\n|---:|:-------------------------------------|:----|\n|  0 | RENT COMPS                           |     |\n|  1 | Map & List                           | 6   |\n|  2 | Photo Comparison                     | 8   |\n|  3 | Rent Comps Details                   | 9   |\n|  4 | Unit Mix Summary                     | 15  |\n|  5 | Ranking Chart By Bedroom             | 16  |\n|  6 | Changes in Rent Comps                | 18  |\n|  7 | Rent Trend Charts                    | 20  |\n|  8 | RentTrend Data                       | 25  |\n|  9 | CONSTRUCTION                         |     |\n| 10 | Overall Construction Map & Summary   | 27  |\n| 11 | Under Construction Map & List        | 28  |\n| 12 | Under Construction Details           | 30  |\n| 13 | Deliveries Past 12 Months Map & List | 33  |\n| 14 | Delivered Property Details           | 35  |\n| 15 | Construction Summary                 | 44  |\n| 16 | SALE COMPS                           |     |\n| 17 | Map & List                           | 50  |\n| 18 | Sale Comp Details                    | 52  |\n| 19 | Sales Volume                         | 60  |\n| 20 | Sales Pricing                        | 61  |\n| 21 | Cap Rates                            | 63  |\n| 22 | Top Buyers & Sellers                 | 64  |\n| 23 | DEMOGRAPHICS                         |     |\n| 24 | Overview                             | 67  |\n| 25 | Age & Education                      | 68  |\n| 26 | Ethnicity                            | 69  |\n| 27 | MULTI-FAMILY SUBMARKET REPORT        |     |\n| 28 | Submarket Key Statistics             | 71  |\n| 29 | Vacancy                              | 72  |\n| 30 | Rent                                 | 75  |\n| 31 | Construction                         | 77  |",
+          "html": "<table><tbody><tr><td>Property Details</td><th>1</th></tr><tr><th>RENT COMPS</th><td></td></tr><tr><th>Map &amp; List</th><td>6</td></tr><tr><th>Photo Comparison</th><td>8</td></tr><tr><th>Rent Comps Details</th><td>9</td></tr><tr><th>Unit Mix Summary</th><td>15</td></tr><tr><th>Ranking Chart By Bedroom</th><td>16</td></tr><tr><th>Changes in Rent Comps</th><td>18</td></tr><tr><th>Rent Trend Charts</th><td>20</td></tr><tr><th>RentTrend Data</th><td>25</td></tr><tr><th>CONSTRUCTION</th><td></td></tr><tr><th>Overall Construction Map &amp; Summary</th><td>27</td></tr><tr><th>Under Construction Map &amp; List</th><td>28</td></tr><tr><th>Under Construction Details</th><td>30</td></tr><tr><th>Deliveries Past 12 Months Map &amp; List</th><td>33</td></tr><tr><th>Delivered Property Details</th><td>35</td></tr><tr><th>Construction Summary</th><td>44</td></tr><tr><th>SALE COMPS</th><td></td></tr><tr><th>Map &amp; List</th><td>50</td></tr><tr><th>Sale Comp Details</th><td>52</td></tr><tr><th>Sales Volume</th><td>60</td></tr><tr><th>Sales Pricing</th><td>61</td></tr><tr><th>Cap Rates</th><td>63</td></tr><tr><th>Top Buyers &amp; Sellers</th><td>64</td></tr><tr><th>DEMOGRAPHICS</th><td></td></tr><tr><th>Overview</th><td>67</td></tr><tr><th>Age &amp; Education</th><td>68</td></tr><tr><th>Ethnicity</th><td>69</td></tr><tr><th>MULTI-FAMILY SUBMARKET REPORT</th><td></td></tr><tr><th>Submarket Key Statistics</th><td>71</td></tr><tr><th>Vacancy</th><td>72</td></tr><tr><th>Rent</th><td>75</td></tr><tr><th>Construction</th><td>77</td></tr></tbody></table>"
+        },
+        {
+          "table_index": 1,
+          "page_number": 3,
+          "headers": [
+            "Sales",
+            "81"
+          ],
+          "column_types": {
+            "81": "numeric",
+            "Sales": "text"
+          },
+          "rows": [
+            {
+              "81": "83",
+              "Sales": "Sales Past 12 Months"
+            },
+            {
+              "81": "85",
+              "Sales": "Supply & Demand Trends"
+            },
+            {
+              "81": "87",
+              "Sales": "Vacancy & Rent"
+            },
+            {
+              "81": "89",
+              "Sales": "Sale Trends"
+            },
+            {
+              "81": "91",
+              "Sales": "Deliveries & Under Construction"
+            },
+            {
+              "81": "",
+              "Sales": "MULTI-FAMILY MARKET REPORT"
+            },
+            {
+              "81": "93",
+              "Sales": "Market Key Statistics"
+            },
+            {
+              "81": "95",
+              "Sales": "Vacancy"
+            },
+            {
+              "81": "98",
+              "Sales": "Rent"
+            },
+            {
+              "81": "102",
+              "Sales": "Construction"
+            },
+            {
+              "81": "104",
+              "Sales": "Under Construction Properties"
+            },
+            {
+              "81": "106",
+              "Sales": "Sales"
+            },
+            {
+              "81": "108",
+              "Sales": "Sales Past 12 Months"
+            },
+            {
+              "81": "110",
+              "Sales": "Economy"
+            },
+            {
+              "81": "115",
+              "Sales": "Market Submarkets"
+            },
+            {
+              "81": "118",
+              "Sales": "Supply & Demand Trends"
+            },
+            {
+              "81": "120",
+              "Sales": "Vacancy & Rent"
+            },
+            {
+              "81": "122",
+              "Sales": "Sale Trends"
+            },
+            {
+              "81": "124",
+              "Sales": "Deliveries & Under Construction"
+            }
+          ],
+          "row_count": 19,
+          "column_count": 2,
+          "markdown": "|    | Sales                           | 81   |\n|---:|:--------------------------------|:-----|\n|  0 | Sales Past 12 Months            | 83   |\n|  1 | Supply & Demand Trends          | 85   |\n|  2 | Vacancy & Rent                  | 87   |\n|  3 | Sale Trends                     | 89   |\n|  4 | Deliveries & Under Construction | 91   |\n|  5 | MULTI-FAMILY MARKET REPORT      |      |\n|  6 | Market Key Statistics           | 93   |\n|  7 | Vacancy                         | 95   |\n|  8 | Rent                            | 98   |\n|  9 | Construction                    | 102  |\n| 10 | Under Construction Properties   | 104  |\n| 11 | Sales                           | 106  |\n| 12 | Sales Past 12 Months            | 108  |\n| 13 | Economy                         | 110  |\n| 14 | Market Submarkets               | 115  |\n| 15 | Supply & Demand Trends          | 118  |\n| 16 | Vacancy & Rent                  | 120  |\n| 17 | Sale Trends                     | 122  |\n| 18 | Deliveries & Under Construction | 124  |",
+          "html": "<table><tbody><tr><td>Sales</td><th>81</th></tr><tr><th>Sales Past 12 Months</th><td>83</td></tr><tr><th>Supply &amp; Demand Trends</th><td>85</td></tr><tr><th>Vacancy &amp; Rent</th><td>87</td></tr><tr><th>Sale Trends</th><td>89</td></tr><tr><th>Deliveries &amp; Under Construction</th><td>91</td></tr><tr><th>MULTI-FAMILY MARKET REPORT</th><td></td></tr><tr><th>Market Key Statistics</th><td>93</td></tr><tr><th>Vacancy</th><td>95</td></tr><tr><th>Rent</th><td>98</td></tr><tr><th>Construction</th><td>102</td></tr><tr><th>Under Construction Properties</th><td>104</td></tr><tr><th>Sales</th><td>106</td></tr><tr><th>Sales Past 12 Months</th><td>108</td></tr><tr><th>Economy</th><td>110</td></tr><tr><th>Market Submarkets</th><td>115</td></tr><tr><th>Supply &amp; Demand Trends</th><td>118</td></tr><tr><th>Vacancy &amp; Rent</th><td>120</td></tr><tr><th>Sale Trends</th><td>122</td></tr><tr><th>Deliveries &amp; Under Construction</th><td>124</td></tr></tbody></table>"
+        },
+        {
+          "table_index": 5,
+          "page_number": 4,
+          "headers": [
+            "Clubhouse",
+            "Courtyard",
+            "Fitness Center"
+          ],
+          "column_types": {
+            "Clubhouse": "text",
+            "Courtyard": "text",
+            "Fitness Center": "text"
+          },
+          "rows": [
+            {
+              "Clubhouse": "Laundry Facilities",
+              "Courtyard": "Maintenance on site",
+              "Fitness Center": "Pet Play Area"
+            },
+            {
+              "Clubhouse": "Picnic Area",
+              "Courtyard": "Planned Social Activities",
+              "Fitness Center": "Playground"
+            },
+            {
+              "Clubhouse": "Pool",
+              "Courtyard": "Wi-Fi",
+              "Fitness Center": ""
+            }
+          ],
+          "row_count": 3,
+          "column_count": 3,
+          "markdown": "|    | Clubhouse          | Courtyard                 | Fitness Center   |\n|---:|:-------------------|:--------------------------|:-----------------|\n|  0 | Laundry Facilities | Maintenance on site       | Pet Play Area    |\n|  1 | Picnic Area        | Planned Social Activities | Playground       |\n|  2 | Pool               | Wi-Fi                     |                  |",
+          "html": "<table><tbody><tr><th>Clubhouse</th><th>Courtyard</th><th>Fitness Center</th></tr><tr><td>Laundry Facilities</td><td>Maintenance on site</td><td>Pet Play Area</td></tr><tr><td>Picnic Area</td><td>Planned Social Activities</td><td>Playground</td></tr><tr><td>Pool</td><td>Wi-Fi</td><td></td></tr></tbody></table>"
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "section": "full_document",
+    "page_number": 127,
+    "type": "pdf",
+    "processor": "docling",
+    "file_name": "1766988237746-2zr8vk.pdf",
+    "file_size": 14058962,
+    "total_pages": 127,
+    "total_tables": 6,
+    "ocr_enabled": true,
+    "table_mode": "accurate",
+    "creation_date": "2025-12-28T23:04:18.552339",
+    "original_filename": "Urban 148 CoStar.pdf",
+    "base_filename": "Urban 148 CoStar",
+    "output_filename": "e_Urban 148 CoStar.json",
+    "processor_used": "DoclingProcessor",
+    "pdf_processor_type": "docling"
+  },
+  "tables_raw": [
+    {
+      "table_index": 0,
+      "page_number": 2,
+      "headers": [
+        "Property Details",
+        "1"
+      ],
+      "column_types": {
+        "1": "numeric",
+        "Property Details": "text"
+      },
+      "rows": [
+        {
+          "1": "",
+          "Property Details": "RENT COMPS"
+        },
+        {
+          "1": "6",
+          "Property Details": "Map & List"
+        },
+        {
+          "1": "8",
+          "Property Details": "Photo Comparison"
+        },
+        {
+          "1": "9",
+          "Property Details": "Rent Comps Details"
+        },
+        {
+          "1": "15",
+          "Property Details": "Unit Mix Summary"
+        },
+        {
+          "1": "16",
+          "Property Details": "Ranking Chart By Bedroom"
+        },
+        {
+          "1": "18",
+          "Property Details": "Changes in Rent Comps"
+        },
+        {
+          "1": "20",
+          "Property Details": "Rent Trend Charts"
+        },
+        {
+          "1": "25",
+          "Property Details": "RentTrend Data"
+        },
+        {
+          "1": "",
+          "Property Details": "CONSTRUCTION"
+        },
+        {
+          "1": "27",
+          "Property Details": "Overall Construction Map & Summary"
+        },
+        {
+          "1": "28",
+          "Property Details": "Under Construction Map & List"
+        },
+        {
+          "1": "30",
+          "Property Details": "Under Construction Details"
+        },
+        {
+          "1": "33",
+          "Property Details": "Deliveries Past 12 Months Map & List"
+        },
+        {
+          "1": "35",
+          "Property Details": "Delivered Property Details"
+        },
+        {
+          "1": "44",
+          "Property Details": "Construction Summary"
+        },
+        {
+          "1": "",
+          "Property Details": "SALE COMPS"
+        },
+        {
+          "1": "50",
+          "Property Details": "Map & List"
+        },
+        {
+          "1": "52",
+          "Property Details": "Sale Comp Details"
+        },
+        {
+          "1": "60",
+          "Property Details": "Sales Volume"
+        },
+        {
+          "1": "61",
+          "Property Details": "Sales Pricing"
+        },
+        {
+          "1": "63",
+          "Property Details": "Cap Rates"
+        },
+        {
+          "1": "64",
+          "Property Details": "Top Buyers & Sellers"
+        },
+        {
+          "1": "",
+          "Property Details": "DEMOGRAPHICS"
+        },
+        {
+          "1": "67",
+          "Property Details": "Overview"
+        },
+        {
+          "1": "68",
+          "Property Details": "Age & Education"
+        },
+        {
+          "1": "69",
+          "Property Details": "Ethnicity"
+        },
+        {
+          "1": "",
+          "Property Details": "MULTI-FAMILY SUBMARKET REPORT"
+        },
+        {
+          "1": "71",
+          "Property Details": "Submarket Key Statistics"
+        },
+        {
+          "1": "72",
+          "Property Details": "Vacancy"
+        },
+        {
+          "1": "75",
+          "Property Details": "Rent"
+        },
+        {
+          "1": "77",
+          "Property Details": "Construction"
+        }
+      ],
+      "row_count": 32,
+      "column_count": 2,
+      "markdown": "|    | Property Details                     | 1   |\n|---:|:-------------------------------------|:----|\n|  0 | RENT COMPS                           |     |\n|  1 | Map & List                           | 6   |\n|  2 | Photo Comparison                     | 8   |\n|  3 | Rent Comps Details                   | 9   |\n|  4 | Unit Mix Summary                     | 15  |\n|  5 | Ranking Chart By Bedroom             | 16  |\n|  6 | Changes in Rent Comps                | 18  |\n|  7 | Rent Trend Charts                    | 20  |\n|  8 | RentTrend Data                       | 25  |\n|  9 | CONSTRUCTION                         |     |\n| 10 | Overall Construction Map & Summary   | 27  |\n| 11 | Under Construction Map & List        | 28  |\n| 12 | Under Construction Details           | 30  |\n| 13 | Deliveries Past 12 Months Map & List | 33  |\n| 14 | Delivered Property Details           | 35  |\n| 15 | Construction Summary                 | 44  |\n| 16 | SALE COMPS                           |     |\n| 17 | Map & List                           | 50  |\n| 18 | Sale Comp Details                    | 52  |\n| 19 | Sales Volume                         | 60  |\n| 20 | Sales Pricing                        | 61  |\n| 21 | Cap Rates                            | 63  |\n| 22 | Top Buyers & Sellers                 | 64  |\n| 23 | DEMOGRAPHICS                         |     |\n| 24 | Overview                             | 67  |\n| 25 | Age & Education                      | 68  |\n| 26 | Ethnicity                            | 69  |\n| 27 | MULTI-FAMILY SUBMARKET REPORT        |     |\n| 28 | Submarket Key Statistics             | 71  |\n| 29 | Vacancy                              | 72  |\n| 30 | Rent                                 | 75  |\n| 31 | Construction                         | 77  |",
+      "html": "<table><tbody><tr><td>Property Details</td><th>1</th></tr><tr><th>RENT COMPS</th><td></td></tr><tr><th>Map &amp; List</th><td>6</td></tr><tr><th>Photo Comparison</th><td>8</td></tr><tr><th>Rent Comps Details</th><td>9</td></tr><tr><th>Unit Mix Summary</th><td>15</td></tr><tr><th>Ranking Chart By Bedroom</th><td>16</td></tr><tr><th>Changes in Rent Comps</th><td>18</td></tr><tr><th>Rent Trend Charts</th><td>20</td></tr><tr><th>RentTrend Data</th><td>25</td></tr><tr><th>CONSTRUCTION</th><td></td></tr><tr><th>Overall Construction Map &amp; Summary</th><td>27</td></tr><tr><th>Under Construction Map &amp; List</th><td>28</td></tr><tr><th>Under Construction Details</th><td>30</td></tr><tr><th>Deliveries Past 12 Months Map &amp; List</th><td>33</td></tr><tr><th>Delivered Property Details</th><td>35</td></tr><tr><th>Construction Summary</th><td>44</td></tr><tr><th>SALE COMPS</th><td></td></tr><tr><th>Map &amp; List</th><td>50</td></tr><tr><th>Sale Comp Details</th><td>52</td></tr><tr><th>Sales Volume</th><td>60</td></tr><tr><th>Sales Pricing</th><td>61</td></tr><tr><th>Cap Rates</th><td>63</td></tr><tr><th>Top Buyers &amp; Sellers</th><td>64</td></tr><tr><th>DEMOGRAPHICS</th><td></td></tr><tr><th>Overview</th><td>67</td></tr><tr><th>Age &amp; Education</th><td>68</td></tr><tr><th>Ethnicity</th><td>69</td></tr><tr><th>MULTI-FAMILY SUBMARKET REPORT</th><td></td></tr><tr><th>Submarket Key Statistics</th><td>71</td></tr><tr><th>Vacancy</th><td>72</td></tr><tr><th>Rent</th><td>75</td></tr><tr><th>Construction</th><td>77</td></tr></tbody></table>"
+    },
+    {
+      "table_index": 1,
+      "page_number": 3,
+      "headers": [
+        "Sales",
+        "81"
+      ],
+      "column_types": {
+        "81": "numeric",
+        "Sales": "text"
+      },
+      "rows": [
+        {
+          "81": "83",
+          "Sales": "Sales Past 12 Months"
+        },
+        {
+          "81": "85",
+          "Sales": "Supply & Demand Trends"
+        },
+        {
+          "81": "87",
+          "Sales": "Vacancy & Rent"
+        },
+        {
+          "81": "89",
+          "Sales": "Sale Trends"
+        },
+        {
+          "81": "91",
+          "Sales": "Deliveries & Under Construction"
+        },
+        {
+          "81": "",
+          "Sales": "MULTI-FAMILY MARKET REPORT"
+        },
+        {
+          "81": "93",
+          "Sales": "Market Key Statistics"
+        },
+        {
+          "81": "95",
+          "Sales": "Vacancy"
+        },
+        {
+          "81": "98",
+          "Sales": "Rent"
+        },
+        {
+          "81": "102",
+          "Sales": "Construction"
+        },
+        {
+          "81": "104",
+          "Sales": "Under Construction Properties"
+        },
+        {
+          "81": "106",
+          "Sales": "Sales"
+        },
+        {
+          "81": "108",
+          "Sales": "Sales Past 12 Months"
+        },
+        {
+          "81": "110",
+          "Sales": "Economy"
+        },
+        {
+          "81": "115",
+          "Sales": "Market Submarkets"
+        },
+        {
+          "81": "118",
+          "Sales": "Supply & Demand Trends"
+        },
+        {
+          "81": "120",
+          "Sales": "Vacancy & Rent"
+        },
+        {
+          "81": "122",
+          "Sales": "Sale Trends"
+        },
+        {
+          "81": "124",
+          "Sales": "Deliveries & Under Construction"
+        }
+      ],
+      "row_count": 19,
+      "column_count": 2,
+      "markdown": "|    | Sales                           | 81   |\n|---:|:--------------------------------|:-----|\n|  0 | Sales Past 12 Months            | 83   |\n|  1 | Supply & Demand Trends          | 85   |\n|  2 | Vacancy & Rent                  | 87   |\n|  3 | Sale Trends                     | 89   |\n|  4 | Deliveries & Under Construction | 91   |\n|  5 | MULTI-FAMILY MARKET REPORT      |      |\n|  6 | Market Key Statistics           | 93   |\n|  7 | Vacancy                         | 95   |\n|  8 | Rent                            | 98   |\n|  9 | Construction                    | 102  |\n| 10 | Under Construction Properties   | 104  |\n| 11 | Sales                           | 106  |\n| 12 | Sales Past 12 Months            | 108  |\n| 13 | Economy                         | 110  |\n| 14 | Market Submarkets               | 115  |\n| 15 | Supply & Demand Trends          | 118  |\n| 16 | Vacancy & Rent                  | 120  |\n| 17 | Sale Trends                     | 122  |\n| 18 | Deliveries & Under Construction | 124  |",
+      "html": "<table><tbody><tr><td>Sales</td><th>81</th></tr><tr><th>Sales Past 12 Months</th><td>83</td></tr><tr><th>Supply &amp; Demand Trends</th><td>85</td></tr><tr><th>Vacancy &amp; Rent</th><td>87</td></tr><tr><th>Sale Trends</th><td>89</td></tr><tr><th>Deliveries &amp; Under Construction</th><td>91</td></tr><tr><th>MULTI-FAMILY MARKET REPORT</th><td></td></tr><tr><th>Market Key Statistics</th><td>93</td></tr><tr><th>Vacancy</th><td>95</td></tr><tr><th>Rent</th><td>98</td></tr><tr><th>Construction</th><td>102</td></tr><tr><th>Under Construction Properties</th><td>104</td></tr><tr><th>Sales</th><td>106</td></tr><tr><th>Sales Past 12 Months</th><td>108</td></tr><tr><th>Economy</th><td>110</td></tr><tr><th>Market Submarkets</th><td>115</td></tr><tr><th>Supply &amp; Demand Trends</th><td>118</td></tr><tr><th>Vacancy &amp; Rent</th><td>120</td></tr><tr><th>Sale Trends</th><td>122</td></tr><tr><th>Deliveries &amp; Under Construction</th><td>124</td></tr></tbody></table>"
+    },
+    {
+      "table_index": 2,
+      "page_number": 4,
+      "headers": [
+        "PROPERTY",
+        "",
+        "PROPERTY MANAGER"
+      ],
+      "column_types": {
+        "PROPERTY": "text",
+        "": "text",
+        "PROPERTY MANAGER": "text"
+      },
+      "rows": [
+        {
+          "PROPERTY": "No. of Units:",
+          "": "148",
+          "PROPERTY MANAGER": "Chamberlin - 1609 WGlendale"
+        },
+        {
+          "PROPERTY": "Stories:",
+          "": "2",
+          "PROPERTY MANAGER": "(602) 441-2939"
+        },
+        {
+          "PROPERTY": "Avg. Unit Size:",
+          "": "1,021 SF",
+          "PROPERTY MANAGER": ""
+        },
+        {
+          "PROPERTY": "Type:",
+          "": "Apartments - All",
+          "PROPERTY MANAGER": ""
+        },
+        {
+          "PROPERTY": "Rent Type:",
+          "": "Market",
+          "PROPERTY MANAGER": "OWNER"
+        },
+        {
+          "PROPERTY": "Year Built:",
+          "": "1973",
+          "PROPERTY MANAGER": "Urban Communities"
+        },
+        {
+          "PROPERTY": "Parking:",
+          "": "211 Spaces; 1.4 perU…",
+          "PROPERTY MANAGER": "Purchased Jun 2019"
+        },
+        {
+          "PROPERTY": "Distance to Transit:",
+          "": "-",
+          "PROPERTY MANAGER": "$14,725,000 ($99,493/Unit)"
+        }
+      ],
+      "row_count": 8,
+      "column_count": 3,
+      "markdown": "|    | PROPERTY             |                       | PROPERTY MANAGER            |\n|---:|:---------------------|:----------------------|:----------------------------|\n|  0 | No. of Units:        | 148                   | Chamberlin - 1609 WGlendale |\n|  1 | Stories:             | 2                     | (602) 441-2939              |\n|  2 | Avg. Unit Size:      | 1,021 SF              |                             |\n|  3 | Type:                | Apartments - All      |                             |\n|  4 | Rent Type:           | Market                | OWNER                       |\n|  5 | Year Built:          | 1973                  | Urban Communities           |\n|  6 | Parking:             | 211 Spaces; 1.4 perU… | Purchased Jun 2019          |\n|  7 | Distance to Transit: | -                     | $14,725,000 ($99,493/Unit)  |",
+      "html": "<table><tbody><tr><th>PROPERTY</th><td></td><th>PROPERTY MANAGER</th></tr><tr><td>No. of Units:</td><td>148</td><td>Chamberlin - 1609 WGlendale</td></tr><tr><td>Stories:</td><td>2</td><td>(602) 441-2939</td></tr><tr><td>Avg. Unit Size:</td><td>1,021 SF</td><td></td></tr><tr><td>Type:</td><td>Apartments - All</td><td></td></tr><tr><td>Rent Type:</td><td>Market</td><td>OWNER</td></tr><tr><td>Year Built:</td><td>1973</td><td>Urban Communities</td></tr><tr><td>Parking:</td><td>211 Spaces; 1.4 perU…</td><td>Purchased Jun 2019</td></tr><tr><td>Distance to Transit:</td><td>-</td><td>$14,725,000 ($99,493/Unit)</td></tr></tbody></table>"
+    },
+    {
+      "table_index": 3,
+      "error": "'DataFrame' object has no attribute 'tolist'"
+    },
+    {
+      "table_index": 4,
+      "page_number": 4,
+      "headers": [
+        "Bed",
+        "Bath",
+        "Avg SF",
+        "Unit Mix.Units",
+        "Unit Mix.Mix%",
+        "Availability.Units",
+        "Availability.Mix%",
+        "Avg Asking Rent.Per Unit",
+        "Avg Asking Rent.Per SF",
+        "Avg Effective Rent.Per Unit",
+        "Avg Effective Rent.Per SF",
+        "Concessions"
+      ],
+      "column_types": {
+        "Bed": "text",
+        "Bath": "text",
+        "Avg SF": "text",
+        "Unit Mix.Units": "text",
+        "Unit Mix.Mix%": "percentage",
+        "Availability.Units": "text",
+        "Availability.Mix%": "percentage",
+        "Avg Asking Rent.Per Unit": "text",
+        "Avg Asking Rent.Per SF": "text",
+        "Avg Effective Rent.Per Unit": "text",
+        "Avg Effective Rent.Per SF": "text",
+        "Concessions": "text"
+      },
+      "rows": [
+        {
+          "Bed": "2",
+          "Bath": "1",
+          "Avg SF": "865",
+          "Unit Mix.Units": "28",
+          "Unit Mix.Mix%": "18.9%",
+          "Availability.Units": "0",
+          "Availability.Mix%": "0.0%",
+          "Avg Asking Rent.Per Unit": "$1,385",
+          "Avg Asking Rent.Per SF": "$1.60",
+          "Avg Effective Rent.Per Unit": "$1,371",
+          "Avg Effective Rent.Per SF": "$1.59",
+          "Concessions": "1.0%"
+        },
+        {
+          "Bed": "2",
+          "Bath": "2",
+          "Avg SF": "945",
+          "Unit Mix.Units": "66",
+          "Unit Mix.Mix%": "44.6%",
+          "Availability.Units": "4",
+          "Availability.Mix%": "6.1%",
+          "Avg Asking Rent.Per Unit": "$1,349",
+          "Avg Asking Rent.Per SF": "$1.43",
+          "Avg Effective Rent.Per Unit": "$1,336",
+          "Avg Effective Rent.Per SF": "$1.41",
+          "Concessions": "1.0%"
+        },
+        {
+          "Bed": "3",
+          "Bath": "2",
+          "Avg SF": "1,080",
+          "Unit Mix.Units": "26",
+          "Unit Mix.Mix%": "17.6%",
+          "Availability.Units": "1",
+          "Availability.Mix%": "3.9%",
+          "Avg Asking Rent.Per Unit": "$1,599",
+          "Avg Asking Rent.Per SF": "$1.48",
+          "Avg Effective Rent.Per Unit": "$1,583",
+          "Avg Effective Rent.Per SF": "$1.47",
+          "Concessions": "1.0%"
+        },
+        {
+          "Bed": "3",
+          "Bath": "2",
+          "Avg SF": "1,305",
+          "Unit Mix.Units": "28",
+          "Unit Mix.Mix%": "18.9%",
+          "Availability.Units": "1",
+          "Availability.Mix%": "3.6%",
+          "Avg Asking Rent.Per Unit": "$1,774",
+          "Avg Asking Rent.Per SF": "$1.36",
+          "Avg Effective Rent.Per Unit": "$1,756",
+          "Avg Effective Rent.Per SF": "$1.35",
+          "Concessions": "1.0%"
+        },
+        {
+          "Bed": "Totals",
+          "Bath": "Totals",
+          "Avg SF": "Avg SF",
+          "Unit Mix.Units": "Units",
+          "Unit Mix.Mix%": "Mix%",
+          "Availability.Units": "Units",
+          "Availability.Mix%": "Mix%",
+          "Avg Asking Rent.Per Unit": "Per Unit",
+          "Avg Asking Rent.Per SF": "Per SF",
+          "Avg Effective Rent.Per Unit": "Per Unit",
+          "Avg Effective Rent.Per SF": "Per SF",
+          "Concessions": "Concessions"
+        },
+        {
+          "Bed": "All 2 Beds",
+          "Bath": "All 2 Beds",
+          "Avg SF": "921",
+          "Unit Mix.Units": "94",
+          "Unit Mix.Mix%": "63.5%",
+          "Availability.Units": "4",
+          "Availability.Mix%": "4.3%",
+          "Avg Asking Rent.Per Unit": "$1,360",
+          "Avg Asking Rent.Per SF": "$1.48",
+          "Avg Effective Rent.Per Unit": "$1,346",
+          "Avg Effective Rent.Per SF": "$1.46",
+          "Concessions": "1.0%"
+        },
+        {
+          "Bed": "All 3 Beds",
+          "Bath": "All 3 Beds",
+          "Avg SF": "1,197",
+          "Unit Mix.Units": "54",
+          "Unit Mix.Mix%": "36.5%",
+          "Availability.Units": "2",
+          "Availability.Mix%": "3.7%",
+          "Avg Asking Rent.Per Unit": "$1,690",
+          "Avg Asking Rent.Per SF": "$1.41",
+          "Avg Effective Rent.Per Unit": "$1,673",
+          "Avg Effective Rent.Per SF": "$1.40",
+          "Concessions": "1.0%"
+        },
+        {
+          "Bed": "Totals",
+          "Bath": "Totals",
+          "Avg SF": "1,022",
+          "Unit Mix.Units": "148",
+          "Unit Mix.Mix%": "100%",
+          "Availability.Units": "6",
+          "Availability.Mix%": "4.1%",
+          "Avg Asking Rent.Per Unit": "$1,480",
+          "Avg Asking Rent.Per SF": "$1.45",
+          "Avg Effective Rent.Per Unit": "$1,465",
+          "Avg Effective Rent.Per SF": "$1.43",
+          "Concessions": "1.0%"
+        }
+      ],
+      "row_count": 8,
+      "column_count": 12,
+      "markdown": "|    | Bed        | Bath       | Avg SF   | Unit Mix.Units   | Unit Mix.Mix%   | Availability.Units   | Availability.Mix%   | Avg Asking Rent.Per Unit   | Avg Asking Rent.Per SF   | Avg Effective Rent.Per Unit   | Avg Effective Rent.Per SF   | Concessions   |\n|---:|:-----------|:-----------|:---------|:-----------------|:----------------|:---------------------|:--------------------|:---------------------------|:-------------------------|:------------------------------|:----------------------------|:--------------|\n|  0 | 2          | 1          | 865      | 28               | 18.9%           | 0                    | 0.0%                | $1,385                     | $1.60                    | $1,371                        | $1.59                       | 1.0%          |\n|  1 | 2          | 2          | 945      | 66               | 44.6%           | 4                    | 6.1%                | $1,349                     | $1.43                    | $1,336                        | $1.41                       | 1.0%          |\n|  2 | 3          | 2          | 1,080    | 26               | 17.6%           | 1                    | 3.9%                | $1,599                     | $1.48                    | $1,583                        | $1.47                       | 1.0%          |\n|  3 | 3          | 2          | 1,305    | 28               | 18.9%           | 1                    | 3.6%                | $1,774                     | $1.36                    | $1,756                        | $1.35                       | 1.0%          |\n|  4 | Totals     | Totals     | Avg SF   | Units            | Mix%            | Units                | Mix%                | Per Unit                   | Per SF                   | Per Unit                      | Per SF                      | Concessions   |\n|  5 | All 2 Beds | All 2 Beds | 921      | 94               | 63.5%           | 4                    | 4.3%                | $1,360                     | $1.48                    | $1,346                        | $1.46                       | 1.0%          |\n|  6 | All 3 Beds | All 3 Beds | 1,197    | 54               | 36.5%           | 2                    | 3.7%                | $1,690                     | $1.41                    | $1,673                        | $1.40                       | 1.0%          |\n|  7 | Totals     | Totals     | 1,022    | 148              | 100%            | 6                    | 4.1%                | $1,480                     | $1.45                    | $1,465                        | $1.43                       | 1.0%          |",
+      "html": "<table><tbody><tr><td></td><td></td><td></td><th colspan=\"2\">Unit Mix</th><th colspan=\"2\">Availability</th><th colspan=\"2\">Avg Asking Rent</th><th colspan=\"2\">Avg Effective Rent</th><td></td></tr><tr><th>Bed</th><th>Bath</th><th>Avg SF</th><th>Units</th><th>Mix%</th><th>Units</th><th>Mix%</th><th>Per Unit</th><th>Per SF</th><th>Per Unit</th><th>Per SF</th><th>Concessions</th></tr><tr><td>2</td><td>1</td><td>865</td><td>28</td><td>18.9%</td><td>0</td><td>0.0%</td><td>$1,385</td><td>$1.60</td><td>$1,371</td><td>$1.59</td><td>1.0%</td></tr><tr><td>2</td><td>2</td><td>945</td><td>66</td><td>44.6%</td><td>4</td><td>6.1%</td><td>$1,349</td><td>$1.43</td><td>$1,336</td><td>$1.41</td><td>1.0%</td></tr><tr><td>3</td><td>2</td><td>1,080</td><td>26</td><td>17.6%</td><td>1</td><td>3.9%</td><td>$1,599</td><td>$1.48</td><td>$1,583</td><td>$1.47</td><td>1.0%</td></tr><tr><td>3</td><td>2</td><td>1,305</td><td>28</td><td>18.9%</td><td>1</td><td>3.6%</td><td>$1,774</td><td>$1.36</td><td>$1,756</td><td>$1.35</td><td>1.0%</td></tr><tr><td colspan=\"2\">Totals</td><td>Avg SF</td><td>Units</td><td>Mix%</td><td>Units</td><td>Mix%</td><td>Per Unit</td><td>Per SF</td><td>Per Unit</td><td>Per SF</td><td>Concessions</td></tr><tr><td colspan=\"2\">All 2 Beds</td><td>921</td><td>94</td><td>63.5%</td><td>4</td><td>4.3%</td><td>$1,360</td><td>$1.48</td><td>$1,346</td><td>$1.46</td><td>1.0%</td></tr><tr><td colspan=\"2\">All 3 Beds</td><td>1,197</td><td>54</td><td>36.5%</td><td>2</td><td>3.7%</td><td>$1,690</td><td>$1.41</td><td>$1,673</td><td>$1.40</td><td>1.0%</td></tr><tr><td colspan=\"2\">Totals</td><td>1,022</td><td>148</td><td>100%</td><td>6</td><td>4.1%</td><td>$1,480</td><td>$1.45</td><td>$1,465</td><td>$1.43</td><td>1.0%</td></tr></tbody></table>"
+    },
+    {
+      "table_index": 5,
+      "page_number": 4,
+      "headers": [
+        "Clubhouse",
+        "Courtyard",
+        "Fitness Center"
+      ],
+      "column_types": {
+        "Clubhouse": "text",
+        "Courtyard": "text",
+        "Fitness Center": "text"
+      },
+      "rows": [
+        {
+          "Clubhouse": "Laundry Facilities",
+          "Courtyard": "Maintenance on site",
+          "Fitness Center": "Pet Play Area"
+        },
+        {
+          "Clubhouse": "Picnic Area",
+          "Courtyard": "Planned Social Activities",
+          "Fitness Center": "Playground"
+        },
+        {
+          "Clubhouse": "Pool",
+          "Courtyard": "Wi-Fi",
+          "Fitness Center": ""
+        }
+      ],
+      "row_count": 3,
+      "column_count": 3,
+      "markdown": "|    | Clubhouse          | Courtyard                 | Fitness Center   |\n|---:|:-------------------|:--------------------------|:-----------------|\n|  0 | Laundry Facilities | Maintenance on site       | Pet Play Area    |\n|  1 | Picnic Area        | Planned Social Activities | Playground       |\n|  2 | Pool               | Wi-Fi                     |                  |",
+      "html": "<table><tbody><tr><th>Clubhouse</th><th>Courtyard</th><th>Fitness Center</th></tr><tr><td>Laundry Facilities</td><td>Maintenance on site</td><td>Pet Play Area</td></tr><tr><td>Picnic Area</td><td>Planned Social Activities</td><td>Playground</td></tr><tr><td>Pool</td><td>Wi-Fi</td><td></td></tr></tbody></table>"
+    }
+  ],
+  "sections_raw": [
+    {
+      "header": "1609 W Glendale Ave",
+      "level": 1,
+      "page_number": 1,
+      "content": [
+        "Urban 148 148 Unit Apartment Building",
+        "Phoenix, Arizona - North Phoenix Neighborhood"
+      ]
+    },
+    {
+      "header": "PREPARED BY",
+      "level": 1,
+      "page_number": 1,
+      "content": []
+    },
+    {
+      "header": "SUBJECT PROPERTY",
+      "level": 1,
+      "page_number": 2,
+      "content": []
+    },
+    {
+      "header": "1609 W Glendale Ave - Urban 148",
+      "level": 1,
+      "page_number": 3,
+      "content": []
+    },
+    {
+      "header": "Subject Property",
+      "level": 1,
+      "page_number": 4,
+      "content": []
+    },
+    {
+      "header": "1609 W Glendale Ave - Urban 148",
+      "level": 1,
+      "page_number": 4,
+      "content": [
+        "Phoenix, Arizona - North Phoenix Neighborhood"
+      ]
+    },
+    {
+      "header": "ASKING RENTS PER UNIT/SF",
+      "level": 1,
+      "page_number": 4,
+      "content": [
+        "VACANCY"
+      ]
+    },
+    {
+      "header": "12 MONTH ABSORPTION",
+      "level": 1,
+      "page_number": 4,
+      "content": []
+    },
+    {
+      "header": "UNIT BREAKDOWN",
+      "level": 1,
+      "page_number": 4,
+      "content": [
+        "Estimate",
+        "Updated January 02, 2025"
+      ]
+    },
+    {
+      "header": "SITE AMENITIES",
+      "level": 1,
+      "page_number": 4,
+      "content": []
+    },
+    {
+      "header": "Subject Property",
+      "level": 1,
+      "page_number": 5,
+      "content": []
+    },
+    {
+      "header": "UNIT AMENITIES",
+      "level": 2,
+      "page_number": 5,
+      "content": [
+        "Air Conditioning",
+        "Balcony",
+        "Ceiling Fans",
+        "Dishwasher",
+        "Disposal",
+        "Double Pane Windows",
+        "Double Vanities",
+        "Eat-in Kitchen",
+        "Granite Countertops",
+        "Hardwood Floors",
+        "Heating",
+        "High Speed Internet Access",
+        "Kitchen",
+        "Pantry",
+        "Patio",
+        "Range",
+        "Stainless Steel Appliances",
+        "Tile Floors",
+        "Walk-In Closets",
+        "Washer/Dryer"
+      ]
+    },
+    {
+      "header": "RECURRING EXPENSES",
+      "level": 2,
+      "page_number": 5,
+      "content": [
+        "Free Gas, Water, Electricity, Heat, Trash…"
+      ]
+    },
+    {
+      "header": "ONE TIME EXPENSES",
+      "level": 2,
+      "page_number": 5,
+      "content": [
+        "Admin Fee $150",
+        "Application Fee $50"
+      ]
+    },
+    {
+      "header": "PET POLICY",
+      "level": 2,
+      "page_number": 5,
+      "content": [
+        "Dog Allowed Cat Allowed"
+      ]
+    },
+    {
+      "header": "Subject Property",
+      "level": 1,
+      "page_number": 6,
+      "content": [
+        "Primary",
+        "Building",
+        "Building",
+        "Building",
+        "URBAN"
+      ]
+    },
+    {
+      "header": "Subject Property",
+      "level": 1,
+      "page_number": 7,
+      "content": [
+        "Interior",
+        "Interior",
+        "Interior",
+        "Building"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "page_number": 1,
+      "text_items": [
+        {
+          "text": "Urban 148 148 Unit Apartment Building",
+          "label": "text",
+          "level": 1
+        },
+        {
+          "text": "Phoenix, Arizona - North Phoenix Neighborhood",
+          "label": "text",
+          "level": 1
+        }
+      ],
+      "tables": [],
+      "headers": [
+        {
+          "text": "1609 W Glendale Ave",
+          "level": 1
+        },
+        {
+          "text": "PREPARED BY",
+          "level": 1
+        }
+      ]
+    },
+    {
+      "page_number": 2,
+      "text_items": [],
+      "tables": [
+        {
+          "table_ref": 5360129968,
+          "level": 1
+        }
+      ],
+      "headers": [
+        {
+          "text": "SUBJECT PROPERTY",
+          "level": 1
+        }
+      ]
+    },
+    {
+      "page_number": 3,
+      "text_items": [],
+      "tables": [
+        {
+          "table_ref": 5360130672,
+          "level": 1
+        }
+      ],
+      "headers": [
+        {
+          "text": "1609 W Glendale Ave - Urban 148",
+          "level": 1
+        }
+      ]
+    },
+    {
+      "page_number": 4,
+      "text_items": [
+        {
+          "text": "Phoenix, Arizona - North Phoenix Neighborhood",
+          "label": "text",
+          "level": 1
+        },
+        {
+          "text": "VACANCY",
+          "label": "text",
+          "level": 1
+        },
+        {
+          "text": "Estimate",
+          "label": "text",
+          "level": 1
+        },
+        {
+          "text": "Updated January 02, 2025",
+          "label": "text",
+          "level": 1
+        }
+      ],
+      "tables": [
+        {
+          "table_ref": 5358510368,
+          "level": 1
+        },
+        {
+          "table_ref": 5358511040,
+          "level": 1
+        },
+        {
+          "table_ref": 5355983632,
+          "level": 1
+        },
+        {
+          "table_ref": 5355993872,
+          "level": 1
+        }
+      ],
+      "headers": [
+        {
+          "text": "Subject Property",
+          "level": 1
+        },
+        {
+          "text": "1609 W Glendale Ave - Urban 148",
+          "level": 1
+        },
+        {
+          "text": "ASKING RENTS PER UNIT/SF",
+          "level": 1
+        },
+        {
+          "text": "12 MONTH ABSORPTION",
+          "level": 1
+        },
+        {
+          "text": "UNIT BREAKDOWN",
+          "level": 1
+        },
+        {
+          "text": "SITE AMENITIES",
+          "level": 1
+        }
+      ]
+    },
+    {
+      "page_number": 5,
+      "text_items": [
+        {
+          "text": "Air Conditioning",
+          "label": "text",
+          "level": 2
+        },
+        {
+          "text": "Balcony",
+          "label": "text",
+          "level": 2
+        },
+        {
+          "text": "Ceiling Fans",
+          "label": "text",
+          "level": 2
+        },
+        {
+          "text": "Dishwasher",
+          "label": "text",
+          "level": 2
+        },
+        {
+          "text": "Disposal",
+          "label": "text",
+          "level": 2
+        },
+        {
+          "text": "Double Pane Windows",
+          "label": "text",
+          "level": 2
+        },
+        {
+          "text": "Double Vanities",
+          "label": "text",
+          "level": 2
+        },
+        {
+          "text": "Eat-in Kitchen",
+          "label": "text",
+          "level": 2
+        },
+        {
+          "text": "Granite Countertops",
+          "label": "text",
+          "level": 2
+        },
+        {
+          "text": "Hardwood Floors",
+          "label": "text",
+          "level": 2
+        },
+        {
+          "text": "Heating",
+          "label": "text",
+          "level": 2
+        },
+        {
+          "text": "High Speed Internet Access",
+          "label": "text",
+          "level": 2
+        },
+        {
+          "text": "Kitchen",
+          "label": "text",
+          "level": 2
+        },
+        {
+          "text": "Pantry",
+          "label": "text",
+          "level": 2
+        },
+        {
+          "text": "Patio",
+          "label": "text",
+          "level": 2
+        },
+        {
+          "text": "Range",
+          "label": "text",
+          "level": 2
+        },
+        {
+          "text": "Stainless Steel Appliances",
+          "label": "text",
+          "level": 2
+        },
+        {
+          "text": "Tile Floors",
+          "label": "text",
+          "level": 2
+        },
+        {
+          "text": "Walk-In Closets",
+          "label": "text",
+          "level": 2
+        },
+        {
+          "text": "Washer/Dryer",
+          "label": "text",
+          "level": 2
+        },
+        {
+          "text": "Free Gas, Water, Electricity, Heat, Trash…",
+          "label": "text",
+          "level": 2
+        },
+        {
+          "text": "Admin Fee $150",
+          "label": "text",
+          "level": 2
+        },
+        {
+          "text": "Application Fee $50",
+          "label": "text",
+          "level": 2
+        },
+        {
+          "text": "Dog Allowed Cat Allowed",
+          "label": "text",
+          "level": 1
+        }
+      ],
+      "tables": [],
+      "headers": [
+        {
+          "text": "Subject Property",
+          "level": 1
+        },
+        {
+          "text": "UNIT AMENITIES",
+          "level": 2
+        },
+        {
+          "text": "RECURRING EXPENSES",
+          "level": 2
+        },
+        {
+          "text": "ONE TIME EXPENSES",
+          "level": 2
+        },
+        {
+          "text": "PET POLICY",
+          "level": 2
+        }
+      ]
+    },
+    {
+      "page_number": 6,
+      "text_items": [
+        {
+          "text": "Primary",
+          "label": "caption",
+          "level": 2
+        },
+        {
+          "text": "Building",
+          "label": "caption",
+          "level": 1
+        },
+        {
+          "text": "Building",
+          "label": "caption",
+          "level": 1
+        },
+        {
+          "text": "Building",
+          "label": "caption",
+          "level": 1
+        },
+        {
+          "text": "URBAN",
+          "label": "text",
+          "level": 1
+        }
+      ],
+      "tables": [],
+      "headers": [
+        {
+          "text": "Subject Property",
+          "level": 1
+        }
+      ]
+    },
+    {
+      "page_number": 7,
+      "text_items": [
+        {
+          "text": "Interior",
+          "label": "caption",
+          "level": 1
+        },
+        {
+          "text": "Interior",
+          "label": "caption",
+          "level": 1
+        },
+        {
+          "text": "Interior",
+          "label": "caption",
+          "level": 1
+        },
+        {
+          "text": "Building",
+          "label": "caption",
+          "level": 1
+        }
+      ],
+      "tables": [],
+      "headers": [
+        {
+          "text": "Subject Property",
+          "level": 1
+        }
+      ]
+    }
+  ],
+  "raw_text": "<!-- image -->\n\n## 1609 W Glendale Ave\n\nUrban 148 148 Unit Apartment Building\n\nPhoenix, Arizona - North Phoenix Neighborhood\n\n## PREPARED BY\n\n<!-- image -->\n\n## SUBJECT PROPERTY\n\n| Property Details                     | 1   |\n|--------------------------------------|-----|\n| RENT COMPS                           |     |\n| Map & List                           | 6   |\n| Photo Comparison                     | 8   |\n| Rent Comps Details                   | 9   |\n| Unit Mix Summary                     | 15  |\n| Ranking Chart By Bedroom             | 16  |\n| Changes in Rent Comps                | 18  |\n| Rent Trend Charts                    | 20  |\n| RentTrend Data                       | 25  |\n| CONSTRUCTION                         |     |\n| Overall Construction Map & Summary   | 27  |\n| Under Construction Map & List        | 28  |\n| Under Construction Details           | 30  |\n| Deliveries Past 12 Months Map & List | 33  |\n| Delivered Property Details           | 35  |\n| Construction Summary                 | 44  |\n| SALE COMPS                           |     |\n| Map & List                           | 50  |\n| Sale Comp Details                    | 52  |\n| Sales Volume                         | 60  |\n| Sales Pricing                        | 61  |\n| Cap Rates                            | 63  |\n| Top Buyers & Sellers                 | 64  |\n| DEMOGRAPHICS                         |     |\n| Overview                             | 67  |\n| Age & Education                      | 68  |\n| Ethnicity                            | 69  |\n| MULTI-FAMILY SUBMARKET REPORT        |     |\n| Submarket Key Statistics             | 71  |\n| Vacancy                              | 72  |\n| Rent                                 | 75  |\n| Construction                         | 77  |\n\n<!-- image -->\n\n## 1609 W Glendale Ave - Urban 148\n\n| Sales                           | 81   |\n|---------------------------------|------|\n| Sales Past 12 Months            | 83   |\n| Supply & Demand Trends          | 85   |\n| Vacancy & Rent                  | 87   |\n| Sale Trends                     | 89   |\n| Deliveries & Under Construction | 91   |\n| MULTI-FAMILY MARKET REPORT      |      |\n| Market Key Statistics           | 93   |\n| Vacancy                         | 95   |\n| Rent                            | 98   |\n| Construction                    | 102  |\n| Under Construction Properties   | 104  |\n| Sales                           | 106  |\n| Sales Past 12 Months            | 108  |\n| Economy                         | 110  |\n| Market Submarkets               | 115  |\n| Supply & Demand Trends          | 118  |\n| Vacancy & Rent                  | 120  |\n| Sale Trends                     | 122  |\n| Deliveries & Under Construction | 124  |\n\n<!-- image -->\n\n## Subject Property\n\n## 1609 W Glendale Ave - Urban 148\n\nPhoenix, Arizona - North Phoenix Neighborhood\n\n<!-- image -->\n\n## ASKING RENTS PER UNIT/SF\n\n| PROPERTY             |                       | PROPERTY MANAGER            |\n|----------------------|-----------------------|-----------------------------|\n| No. of Units:        | 148                   | Chamberlin - 1609 WGlendale |\n| Stories:             | 2                     | (602) 441-2939              |\n| Avg. Unit Size:      | 1,021 SF              |                             |\n| Type:                | Apartments - All      |                             |\n| Rent Type:           | Market                | OWNER                       |\n| Year Built:          | 1973                  | Urban Communities           |\n| Parking:             | 211 Spaces; 1.4 perU… | Purchased Jun 2019          |\n| Distance to Transit: | -                     | $14,725,000 ($99,493/Unit)  |\n\nVACANCY\n\n## 12 MONTH ABSORPTION\n\n| Current:      | $1,480   | $1.45 /SF   | Current:      | 16.2%   | 24 Units    | Current:          | (19) Units   |\n|---------------|----------|-------------|---------------|---------|-------------|-------------------|--------------|\n| Last Quarter: | $1,471   | $1.44 /SF   | Last Quarter: | 16.2%   | 24 Units    | Competitor Total: | 17 Units     |\n| Year Ago:     | $1,597   | $1.56 /SF   | Year Ago:     | 5.4%    | 8 Units     | Competitor Avg:   | 3.4 Units    |\n| Competitors:  | $1,223   | $1.58 /SF   | Competitors:  | 8.6%    | 80 Units    | Submarket Total:  | 720 Units    |\n| Submarket:    | $1,373   | $1.72 /SF   | Submarket:    | 9.1%    | 4,944 Units | Submarket Avg:    | 0.6 Units    |\n\n## UNIT BREAKDOWN\n\n|            |            |        | Unit Mix   | Unit Mix   | Availability   | Availability   | Avg Asking Rent   | Avg Asking Rent   | Avg Effective Rent   | Avg Effective Rent   |             |\n|------------|------------|--------|------------|------------|----------------|----------------|-------------------|-------------------|----------------------|----------------------|-------------|\n| Bed        | Bath       | Avg SF | Units      | Mix%       | Units          | Mix%           | Per Unit          | Per SF            | Per Unit             | Per SF               | Concessions |\n| 2          | 1          | 865    | 28         | 18.9%      | 0              | 0.0%           | $1,385            | $1.60             | $1,371               | $1.59                | 1.0%        |\n| 2          | 2          | 945    | 66         | 44.6%      | 4              | 6.1%           | $1,349            | $1.43             | $1,336               | $1.41                | 1.0%        |\n| 3          | 2          | 1,080  | 26         | 17.6%      | 1              | 3.9%           | $1,599            | $1.48             | $1,583               | $1.47                | 1.0%        |\n| 3          | 2          | 1,305  | 28         | 18.9%      | 1              | 3.6%           | $1,774            | $1.36             | $1,756               | $1.35                | 1.0%        |\n| Totals     | Totals     | Avg SF | Units      | Mix%       | Units          | Mix%           | Per Unit          | Per SF            | Per Unit             | Per SF               | Concessions |\n| All 2 Beds | All 2 Beds | 921    | 94         | 63.5%      | 4              | 4.3%           | $1,360            | $1.48             | $1,346               | $1.46                | 1.0%        |\n| All 3 Beds | All 3 Beds | 1,197  | 54         | 36.5%      | 2              | 3.7%           | $1,690            | $1.41             | $1,673               | $1.40                | 1.0%        |\n| Totals     | Totals     | 1,022  | 148        | 100%       | 6              | 4.1%           | $1,480            | $1.45             | $1,465               | $1.43                | 1.0%        |\n\nEstimate\n\nUpdated January 02, 2025\n\n## SITE AMENITIES\n\n| Clubhouse          | Courtyard                 | Fitness Center   |\n|--------------------|---------------------------|------------------|\n| Laundry Facilities | Maintenance on site       | Pet Play Area    |\n| Picnic Area        | Planned Social Activities | Playground       |\n| Pool               | Wi-Fi                     |                  |\n\n<!-- image -->\n\n<!-- image -->\n\n## Subject Property\n\n## UNIT AMENITIES\n\nAir Conditioning\n\nBalcony\n\nCeiling Fans\n\nDishwasher\n\nDisposal\n\nDouble Pane Windows\n\nDouble Vanities\n\nEat-in Kitchen\n\nGranite Countertops\n\nHardwood Floors\n\nHeating\n\nHigh Speed Internet Access\n\nKitchen\n\nPantry\n\nPatio\n\nRange\n\nStainless Steel Appliances\n\nTile Floors\n\nWalk-In Closets\n\nWasher/Dryer\n\n## RECURRING EXPENSES\n\nFree Gas, Water, Electricity, Heat, Trash…\n\n## ONE TIME EXPENSES\n\nAdmin Fee $150\n\nApplication Fee $50\n\n## PET POLICY\n\nDog Allowed Cat Allowed\n\n<!-- image -->\n\n## Subject Property\n\nPrimary\n\n<!-- image -->\n\nBuilding\n\nBuilding\n\nBuilding\n\nURBAN\n\n<!-- image -->\n\n## Subject Property\n\n<!-- image -->\n\nInterior\n\n<!-- image -->\n\nInterior\n\n<!-- image -->\n\nInterior\n\n<!-- image -->\n\nBuilding\n\n<!-- image -->"
+}

@@ -214,7 +214,12 @@ class DoclingTransformer:
         property_manager_data = {}
         owner_data = {}
         
-        # First, extract from property info tables (key-value tables like PROPERTY/OWNER)
+        # First, extract property address info from first section header (e.g., "1609 W Glendale Ave")
+        address_info = self._extract_address_from_sections(sections)
+        if address_info:
+            property_data.update(address_info)
+        
+        # Extract from property info tables (key-value tables like PROPERTY/OWNER)
         if classified_tables.get("property_info"):
             for prop_table in classified_tables["property_info"]:
                 parsed = self._parse_property_info_table(prop_table)
@@ -284,6 +289,75 @@ class DoclingTransformer:
             structured["expenses"] = self._format_expenses(classified_tables["expenses"])
         
         return structured
+    
+    def _extract_address_from_sections(self, sections: List[Dict]) -> Dict[str, Any]:
+        """
+        Extract property address info from the first section header.
+        
+        CoStar reports typically have:
+        - Section header: "1609 W Glendale Ave" (street address)
+        - Content[0]: "Urban 148 148 Unit Apartment Building" (property name)
+        - Content[1]: "Phoenix, Arizona - North Phoenix Neighborhood" (city, state)
+        
+        Returns:
+            Dict with name, address, city, state keys
+        """
+        result = {}
+        
+        if not sections or len(sections) == 0:
+            return result
+        
+        first_section = sections[0]
+        header = first_section.get("header", "")
+        content = first_section.get("content", [])
+        
+        # Street address from header (e.g., "1609 W Glendale Ave")
+        if header and not header.upper().startswith(("PREPARED", "SUBJECT", "PROPERTY")):
+            result["address"] = header.strip()
+        
+        # Property name from first content line (e.g., "Urban 148 148 Unit Apartment Building")
+        if len(content) > 0:
+            name_line = content[0]
+            # Extract property name before "Unit" or numbers
+            name_match = re.match(r'^(.+?)\s+\d+\s+Unit', name_line)
+            if name_match:
+                result["name"] = name_match.group(1).strip()
+            else:
+                # Fallback: take first part before numbers
+                name_match = re.match(r'^([A-Za-z\s]+)', name_line)
+                if name_match:
+                    result["name"] = name_match.group(1).strip()
+        
+        # City and state from second content line (e.g., "Phoenix, Arizona - North Phoenix Neighborhood")
+        if len(content) > 1:
+            location_line = content[1]
+            # Parse "City, State - Neighborhood" format
+            location_match = re.match(r'^([^,]+),\s*([A-Za-z\s]+?)(?:\s*-|$)', location_line)
+            if location_match:
+                result["city"] = location_match.group(1).strip()
+                state_name = location_match.group(2).strip()
+                result["state"] = self._state_to_abbrev(state_name)
+        
+        return result
+    
+    def _state_to_abbrev(self, state_name: str) -> str:
+        """Convert state name to abbreviation."""
+        state_abbrevs = {
+            'alabama': 'AL', 'alaska': 'AK', 'arizona': 'AZ', 'arkansas': 'AR',
+            'california': 'CA', 'colorado': 'CO', 'connecticut': 'CT', 'delaware': 'DE',
+            'florida': 'FL', 'georgia': 'GA', 'hawaii': 'HI', 'idaho': 'ID',
+            'illinois': 'IL', 'indiana': 'IN', 'iowa': 'IA', 'kansas': 'KS',
+            'kentucky': 'KY', 'louisiana': 'LA', 'maine': 'ME', 'maryland': 'MD',
+            'massachusetts': 'MA', 'michigan': 'MI', 'minnesota': 'MN', 'mississippi': 'MS',
+            'missouri': 'MO', 'montana': 'MT', 'nebraska': 'NE', 'nevada': 'NV',
+            'new hampshire': 'NH', 'new jersey': 'NJ', 'new mexico': 'NM', 'new york': 'NY',
+            'north carolina': 'NC', 'north dakota': 'ND', 'ohio': 'OH', 'oklahoma': 'OK',
+            'oregon': 'OR', 'pennsylvania': 'PA', 'rhode island': 'RI', 'south carolina': 'SC',
+            'south dakota': 'SD', 'tennessee': 'TN', 'texas': 'TX', 'utah': 'UT',
+            'vermont': 'VT', 'virginia': 'VA', 'washington': 'WA', 'west virginia': 'WV',
+            'wisconsin': 'WI', 'wyoming': 'WY'
+        }
+        return state_abbrevs.get(state_name.lower(), state_name)
     
     def _classify_tables(self, tables: List[Dict]) -> Dict[str, List[Dict]]:
         """Classify tables by type based on headers."""
