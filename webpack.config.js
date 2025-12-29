@@ -52,7 +52,7 @@ export default {
     hot: true,
     proxy: [{
       context: ['/api'],
-      target: 'http://localhost:3001',
+      target: 'http://localhost:3002',
       secure: false,
       changeOrigin: true
     }]

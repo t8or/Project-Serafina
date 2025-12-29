@@ -123,19 +123,23 @@
           this.showNotification('Failed to delete file: ' + error.message, 'error');
         }
       },
-      async extractText(fileId, fileName, fileType) {
+      async extractText(fileId, fileName, fileType, processor = 'default') {
         if (this.processingFiles.has(fileId)) return;
         
         try {
           this.processingFiles.add(fileId);
-          const response = await fetch(`/api/extract/${fileId}`, {
+          const processorLabel = processor === 'docling' ? 'Docling' : 'Default';
+          this.showNotification(`Starting ${processorLabel} extraction...`, 'info');
+          
+          const response = await fetch(`/api/extract/${fileId}?pdfProcessor=${processor}`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({
               fileName,
-              fileType
+              fileType,
+              pdfProcessor: processor
             })
           });
           
@@ -144,7 +148,7 @@
           const result = await response.json();
           if (result.success) {
             // Show success notification
-            this.showNotification('Text extracted successfully!');
+            this.showNotification(`Text extracted successfully using ${processorLabel}!`);
             // Refresh the file list
             await this.fetchFiles();
           } else {
@@ -185,8 +189,8 @@
         <!-- ===== Header End ===== -->
 
         <!-- ===== Main Content Start ===== -->
-        <main>
-          <div class="mx-auto max-w-screen-2xl p-4 md:p-6 2xl:p-10">
+        <main class="h-full">
+          <div class="mx-auto max-w-screen-2xl p-4 md:p-6 2xl:p-10 h-full">
             <!-- Toast Notification -->
             <div
               x-show="showToast"
@@ -198,7 +202,8 @@
               x-transition:leave-end="opacity-0 transform translate-y-2"
               :class="{
                 'bg-green-500': toastType === 'success',
-                'bg-red-500': toastType === 'error'
+                'bg-red-500': toastType === 'error',
+                'bg-blue-500': toastType === 'info'
               }"
               class="fixed bottom-4 right-4 px-4 py-2 rounded-lg text-white shadow-lg z-50 flex items-center"
             >
@@ -217,7 +222,7 @@
             <!-- Breadcrumb End -->
 
             <div
-              class="overflow-hidden rounded-2xl border border-gray-200 bg-white px-4 pb-3 pt-4 dark:border-gray-800 dark:bg-white/[0.03] sm:px-6"
+              class="overflow-hidden rounded-2xl border border-gray-200 bg-white px-4 pb-3 pt-4 dark:border-gray-800 dark:bg-white/[0.03] sm:px-6 h-full"
             >
               <div
                 class="flex flex-col gap-2 mb-4 sm:flex-row sm:items-center sm:justify-between"
@@ -347,15 +352,17 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                               </svg>
                             </a>
+                            <!-- Extract Button (Docling) -->
                             <button
-                              @click="extractText(file.id, file.original_filename, file.file_type)"
-                              :disabled="processingFiles.has(file.id) || file.is_extracted"
+                              @click="extractText(file.id, file.original_filename, file.file_type, 'docling')"
+                              :disabled="processingFiles.has(file.id)"
                               :class="{
-                                'opacity-50 cursor-not-allowed': processingFiles.has(file.id) || file.is_extracted
+                                'opacity-50 cursor-not-allowed': processingFiles.has(file.id)
                               }"
-                              class="inline-flex items-center justify-center w-8 h-8 text-gray-500 bg-gray-100 rounded-lg hover:text-gray-700 hover:bg-gray-200 dark:text-gray-400 dark:bg-gray-800 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+                              class="inline-flex items-center justify-center w-8 h-8 text-blue-500 bg-gray-100 rounded-lg hover:text-blue-700 hover:bg-gray-200 dark:text-blue-400 dark:bg-gray-800 dark:hover:bg-gray-700 dark:hover:text-blue-200"
+                              title="Extract with Docling"
                             >
-                              <template x-if="!processingFiles.has(file.id) && !file.is_extracted">
+                              <template x-if="!processingFiles.has(file.id)">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                 </svg>
@@ -363,11 +370,6 @@
                               <template x-if="processingFiles.has(file.id)">
                                 <svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                </svg>
-                              </template>
-                              <template x-if="file.is_extracted">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                                 </svg>
                               </template>
                             </button>

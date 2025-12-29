@@ -1,6 +1,6 @@
 import express from 'express';
 import path from 'path';
-import { FileProcessor } from '../services/file_processor.js';
+import { FileProcessor, PDF_PROCESSOR_TYPES } from '../services/file_processor.js';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import { db } from '../config/database.js';
@@ -16,6 +16,13 @@ const __dirname = dirname(__filename);
 const router = express.Router();
 const processor = new FileProcessor('uploads/extracted');
 
+/**
+ * Valid PDF processor options:
+ * - 'default': Pattern-based extraction + Ollama LLM analysis (existing behavior)
+ * - 'docling': Docling ML-based document understanding (alternative)
+ */
+const VALID_PDF_PROCESSORS = Object.values(PDF_PROCESSOR_TYPES);
+
 // Add logging middleware
 router.use((req, res, next) => {
   console.log('\n=== Extract Handler Request ===');
@@ -30,11 +37,37 @@ router.use((req, res, next) => {
   next();
 });
 
+/**
+ * Extract text and data from a file.
+ * 
+ * POST /extract/:fileId
+ * 
+ * Query Parameters:
+ * - pdfProcessor: (optional) PDF processor to use: 'default' or 'docling'
+ *   - 'default': Pattern-based extraction + Ollama LLM analysis
+ *   - 'docling': Docling ML-based document understanding with TableFormer
+ * 
+ * Body Parameters (optional):
+ * - pdfProcessor: Same as query parameter (body takes precedence)
+ */
 router.post('/extract/:fileId', async (req, res) => {
   try {
     const { fileId } = req.params;
+    
+    // Get PDF processor option from query or body
+    const pdfProcessor = req.body?.pdfProcessor || req.query?.pdfProcessor || PDF_PROCESSOR_TYPES.DEFAULT;
+    
+    // Validate processor option
+    if (!VALID_PDF_PROCESSORS.includes(pdfProcessor)) {
+      return res.status(400).json({
+        success: false,
+        error: `Invalid pdfProcessor option. Valid options: ${VALID_PDF_PROCESSORS.join(', ')}`
+      });
+    }
+    
     console.log('\n=== Starting Extraction Process ===');
     console.log('Processing file ID:', fileId);
+    console.log('PDF Processor:', pdfProcessor);
     console.log('Current pool state:', {
       totalCount: db.totalCount,
       idleCount: db.idleCount,
@@ -76,9 +109,9 @@ router.post('/extract/:fileId', async (req, res) => {
     const outputPath = path.join(process.cwd(), 'uploads/extracted', outputFileName);
     console.log('Output will be saved to:', outputPath);
 
-    // Process the file
-    console.log('Starting file processing...', { filePath, file_type });
-    const result = await processor.process_file(filePath, original_filename);
+    // Process the file with selected processor
+    console.log('Starting file processing...', { filePath, file_type, pdfProcessor });
+    const result = await processor.process_file(filePath, original_filename, { pdfProcessor });
     console.log('Processing result:', result);
 
     if (result.processing_status === 'error') {
@@ -90,6 +123,7 @@ router.post('/extract/:fileId', async (req, res) => {
       success: true,
       message: 'Text extracted successfully',
       outputPath: outputPath,
+      processorUsed: pdfProcessor,
       result: result
     });
 
@@ -100,6 +134,26 @@ router.post('/extract/:fileId', async (req, res) => {
       code: error.code,
       stack: error.stack
     });
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * Check Docling processor availability.
+ * 
+ * GET /extract/docling/status
+ */
+router.get('/docling/status', async (req, res) => {
+  try {
+    const status = await processor.checkDoclingAvailability();
+    res.json({
+      success: true,
+      docling: status
+    });
+  } catch (error) {
     res.status(500).json({
       success: false,
       error: error.message

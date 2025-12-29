@@ -6,18 +6,29 @@ import { PDFProcessor } from './processors/pdf_processor.js';
 import { ImageProcessor } from './processors/image_processor.js';
 import { CSVProcessor } from './processors/csv_processor.js';
 import { ExcelProcessor } from './processors/excel_processor.js';
+import { DoclingProcessor } from './processors/docling_bridge.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Available PDF processor types
+const PDF_PROCESSOR_TYPES = {
+  DEFAULT: 'default',    // Pattern-based + Ollama LLM (existing)
+  DOCLING: 'docling'     // Docling ML-based (alternative)
+};
+
 class FileProcessor {
-  constructor(outputDir = 'processed_files') {
+  constructor(outputDir = 'processed_files', options = {}) {
     this.outputDir = outputDir;
     this.ollamaService = new OllamaService();
+    
+    // Default PDF processor type (can be overridden per-request)
+    this.defaultPdfProcessor = options.pdfProcessor || PDF_PROCESSOR_TYPES.DEFAULT;
     
     // Initialize specialized processors
     this.processors = {
       pdf: new PDFProcessor(this.ollamaService),
+      pdf_docling: new DoclingProcessor(options.doclingOptions || {}),
       image: new ImageProcessor(this.ollamaService),
       csv: new CSVProcessor(this.ollamaService),
       excel: new ExcelProcessor(this.ollamaService)
@@ -677,10 +688,26 @@ class FileProcessor {
     }
   }
 
-  getProcessorForFile(filePath) {
+  /**
+   * Get the appropriate processor for a file.
+   * 
+   * @param {string} filePath - Path to the file
+   * @param {Object} options - Processing options
+   * @param {string} options.pdfProcessor - PDF processor type: 'default' or 'docling'
+   * @returns {Object} The processor instance
+   */
+  getProcessorForFile(filePath, options = {}) {
     const ext = path.extname(filePath).toLowerCase();
+    const pdfProcessorType = options.pdfProcessor || this.defaultPdfProcessor;
+    
     switch (ext) {
       case '.pdf':
+        // Select PDF processor based on option
+        if (pdfProcessorType === PDF_PROCESSOR_TYPES.DOCLING) {
+          console.log('[FileProcessor] Using Docling PDF processor');
+          return this.processors.pdf_docling;
+        }
+        console.log('[FileProcessor] Using default PDF processor');
         return this.processors.pdf;
       case '.png':
       case '.jpg':
@@ -695,18 +722,44 @@ class FileProcessor {
         throw new Error(`Unsupported file type: ${ext}`);
     }
   }
+  
+  /**
+   * Check if Docling processor is available.
+   * 
+   * @returns {Promise<Object>} Availability status
+   */
+  async checkDoclingAvailability() {
+    try {
+      return await this.processors.pdf_docling.bridge.checkAvailability();
+    } catch (error) {
+      return {
+        available: false,
+        error: error.message
+      };
+    }
+  }
 
-  async process_file(filePath, originalFilename = null) {
+  /**
+   * Process a file with the appropriate processor.
+   * 
+   * @param {string} filePath - Path to the file
+   * @param {string|null} originalFilename - Original filename (optional)
+   * @param {Object} options - Processing options
+   * @param {string} options.pdfProcessor - PDF processor type: 'default' or 'docling'
+   * @returns {Promise<Object>} Processing result
+   */
+  async process_file(filePath, originalFilename = null, options = {}) {
     try {
       console.log('Processing file:', filePath);
       console.log('Original filename:', originalFilename);
+      console.log('Processing options:', options);
       
       // Verify file exists
       await fs.access(filePath);
       console.log('File exists and is accessible');
       
-      // Get appropriate processor
-      const processor = this.getProcessorForFile(filePath);
+      // Get appropriate processor (pass options for PDF processor selection)
+      const processor = this.getProcessorForFile(filePath, options);
       
       console.log('Selected processor:', processor.constructor.name);
       console.log('Starting file processing...');
@@ -737,13 +790,17 @@ class FileProcessor {
           console.log('Saving results to:', outputPath);
 
           // Include original filename in metadata and ensure it's preserved
+          // Also track which processor was used
+          const pdfProcessorType = options.pdfProcessor || this.defaultPdfProcessor;
           const resultWithMetadata = {
             ...result,
             metadata: {
               ...result.metadata,
               original_filename: originalFilename,
               base_filename: baseFilename,
-              output_filename: `e_${baseFilename}.json`
+              output_filename: `e_${baseFilename}.json`,
+              processor_used: processor.constructor.name,
+              pdf_processor_type: path.extname(filePath).toLowerCase() === '.pdf' ? pdfProcessorType : undefined
             }
           };
 
@@ -777,4 +834,4 @@ class FileProcessor {
   }
 }
 
-export { FileProcessor }; 
+export { FileProcessor, PDF_PROCESSOR_TYPES }; 
