@@ -5,10 +5,14 @@ import "../css/style.css";
 import Alpine from "alpinejs";
 import persist from "@alpinejs/persist";
 import flatpickr from "flatpickr";
+import ApexCharts from "apexcharts";
 
 import chart01 from "./components/charts/chart-01.js";
 import chart02 from "./components/charts/chart-02.js";
 import chart03 from "./components/charts/chart-03.js";
+
+// Expose ApexCharts globally for use in HTML pages
+window.ApexCharts = ApexCharts;
 import map01 from "./components/map-01.js";
 import "./components/calendar-init.js";
 import "./components/image-resize.js";

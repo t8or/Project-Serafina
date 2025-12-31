@@ -5,6 +5,9 @@ import uploadRouter from './src/api/uploadHandler.js';
 import extractRouter from './src/api/extractHandler.js';
 import filesRouter from './src/api/filesHandler.js';
 import fillRouter from './src/api/fillHandler.js';
+import externalDataRouter from './src/api/externalDataHandler.js';
+import scoringRouter from './src/api/scoringHandler.js';
+import propertyRouter from './src/api/propertyHandler.js';
 
 // Load environment variables
 dotenv.config();
@@ -36,14 +39,20 @@ const createRequiredDirs = async () => {
   const uploadDir = join(process.cwd(), 'uploads');
   const extractedDir = join(uploadDir, 'extracted');
   const filledDir = join(uploadDir, 'filled');
+  const externalDir = join(uploadDir, 'external');
+  const configDir = join(uploadDir, 'config');
   
   await mkdir(uploadDir, { recursive: true });
   await mkdir(extractedDir, { recursive: true });
   await mkdir(filledDir, { recursive: true });
+  await mkdir(externalDir, { recursive: true });
+  await mkdir(configDir, { recursive: true });
   
   console.log('Upload directory:', uploadDir);
   console.log('Extracted files directory:', extractedDir);
   console.log('Filled templates directory:', filledDir);
+  console.log('External data directory:', externalDir);
+  console.log('Config directory:', configDir);
 };
 
 createRequiredDirs().catch(console.error);
@@ -53,6 +62,9 @@ app.use('/api', uploadRouter);
 app.use('/api', extractRouter);
 app.use('/api/files', filesRouter);
 app.use('/api/fill', fillRouter);
+app.use('/api/external', externalDataRouter);
+app.use('/api/scoring', scoringRouter);
+app.use('/api/properties', propertyRouter);
 
 // Error handling
 app.use((err, req, res, next) => {

@@ -1,0 +1,475 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0"
+    />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Scorecard Settings | Serafina</title>
+  </head>
+  <body
+    x-data="{ 
+      page: 'scorecardConfig', 
+      loaded: true, 
+      darkMode: false, 
+      stickyMenu: false, 
+      sidebarToggle: false, 
+      scrollTop: false
+    }"
+    x-init="
+      darkMode = JSON.parse(localStorage.getItem('darkMode'));
+      $watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(value)))"
+    :class="{'dark bg-gray-900': darkMode === true}"
+  >
+    <!-- ===== Preloader Start ===== -->
+    <include src="./partials/preloader.html"></include>
+    <!-- ===== Preloader End ===== -->
+
+    <!-- ===== Page Wrapper Start ===== -->
+    <div class="flex h-screen overflow-hidden">
+      <!-- ===== Sidebar Start ===== -->
+      <include src="./partials/sidebar.html"></include>
+      <!-- ===== Sidebar End ===== -->
+
+      <!-- ===== Content Area Start ===== -->
+      <div class="relative flex flex-1 flex-col overflow-y-auto overflow-x-hidden">
+        <!-- ===== Header Start ===== -->
+        <include src="./partials/header.html"></include>
+        <!-- ===== Header End ===== -->
+
+        <!-- ===== Main Content Start ===== -->
+        <main>
+          <div class="mx-auto max-w-screen-2xl p-4 md:p-6 2xl:p-10" x-data="scorecardConfig" x-init="loadConfig()">
+            <!-- Page Header -->
+            <div class="mb-6 flex items-center justify-between">
+              <div>
+                <h2 class="text-title-md2 font-semibold text-black dark:text-white">
+                  Scorecard Settings
+                </h2>
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                  Configure the Multifamily Rating Scale weights and thresholds
+                </p>
+              </div>
+              <div class="flex gap-3">
+                <button
+                  @click="resetToDefaults()"
+                  class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+                >
+                  Reset to Defaults
+                </button>
+                <button
+                  @click="saveConfig()"
+                  :disabled="saving"
+                  class="flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-50"
+                >
+                  <svg x-show="saving" class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span x-text="saving ? 'Saving...' : 'Save Settings'"></span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Validation Warning -->
+            <div 
+              x-show="!validation.valid" 
+              class="mb-6 rounded-lg border border-yellow-300 bg-yellow-50 p-4 dark:border-yellow-500/30 dark:bg-yellow-500/10"
+            >
+              <div class="flex items-center gap-2">
+                <svg class="h-5 w-5 text-yellow-600 dark:text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                </svg>
+                <span class="text-sm font-medium text-yellow-700 dark:text-yellow-300" x-text="validation.message"></span>
+              </div>
+              <p class="mt-1 text-xs text-yellow-600 dark:text-yellow-400">
+                Total Weight: <span x-text="(validation.totalWeight * 100).toFixed(1) + '%'"></span>
+              </p>
+            </div>
+
+            <div class="grid grid-cols-12 gap-6">
+              <!-- Factor Weights Configuration -->
+              <div class="col-span-12 xl:col-span-8">
+                <div class="rounded-sm border border-stroke bg-white shadow-default dark:border-strokedark dark:bg-boxdark">
+                  <div class="border-b border-stroke px-6 py-4 dark:border-strokedark">
+                    <h3 class="text-lg font-semibold text-black dark:text-white">Factor Weights & Increments</h3>
+                  </div>
+                  <div class="p-6">
+                    <!-- Factor Table -->
+                    <div class="overflow-x-auto">
+                      <table class="w-full table-auto">
+                        <thead>
+                          <tr class="bg-gray-50 dark:bg-gray-800">
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">Factor</th>
+                            <th class="px-4 py-3 text-center text-sm font-semibold text-gray-700 dark:text-gray-300">Weight (%)</th>
+                            <th class="px-4 py-3 text-center text-sm font-semibold text-gray-700 dark:text-gray-300">Increment</th>
+                            <th class="px-4 py-3 text-center text-sm font-semibold text-gray-700 dark:text-gray-300">Max Score</th>
+                          </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                          <template x-for="(factor, key) in config.factors" :key="key">
+                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                              <td class="px-4 py-3">
+                                <div>
+                                  <span class="text-sm font-medium text-gray-900 dark:text-white" x-text="factor.name"></span>
+                                  <span 
+                                    x-show="factor.isInverted" 
+                                    class="ml-2 inline-flex items-center rounded bg-blue-100 px-1.5 py-0.5 text-xs text-blue-700 dark:bg-blue-500/20 dark:text-blue-300"
+                                  >
+                                    Inverted
+                                  </span>
+                                </div>
+                              </td>
+                              <td class="px-4 py-3">
+                                <input
+                                  type="number"
+                                  step="0.5"
+                                  min="0"
+                                  max="100"
+                                  :value="(factor.weight * 100).toFixed(1)"
+                                  @input="updateWeight(key, $event.target.value)"
+                                  class="w-20 rounded border border-gray-300 bg-white px-2 py-1 text-center text-sm text-gray-900 focus:border-brand-500 focus:ring-brand-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                                />
+                              </td>
+                              <td class="px-4 py-3">
+                                <input
+                                  type="text"
+                                  :value="formatIncrement(factor)"
+                                  @input="updateIncrement(key, $event.target.value)"
+                                  class="w-24 rounded border border-gray-300 bg-white px-2 py-1 text-center text-sm text-gray-900 focus:border-brand-500 focus:ring-brand-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                                />
+                              </td>
+                              <td class="px-4 py-3">
+                                <input
+                                  type="number"
+                                  step="1"
+                                  min="1"
+                                  max="20"
+                                  x-model.number="factor.maxScore"
+                                  class="w-16 rounded border border-gray-300 bg-white px-2 py-1 text-center text-sm text-gray-900 focus:border-brand-500 focus:ring-brand-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                                />
+                              </td>
+                            </tr>
+                          </template>
+                        </tbody>
+                        <tfoot>
+                          <tr class="bg-gray-100 dark:bg-gray-800">
+                            <td class="px-4 py-3 font-semibold text-gray-900 dark:text-white">Total</td>
+                            <td class="px-4 py-3 text-center">
+                              <span 
+                                class="font-semibold"
+                                :class="Math.abs(validation.totalWeight - 1) < 0.001 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'"
+                                x-text="(validation.totalWeight * 100).toFixed(1) + '%'"
+                              ></span>
+                            </td>
+                            <td colspan="2"></td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Threshold Settings -->
+              <div class="col-span-12 xl:col-span-4">
+                <div class="rounded-sm border border-stroke bg-white shadow-default dark:border-strokedark dark:bg-boxdark">
+                  <div class="border-b border-stroke px-6 py-4 dark:border-strokedark">
+                    <h3 class="text-lg font-semibold text-black dark:text-white">Decision Thresholds</h3>
+                  </div>
+                  <div class="p-6 space-y-6">
+                    <!-- Move Forward Threshold -->
+                    <div>
+                      <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        <span class="flex items-center gap-2">
+                          <span class="h-3 w-3 rounded-full bg-green-500"></span>
+                          Move Forward
+                        </span>
+                      </label>
+                      <div class="flex items-center gap-2">
+                        <span class="text-sm text-gray-500 dark:text-gray-400">Score ≥</span>
+                        <input
+                          type="number"
+                          step="0.1"
+                          min="0"
+                          max="10"
+                          x-model.number="config.thresholds.moveForward"
+                          class="w-20 rounded border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-brand-500 focus:ring-brand-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                        />
+                      </div>
+                    </div>
+
+                    <!-- Needs Review Threshold -->
+                    <div>
+                      <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        <span class="flex items-center gap-2">
+                          <span class="h-3 w-3 rounded-full bg-yellow-500"></span>
+                          Needs Review
+                        </span>
+                      </label>
+                      <div class="flex items-center gap-2">
+                        <span class="text-sm text-gray-500 dark:text-gray-400">Score ≥</span>
+                        <input
+                          type="number"
+                          step="0.1"
+                          min="0"
+                          max="10"
+                          x-model.number="config.thresholds.quickCheck"
+                          class="w-20 rounded border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-brand-500 focus:ring-brand-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                        />
+                      </div>
+                    </div>
+
+                    <!-- Rejected -->
+                    <div>
+                      <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        <span class="flex items-center gap-2">
+                          <span class="h-3 w-3 rounded-full bg-red-500"></span>
+                          Rejected
+                        </span>
+                      </label>
+                      <p class="text-sm text-gray-500 dark:text-gray-400">
+                        Score &lt; <span x-text="config.thresholds.quickCheck"></span>
+                      </p>
+                    </div>
+
+                    <!-- Visual Scale -->
+                    <div class="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+                      <h4 class="mb-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Score Scale Preview</h4>
+                      <div class="relative h-4 w-full rounded-full bg-gradient-to-r from-red-500 via-yellow-500 to-green-500">
+                        <!-- Needs Review Marker -->
+                        <div 
+                          class="absolute top-0 h-4 w-0.5 bg-gray-800 dark:bg-white"
+                          :style="'left: ' + (config.thresholds.quickCheck * 10) + '%'"
+                        ></div>
+                        <!-- Move Forward Marker -->
+                        <div 
+                          class="absolute top-0 h-4 w-0.5 bg-gray-800 dark:bg-white"
+                          :style="'left: ' + (config.thresholds.moveForward * 10) + '%'"
+                        ></div>
+                      </div>
+                      <div class="mt-2 flex justify-between text-xs text-gray-500 dark:text-gray-400">
+                        <span>0</span>
+                        <span>5</span>
+                        <span>10</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="mt-6 rounded-sm border border-stroke bg-white p-6 shadow-default dark:border-strokedark dark:bg-boxdark">
+                  <h3 class="mb-4 text-lg font-semibold text-black dark:text-white">Quick Actions</h3>
+                  <div class="space-y-3">
+                    <button
+                      @click="recalculateAllProperties()"
+                      :disabled="recalculating"
+                      class="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 disabled:opacity-50"
+                    >
+                      <svg x-show="recalculating" class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <svg x-show="!recalculating" class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                      </svg>
+                      <span x-text="recalculating ? 'Recalculating...' : 'Re-run All Scores'"></span>
+                    </button>
+                    <a
+                      href="dashboard.html"
+                      class="flex w-full items-center justify-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600"
+                    >
+                      <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                      </svg>
+                      <span>View Dashboard</span>
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </main>
+        <!-- ===== Main Content End ===== -->
+      </div>
+      <!-- ===== Content Area End ===== -->
+    </div>
+    <!-- ===== Page Wrapper End ===== -->
+
+    <!-- Scorecard Config Script -->
+    <script>
+      document.addEventListener('alpine:init', () => {
+        Alpine.data('scorecardConfig', () => ({
+          config: {
+            factors: {},
+            thresholds: {
+              moveForward: 7.0,
+              quickCheck: 5.5,
+              dontMoveForward: 0,
+            }
+          },
+          validation: {
+            valid: true,
+            totalWeight: 1.0,
+            message: ''
+          },
+          saving: false,
+          recalculating: false,
+
+          async loadConfig() {
+            try {
+              const response = await fetch('/api/scoring/config');
+              const data = await response.json();
+              
+              if (data.success) {
+                this.config = data.config;
+                this.validation = data.validation;
+              }
+            } catch (error) {
+              console.error('Failed to load config:', error);
+              // Load defaults
+              await this.loadDefaults();
+            }
+          },
+
+          async loadDefaults() {
+            try {
+              const response = await fetch('/api/scoring/defaults');
+              const data = await response.json();
+              
+              if (data.success) {
+                this.config = data.config;
+                this.validateWeights();
+              }
+            } catch (error) {
+              console.error('Failed to load defaults:', error);
+            }
+          },
+
+          updateWeight(factorKey, value) {
+            const weight = parseFloat(value) / 100;
+            if (!isNaN(weight)) {
+              this.config.factors[factorKey].weight = weight;
+              this.validateWeights();
+            }
+          },
+
+          updateIncrement(factorKey, value) {
+            // Parse increment value (could be number, percentage, or currency)
+            let increment = parseFloat(value.replace(/[$%,]/g, ''));
+            if (!isNaN(increment)) {
+              // If it was a percentage, convert to decimal
+              if (value.includes('%')) {
+                increment = increment / 100;
+              }
+              this.config.factors[factorKey].increment = increment;
+            }
+          },
+
+          formatIncrement(factor) {
+            const value = factor.increment;
+            const name = factor.name.toLowerCase();
+            
+            // Format based on factor type
+            if (name.includes('income') || name.includes('value') || name.includes('price')) {
+              return '$' + value.toLocaleString();
+            } else if (name.includes('%') || name.includes('growth') || name.includes('vacancy') || name.includes('delivered') || name.includes('construction') || name.includes('renter')) {
+              return (value * 100).toFixed(2) + '%';
+            }
+            return value.toLocaleString();
+          },
+
+          validateWeights() {
+            let total = 0;
+            for (const factor of Object.values(this.config.factors)) {
+              total += factor.weight || 0;
+            }
+            
+            this.validation.totalWeight = total;
+            this.validation.valid = Math.abs(total - 1.0) < 0.001;
+            this.validation.message = this.validation.valid 
+              ? 'Configuration is valid'
+              : `Weights sum to ${(total * 100).toFixed(1)}%, should sum to 100%`;
+          },
+
+          async saveConfig() {
+            this.validateWeights();
+            
+            if (!this.validation.valid) {
+              alert('Please ensure weights sum to 100% before saving');
+              return;
+            }
+
+            this.saving = true;
+            
+            try {
+              const response = await fetch('/api/scoring/config', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(this.config)
+              });
+
+              const data = await response.json();
+              
+              if (data.success) {
+                alert('Settings saved successfully!');
+              } else {
+                alert('Failed to save: ' + data.error);
+              }
+            } catch (error) {
+              console.error('Save error:', error);
+              alert('Failed to save settings');
+            } finally {
+              this.saving = false;
+            }
+          },
+
+          async resetToDefaults() {
+            if (!confirm('Reset all settings to defaults? This cannot be undone.')) {
+              return;
+            }
+
+            try {
+              const response = await fetch('/api/scoring/config/reset', {
+                method: 'POST'
+              });
+
+              const data = await response.json();
+              
+              if (data.success) {
+                this.config = data.config;
+                this.validateWeights();
+                alert('Settings reset to defaults');
+              }
+            } catch (error) {
+              console.error('Reset error:', error);
+              alert('Failed to reset settings');
+            }
+          },
+
+          async recalculateAllProperties() {
+            this.recalculating = true;
+            
+            try {
+              // Get all properties and recalculate
+              const response = await fetch('/api/scoring/properties');
+              const data = await response.json();
+              
+              if (data.success) {
+                alert(`Recalculated ${data.count} properties`);
+              }
+            } catch (error) {
+              console.error('Recalculate error:', error);
+              alert('Failed to recalculate properties');
+            } finally {
+              this.recalculating = false;
+            }
+          }
+        }));
+      });
+    </script>
+  </body>
+</html>
+

@@ -128,7 +128,13 @@
         
         try {
           this.processingFiles.add(fileId);
-          const processorLabel = processor === 'docling' ? 'Docling' : 'Default';
+          // Determine processor label for notifications
+          const processorLabels = {
+            'default': 'Default',
+            'docling': 'Docling Quick',
+            'docling_full': 'Docling Full'
+          };
+          const processorLabel = processorLabels[processor] || processor;
           this.showNotification(`Starting ${processorLabel} extraction...`, 'info');
           
           const response = await fetch(`/api/extract/${fileId}?pdfProcessor=${processor}`, {
@@ -147,8 +153,13 @@
           
           const result = await response.json();
           if (result.success) {
-            // Show success notification
-            this.showNotification(`Text extracted successfully using ${processorLabel}!`);
+            // Show success notification with appropriate message
+            if (processor === 'docling_full' && result.sections) {
+              const sectionCount = result.sections.length;
+              this.showNotification(`Full extraction complete! Generated ${sectionCount} section files.`);
+            } else {
+              this.showNotification(`Text extracted successfully using ${processorLabel}!`);
+            }
             // Refresh the file list
             await this.fetchFiles();
           } else {
@@ -234,6 +245,15 @@
                 </div>
 
                 <div class="flex items-center gap-3">
+                  <a
+                    href="dashboard.html"
+                    class="inline-flex items-center gap-2 rounded-lg border border-brand-300 bg-brand-50 px-4 py-2.5 text-theme-sm font-medium text-brand-700 shadow-theme-xs hover:bg-brand-100 dark:border-brand-700 dark:bg-brand-900/20 dark:text-brand-400 dark:hover:bg-brand-900/30"
+                  >
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                    </svg>
+                    Manage Properties
+                  </a>
                   <button
                     @click="fetchFiles()"
                     class="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-theme-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200"
@@ -352,7 +372,7 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                               </svg>
                             </a>
-                            <!-- Extract Button (Docling) -->
+                            <!-- Extract Button (Docling Quick - first 7 pages) -->
                             <button
                               @click="extractText(file.id, file.original_filename, file.file_type, 'docling')"
                               :disabled="processingFiles.has(file.id)"
@@ -360,11 +380,35 @@
                                 'opacity-50 cursor-not-allowed': processingFiles.has(file.id)
                               }"
                               class="inline-flex items-center justify-center w-8 h-8 text-blue-500 bg-gray-100 rounded-lg hover:text-blue-700 hover:bg-gray-200 dark:text-blue-400 dark:bg-gray-800 dark:hover:bg-gray-700 dark:hover:text-blue-200"
-                              title="Extract with Docling"
+                              title="Quick Extract with Docling (first 7 pages)"
                             >
                               <template x-if="!processingFiles.has(file.id)">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                              </template>
+                              <template x-if="processingFiles.has(file.id)">
+                                <svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                </svg>
+                              </template>
+                            </button>
+                            <!-- Extract Button (Docling Full - all pages with section detection) -->
+                            <button
+                              @click="extractText(file.id, file.original_filename, file.file_type, 'docling_full')"
+                              :disabled="processingFiles.has(file.id)"
+                              :class="{
+                                'opacity-50 cursor-not-allowed': processingFiles.has(file.id)
+                              }"
+                              class="inline-flex items-center justify-center w-8 h-8 text-emerald-500 bg-gray-100 rounded-lg hover:text-emerald-700 hover:bg-gray-200 dark:text-emerald-400 dark:bg-gray-800 dark:hover:bg-gray-700 dark:hover:text-emerald-200"
+                              title="Full Extract with Docling (all pages, section detection)"
+                            >
+                              <template x-if="!processingFiles.has(file.id)">
+                                <!-- Clock with circular arrow icon -->
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h5" />
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.93 4.93A10 10 0 0121 12" />
                                 </svg>
                               </template>
                               <template x-if="processingFiles.has(file.id)">

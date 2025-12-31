@@ -6,15 +6,16 @@ import { PDFProcessor } from './processors/pdf_processor.js';
 import { ImageProcessor } from './processors/image_processor.js';
 import { CSVProcessor } from './processors/csv_processor.js';
 import { ExcelProcessor } from './processors/excel_processor.js';
-import { DoclingProcessor } from './processors/docling_bridge.js';
+import { DoclingProcessor, DoclingFullProcessor } from './processors/docling_bridge.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Available PDF processor types
 const PDF_PROCESSOR_TYPES = {
-  DEFAULT: 'default',    // Pattern-based + Ollama LLM (existing)
-  DOCLING: 'docling'     // Docling ML-based (alternative)
+  DEFAULT: 'default',       // Pattern-based + Ollama LLM (existing)
+  DOCLING: 'docling',       // Docling ML-based, first 7 pages (quick)
+  DOCLING_FULL: 'docling_full'  // Docling ML-based, all pages with section detection
 };
 
 class FileProcessor {
@@ -29,6 +30,7 @@ class FileProcessor {
     this.processors = {
       pdf: new PDFProcessor(this.ollamaService),
       pdf_docling: new DoclingProcessor(options.doclingOptions || {}),
+      pdf_docling_full: new DoclingFullProcessor(options.doclingFullOptions || {}),
       image: new ImageProcessor(this.ollamaService),
       csv: new CSVProcessor(this.ollamaService),
       excel: new ExcelProcessor(this.ollamaService)
@@ -703,8 +705,12 @@ class FileProcessor {
     switch (ext) {
       case '.pdf':
         // Select PDF processor based on option
+        if (pdfProcessorType === PDF_PROCESSOR_TYPES.DOCLING_FULL) {
+          console.log('[FileProcessor] Using Docling Full PDF processor (all pages, section detection)');
+          return this.processors.pdf_docling_full;
+        }
         if (pdfProcessorType === PDF_PROCESSOR_TYPES.DOCLING) {
-          console.log('[FileProcessor] Using Docling PDF processor');
+          console.log('[FileProcessor] Using Docling PDF processor (quick, first 7 pages)');
           return this.processors.pdf_docling;
         }
         console.log('[FileProcessor] Using default PDF processor');
@@ -760,10 +766,38 @@ class FileProcessor {
       
       // Get appropriate processor (pass options for PDF processor selection)
       const processor = this.getProcessorForFile(filePath, options);
+      const pdfProcessorType = options.pdfProcessor || this.defaultPdfProcessor;
       
       console.log('Selected processor:', processor.constructor.name);
       console.log('Starting file processing...');
 
+      // Handle Docling Full processor specially - it manages its own output files
+      if (pdfProcessorType === PDF_PROCESSOR_TYPES.DOCLING_FULL) {
+        const fullOutputDir = path.join(process.cwd(), this.outputDir);
+        await fs.mkdir(fullOutputDir, { recursive: true });
+        
+        // Pass output directory to full processor
+        const result = await processor.process(filePath, { outputDir: fullOutputDir });
+        console.log('Full processing result:', result);
+        
+        if (result.processing_status === 'success' || result.processing_status === 'partial_success') {
+          // Add original filename to metadata
+          return {
+            ...result,
+            metadata: {
+              ...result.metadata,
+              original_filename: originalFilename,
+              processor_used: processor.constructor.name,
+              pdf_processor_type: pdfProcessorType
+            },
+            original_filename: originalFilename
+          };
+        }
+        
+        return result;
+      }
+
+      // Standard processing for other processors
       const result = await processor.process(filePath);
       console.log('File processing result:', result);
 
@@ -791,7 +825,6 @@ class FileProcessor {
 
           // Include original filename in metadata and ensure it's preserved
           // Also track which processor was used
-          const pdfProcessorType = options.pdfProcessor || this.defaultPdfProcessor;
           const resultWithMetadata = {
             ...result,
             metadata: {

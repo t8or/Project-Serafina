@@ -1,0 +1,839 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0"
+    />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Property Dashboard | Serafina</title>
+    <!-- ApexCharts is loaded via webpack bundle (window.ApexCharts) -->
+  </head>
+  <body
+    x-data="{ 
+      page: 'dashboard', 
+      loaded: true, 
+      darkMode: false, 
+      stickyMenu: false, 
+      sidebarToggle: false, 
+      scrollTop: false
+    }"
+    x-init="
+      darkMode = JSON.parse(localStorage.getItem('darkMode'));
+      $watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(value)))"
+    :class="{'dark bg-gray-900': darkMode === true}"
+  >
+    <!-- ===== Preloader Start ===== -->
+    <include src="./partials/preloader.html"></include>
+    <!-- ===== Preloader End ===== -->
+
+    <!-- ===== Page Wrapper Start ===== -->
+    <div class="flex h-screen overflow-hidden">
+      <!-- ===== Sidebar Start ===== -->
+      <include src="./partials/sidebar.html"></include>
+      <!-- ===== Sidebar End ===== -->
+
+      <!-- ===== Content Area Start ===== -->
+      <div class="relative flex flex-1 flex-col overflow-y-auto overflow-x-hidden">
+        <!-- ===== Header Start ===== -->
+        <include src="./partials/header.html"></include>
+        <!-- ===== Header End ===== -->
+
+        <!-- ===== Main Content Start ===== -->
+        <main>
+          <div class="mx-auto max-w-screen-2xl p-4 md:p-6 2xl:p-10" x-data="propertyDashboard" x-init="loadProperties()">
+            <!-- Page Header -->
+            <div class="mb-6 flex items-center justify-between">
+              <div>
+                <h2 class="text-title-md2 font-semibold text-black dark:text-white">
+                  Property Dashboard
+                </h2>
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                  Overview of analyzed properties and their scores
+                </p>
+              </div>
+              <div class="flex gap-3">
+                <a
+                  href="file-upload.html"
+                  class="flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600"
+                >
+                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                  </svg>
+                  <span>Upload Files</span>
+                </a>
+              </div>
+            </div>
+
+            <!-- Loading State -->
+            <div x-show="loading" class="flex items-center justify-center py-12">
+              <svg class="h-8 w-8 animate-spin text-brand-500" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            </div>
+
+            <!-- Empty State -->
+            <div x-show="!loading && properties.length === 0" class="py-12 text-center">
+              <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+              </svg>
+              <h3 class="mt-4 text-lg font-semibold text-gray-900 dark:text-white">No Properties Analyzed</h3>
+              <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                Upload and process CoStar reports to see property scores here.
+              </p>
+              <a
+                href="file-upload.html"
+                class="mt-4 inline-flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600"
+              >
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                Upload Files
+              </a>
+            </div>
+
+            <!-- Dashboard Content -->
+            <div x-show="!loading && properties.length > 0">
+              <!-- Summary Cards -->
+              <div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <!-- Total Properties -->
+                <div class="rounded-lg border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-boxdark">
+                  <div class="flex items-center gap-4">
+                    <div class="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-500/20">
+                      <svg class="h-6 w-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <p class="text-sm text-gray-500 dark:text-gray-400">Total Properties</p>
+                      <p class="text-2xl font-bold text-gray-900 dark:text-white" x-text="summary.count"></p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Move Forward -->
+                <div class="rounded-lg border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-boxdark">
+                  <div class="flex items-center gap-4">
+                    <div class="flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-500/20">
+                      <svg class="h-6 w-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <p class="text-sm text-gray-500 dark:text-gray-400">Move Forward</p>
+                      <p class="text-2xl font-bold text-green-600 dark:text-green-400" x-text="summary.moveForward"></p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Needs Review -->
+                <div class="rounded-lg border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-boxdark">
+                  <div class="flex items-center gap-4">
+                    <div class="flex h-12 w-12 items-center justify-center rounded-full bg-yellow-100 dark:bg-yellow-500/20">
+                      <svg class="h-6 w-6 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <p class="text-sm text-gray-500 dark:text-gray-400">Needs Review</p>
+                      <p class="text-2xl font-bold text-yellow-600 dark:text-yellow-400" x-text="summary.quickCheck"></p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Rejected -->
+                <div class="rounded-lg border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-boxdark">
+                  <div class="flex items-center gap-4">
+                    <div class="flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-500/20">
+                      <svg class="h-6 w-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <p class="text-sm text-gray-500 dark:text-gray-400">Rejected</p>
+                      <p class="text-2xl font-bold text-red-600 dark:text-red-400" x-text="summary.dontMove"></p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Charts Row -->
+              <div class="mb-6 grid grid-cols-12 gap-6">
+                <!-- Score Distribution Donut Chart -->
+                <div class="col-span-12 xl:col-span-5">
+                  <div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-boxdark">
+                    <h3 class="mb-4 text-lg font-semibold text-gray-900 dark:text-white">Score Distribution</h3>
+                    <div id="distributionChart" class="h-[300px]"></div>
+                  </div>
+                </div>
+
+                <!-- Property Scores Bar Chart -->
+                <div class="col-span-12 xl:col-span-7">
+                  <div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-boxdark">
+                    <h3 class="mb-4 text-lg font-semibold text-gray-900 dark:text-white">Property Scores</h3>
+                    <div id="scoresChart" class="h-[300px]"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Properties Table -->
+              <div class="rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-boxdark">
+                <div class="flex items-center justify-between border-b border-gray-200 px-6 py-4 dark:border-gray-700">
+                  <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                    <span x-show="!showingDeleted">Properties</span>
+                    <span x-show="showingDeleted">Deleted Properties</span>
+                  </h3>
+                  <div class="flex items-center gap-2">
+                    <!-- Toggle deleted properties -->
+                    <button 
+                      @click="toggleDeletedView()"
+                      class="inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors"
+                      :class="showingDeleted 
+                        ? 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300' 
+                        : 'text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700'"
+                    >
+                      <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                      </svg>
+                      <span x-text="showingDeleted ? 'View Active' : 'View Deleted (' + deletedCount + ')'"></span>
+                    </button>
+                  </div>
+                </div>
+                <div class="overflow-x-auto">
+                  <table class="w-full table-auto">
+                    <thead>
+                      <tr class="bg-gray-50 dark:bg-gray-800">
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">Property</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">City</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">State</th>
+                        <th class="px-6 py-3 text-center text-sm font-semibold text-gray-700 dark:text-gray-300">Score</th>
+                        <th class="px-6 py-3 text-center text-sm font-semibold text-gray-700 dark:text-gray-300">Status</th>
+                        <th class="px-6 py-3 text-center text-sm font-semibold text-gray-700 dark:text-gray-300">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                      <template x-for="property in properties" :key="property.id">
+                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                          <td class="px-6 py-4">
+                            <div class="flex items-center gap-3">
+                              <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-700">
+                                <svg class="h-5 w-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                                </svg>
+                              </div>
+                              <div>
+                                <p class="font-medium text-gray-900 dark:text-white" x-text="property.propertyName"></p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400" x-text="property.address?.street || 'No address'"></p>
+                              </div>
+                            </div>
+                          </td>
+                          <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-300" x-text="property.address?.city || '-'"></td>
+                          <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-300" x-text="property.address?.stateAbbr || '-'"></td>
+                          <td class="px-6 py-4 text-center">
+                            <span 
+                              class="inline-flex items-center justify-center rounded-full px-3 py-1 text-sm font-semibold"
+                              :class="{
+                                'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400': property.decisionColor === 'green',
+                                'bg-yellow-100 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-400': property.decisionColor === 'yellow',
+                                'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400': property.decisionColor === 'red'
+                              }"
+                              x-text="property.score?.toFixed(1) || '0.0'"
+                            ></span>
+                          </td>
+                          <td class="px-6 py-4 text-center">
+                            <div class="flex items-center justify-center gap-2">
+                              <!-- Status Icon -->
+                              <template x-if="property.decisionColor === 'green'">
+                                <span class="flex items-center gap-1 text-green-600 dark:text-green-400">
+                                  <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                  </svg>
+                                  <span class="text-xs font-medium">Move Forward</span>
+                                </span>
+                              </template>
+                              <template x-if="property.decisionColor === 'yellow'">
+                                <span class="flex items-center gap-1 text-yellow-600 dark:text-yellow-400">
+                                  <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                  </svg>
+                                  <span class="text-xs font-medium">Needs Review</span>
+                                </span>
+                              </template>
+                              <template x-if="property.decisionColor === 'red'">
+                                <span class="flex items-center gap-1 text-red-600 dark:text-red-400">
+                                  <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                                  </svg>
+                                  <span class="text-xs font-medium">Rejected</span>
+                                </span>
+                              </template>
+                            </div>
+                          </td>
+                          <td class="px-6 py-4 text-center">
+                            <div class="flex items-center justify-center gap-2">
+                              <button 
+                                @click="showPropertyDetails(property)"
+                                class="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium text-brand-500 hover:bg-brand-50 dark:hover:bg-brand-500/10"
+                              >
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                </svg>
+                                Details
+                              </button>
+                              <!-- Delete button (only for active properties) -->
+                              <template x-if="!showingDeleted">
+                                <button 
+                                  @click="confirmDelete(property)"
+                                  class="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10"
+                                  title="Delete property"
+                                >
+                                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                  </svg>
+                                </button>
+                              </template>
+                              <!-- Restore button (only for deleted properties) -->
+                              <template x-if="showingDeleted">
+                                <button 
+                                  @click="restoreProperty(property)"
+                                  class="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium text-green-500 hover:bg-green-50 dark:hover:bg-green-500/10"
+                                  title="Restore property"
+                                >
+                                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                  </svg>
+                                  Restore
+                                </button>
+                              </template>
+                            </div>
+                          </td>
+                        </tr>
+                      </template>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- Property Details Modal -->
+            <div 
+              x-show="selectedProperty !== null"
+              x-transition:enter="transition ease-out duration-300"
+              x-transition:enter-start="opacity-0"
+              x-transition:enter-end="opacity-100"
+              x-transition:leave="transition ease-in duration-200"
+              x-transition:leave-start="opacity-100"
+              x-transition:leave-end="opacity-0"
+              class="fixed inset-0 z-99999 flex items-center justify-center bg-black/50 p-4"
+              @click.self="selectedProperty = null"
+            >
+              <div 
+                class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-white p-6 shadow-xl dark:bg-boxdark"
+                x-transition:enter="transition ease-out duration-300"
+                x-transition:enter-start="opacity-0 transform scale-95"
+                x-transition:enter-end="opacity-100 transform scale-100"
+              >
+                <!-- Modal Header -->
+                <div class="mb-6 flex items-center justify-between border-b border-gray-200 pb-4 dark:border-gray-700">
+                  <div>
+                    <h3 class="text-xl font-semibold text-gray-900 dark:text-white" x-text="selectedProperty?.propertyName"></h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400" x-text="selectedProperty?.address?.fullAddress || 'No address available'"></p>
+                  </div>
+                  <button 
+                    @click="selectedProperty = null"
+                    class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
+                  >
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                  </button>
+                </div>
+
+                <!-- Score Summary -->
+                <div class="mb-6 rounded-lg bg-gray-50 p-4 dark:bg-gray-800">
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <p class="text-sm text-gray-500 dark:text-gray-400">Overall Score</p>
+                      <p class="text-3xl font-bold" 
+                        :class="{
+                          'text-green-600 dark:text-green-400': selectedProperty?.decisionColor === 'green',
+                          'text-yellow-600 dark:text-yellow-400': selectedProperty?.decisionColor === 'yellow',
+                          'text-red-600 dark:text-red-400': selectedProperty?.decisionColor === 'red'
+                        }"
+                        x-text="selectedProperty?.score?.toFixed(1) + ' / 10'"
+                      ></p>
+                    </div>
+                    <div 
+                      class="rounded-full px-4 py-2 text-sm font-semibold"
+                      :class="{
+                        'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400': selectedProperty?.decisionColor === 'green',
+                        'bg-yellow-100 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-400': selectedProperty?.decisionColor === 'yellow',
+                        'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400': selectedProperty?.decisionColor === 'red'
+                      }"
+                      x-text="selectedProperty?.decision"
+                    ></div>
+                  </div>
+                </div>
+
+                <!-- Score Breakdown -->
+                <div>
+                  <h4 class="mb-4 text-lg font-semibold text-gray-900 dark:text-white">Score Breakdown</h4>
+                  <!-- Table for proper column alignment -->
+                  <table class="w-full">
+                    <thead>
+                      <tr class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
+                        <th class="py-2 text-left">Factor</th>
+                        <th class="py-2 text-right pr-4">Figure</th>
+                        <th class="py-2 text-right w-14">Score</th>
+                        <th class="py-2 text-right w-16">Weight</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <template x-for="(factor, key) in selectedProperty?.breakdown" :key="key">
+                        <tr class="border-b border-gray-200 dark:border-gray-700">
+                          <!-- Factor Name -->
+                          <td class="py-2 text-sm text-gray-700 dark:text-gray-300" x-text="factor.name"></td>
+                          <!-- Figure Value (auto width, right-aligned) -->
+                          <td class="py-2 text-right pr-4 text-sm tabular-nums text-gray-600 dark:text-gray-300" x-text="formatFigure(factor.rawValue, key)"></td>
+                          <!-- Score (fixed width, right-aligned) -->
+                          <td class="py-2 text-right w-14 text-sm font-semibold tabular-nums text-gray-900 dark:text-white" x-text="factor.score?.toFixed(0)"></td>
+                          <!-- Weight (fixed width, right-aligned) -->
+                          <td class="py-2 text-right w-16 text-sm tabular-nums text-gray-500 dark:text-gray-400" x-text="(factor.weight * 100).toFixed(1) + '%'"></td>
+                        </tr>
+                      </template>
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- Modal Actions -->
+                <div class="mt-6 flex justify-between border-t border-gray-200 pt-4 dark:border-gray-700">
+                  <button
+                    x-show="!showingDeleted && selectedProperty?.id"
+                    @click="confirmDelete(selectedProperty); selectedProperty = null"
+                    class="rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:border-red-600 dark:bg-gray-700 dark:text-red-400 dark:hover:bg-red-900/20"
+                  >
+                    Delete Property
+                  </button>
+                  <button
+                    x-show="showingDeleted && selectedProperty?.id"
+                    @click="restoreProperty(selectedProperty); selectedProperty = null"
+                    class="rounded-lg border border-green-300 bg-white px-4 py-2 text-sm font-medium text-green-600 hover:bg-green-50 dark:border-green-600 dark:bg-gray-700 dark:text-green-400 dark:hover:bg-green-900/20"
+                  >
+                    Restore Property
+                  </button>
+                  <div x-show="!selectedProperty?.id" class="flex-1"></div>
+                  <button
+                    @click="selectedProperty = null"
+                    class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Delete Confirmation Modal -->
+            <div 
+              x-show="deleteConfirmProperty !== null"
+              x-transition:enter="transition ease-out duration-200"
+              x-transition:enter-start="opacity-0"
+              x-transition:enter-end="opacity-100"
+              x-transition:leave="transition ease-in duration-150"
+              x-transition:leave-start="opacity-100"
+              x-transition:leave-end="opacity-0"
+              class="fixed inset-0 z-999999 flex items-center justify-center bg-black/50 p-4"
+              @click.self="deleteConfirmProperty = null"
+            >
+              <div 
+                class="w-full max-w-md overflow-visible rounded-lg bg-white p-6 shadow-xl dark:bg-boxdark"
+                x-transition:enter="transition ease-out duration-200"
+                x-transition:enter-start="opacity-0 transform scale-95"
+                x-transition:enter-end="opacity-100 transform scale-100"
+              >
+                <div class="mb-4 flex items-center gap-3">
+                  <div class="flex h-10 w-10 items-center justify-center rounded-full bg-red-100 dark:bg-red-500/20">
+                    <svg class="h-6 w-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                  </div>
+                  <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Delete Property</h3>
+                </div>
+                <p class="mb-2 text-sm text-gray-600 dark:text-gray-300">
+                  Are you sure you want to delete <strong x-text="deleteConfirmProperty?.propertyName || deleteConfirmProperty?.name"></strong>?
+                </p>
+                <p class="mb-6 text-sm text-gray-500 dark:text-gray-400">
+                  This property and all related data will be moved to trash. You can restore it within 30 days.
+                </p>
+                <div class="mt-6 grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    @click="deleteConfirmProperty = null"
+                    class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    @click="deleteProperty()"
+                    :disabled="deleting"
+                    class="rounded-lg bg-[#ff4d4d] px-4 py-2 text-sm font-medium text-white hover:bg-[#e63939] disabled:opacity-50"
+                    x-text="deleting ? 'Deleting...' : 'Delete'"
+                  ></button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </main>
+        <!-- ===== Main Content End ===== -->
+      </div>
+      <!-- ===== Content Area End ===== -->
+    </div>
+    <!-- ===== Page Wrapper End ===== -->
+
+    <!-- Dashboard Script -->
+    <script>
+      document.addEventListener('alpine:init', () => {
+        Alpine.data('propertyDashboard', () => ({
+          loading: true,
+          properties: [],
+          summary: {
+            count: 0,
+            moveForward: 0,
+            quickCheck: 0,
+            dontMove: 0,
+            averageScore: 0,
+          },
+          selectedProperty: null,
+          distributionChart: null,
+          scoresChart: null,
+          
+          // Delete/Restore state
+          showingDeleted: false,
+          deletedCount: 0,
+          deleteConfirmProperty: null,
+          deleting: false,
+
+          async loadProperties() {
+            this.loading = true;
+            
+            try {
+              const response = await fetch('/api/scoring/properties');
+              const data = await response.json();
+              
+              if (data.success) {
+                this.properties = data.properties || [];
+                this.summary = data.summary || this.summary;
+                this.deletedCount = this.summary.deletedCount || 0;
+                
+                // Initialize charts after data loads
+                this.$nextTick(() => {
+                  this.initCharts();
+                });
+              }
+            } catch (error) {
+              console.error('Failed to load properties:', error);
+            } finally {
+              this.loading = false;
+            }
+          },
+          
+          async loadDeletedProperties() {
+            this.loading = true;
+            
+            try {
+              const response = await fetch('/api/properties/deleted');
+              const data = await response.json();
+              
+              if (data.success) {
+                // Transform to match property format
+                this.properties = (data.properties || []).map(p => ({
+                  ...p,
+                  propertyName: p.name,
+                  decisionColor: p.score >= 7 ? 'green' : p.score >= 5.5 ? 'yellow' : 'red'
+                }));
+              }
+            } catch (error) {
+              console.error('Failed to load deleted properties:', error);
+            } finally {
+              this.loading = false;
+            }
+          },
+          
+          async toggleDeletedView() {
+            this.showingDeleted = !this.showingDeleted;
+            
+            if (this.showingDeleted) {
+              await this.loadDeletedProperties();
+            } else {
+              await this.loadProperties();
+            }
+          },
+          
+          confirmDelete(property) {
+            this.deleteConfirmProperty = property;
+          },
+          
+          async deleteProperty() {
+            if (!this.deleteConfirmProperty) return;
+            
+            this.deleting = true;
+            
+            try {
+              const response = await fetch(`/api/properties/${this.deleteConfirmProperty.id}`, {
+                method: 'DELETE'
+              });
+              const data = await response.json();
+              
+              if (data.success) {
+                // Remove from current list
+                this.properties = this.properties.filter(p => p.id !== this.deleteConfirmProperty.id);
+                this.deletedCount++;
+                
+                // Update summary counts
+                if (this.deleteConfirmProperty.decisionColor === 'green') {
+                  this.summary.moveForward--;
+                } else if (this.deleteConfirmProperty.decisionColor === 'yellow') {
+                  this.summary.quickCheck--;
+                } else {
+                  this.summary.dontMove--;
+                }
+                this.summary.count--;
+                
+                // Reinitialize charts
+                this.$nextTick(() => {
+                  this.initCharts();
+                });
+              } else {
+                alert('Failed to delete property: ' + (data.error || 'Unknown error'));
+              }
+            } catch (error) {
+              console.error('Failed to delete property:', error);
+              alert('Failed to delete property');
+            } finally {
+              this.deleting = false;
+              this.deleteConfirmProperty = null;
+            }
+          },
+          
+          async restoreProperty(property) {
+            try {
+              const response = await fetch(`/api/properties/${property.id}/restore`, {
+                method: 'POST'
+              });
+              const data = await response.json();
+              
+              if (data.success) {
+                // Remove from deleted list and reload
+                this.properties = this.properties.filter(p => p.id !== property.id);
+                this.deletedCount--;
+                
+                // If no more deleted properties, switch back to active view
+                if (this.properties.length === 0) {
+                  this.showingDeleted = false;
+                  await this.loadProperties();
+                }
+              } else {
+                alert('Failed to restore property: ' + (data.error || 'Unknown error'));
+              }
+            } catch (error) {
+              console.error('Failed to restore property:', error);
+              alert('Failed to restore property');
+            }
+          },
+
+          initCharts() {
+            this.initDistributionChart();
+            this.initScoresChart();
+          },
+
+          initDistributionChart() {
+            const chartEl = document.getElementById('distributionChart');
+            if (!chartEl) return;
+
+            // Destroy existing chart
+            if (this.distributionChart) {
+              this.distributionChart.destroy();
+            }
+
+            const options = {
+              series: [this.summary.moveForward, this.summary.quickCheck, this.summary.dontMove],
+              chart: {
+                type: 'donut',
+                height: 300,
+              },
+              labels: ['Move Forward', 'Needs Review', 'Rejected'],
+              colors: ['#22c55e', '#eab308', '#ef4444'],
+              legend: {
+                position: 'bottom',
+                labels: {
+                  colors: document.body.classList.contains('dark') ? '#fff' : '#333',
+                }
+              },
+              plotOptions: {
+                pie: {
+                  donut: {
+                    size: '65%',
+                    labels: {
+                      show: true,
+                      total: {
+                        show: true,
+                        label: 'Total',
+                        formatter: () => this.summary.count,
+                        color: document.body.classList.contains('dark') ? '#fff' : '#333',
+                      }
+                    }
+                  }
+                }
+              },
+              dataLabels: {
+                enabled: false
+              },
+              responsive: [{
+                breakpoint: 480,
+                options: {
+                  chart: {
+                    width: 200
+                  },
+                  legend: {
+                    position: 'bottom'
+                  }
+                }
+              }]
+            };
+
+            this.distributionChart = new ApexCharts(chartEl, options);
+            this.distributionChart.render();
+          },
+
+          initScoresChart() {
+            const chartEl = document.getElementById('scoresChart');
+            if (!chartEl || this.properties.length === 0) return;
+
+            // Destroy existing chart
+            if (this.scoresChart) {
+              this.scoresChart.destroy();
+            }
+
+            const sortedProperties = [...this.properties].sort((a, b) => b.score - a.score);
+            const categories = sortedProperties.map(p => p.propertyName || 'Unknown');
+            const scores = sortedProperties.map(p => p.score || 0);
+            const colors = sortedProperties.map(p => {
+              if (p.decisionColor === 'green') return '#22c55e';
+              if (p.decisionColor === 'yellow') return '#eab308';
+              return '#ef4444';
+            });
+
+            const options = {
+              series: [{
+                name: 'Score',
+                data: scores
+              }],
+              chart: {
+                type: 'bar',
+                height: 300,
+                toolbar: {
+                  show: false
+                }
+              },
+              plotOptions: {
+                bar: {
+                  horizontal: true,
+                  distributed: true,
+                  barHeight: '70%',
+                  borderRadius: 4,
+                }
+              },
+              colors: colors,
+              dataLabels: {
+                enabled: true,
+                formatter: (val) => val.toFixed(1),
+                style: {
+                  fontSize: '12px',
+                  colors: ['#fff']
+                }
+              },
+              xaxis: {
+                categories: categories,
+                max: 10,
+                labels: {
+                  style: {
+                    colors: document.body.classList.contains('dark') ? '#9ca3af' : '#4b5563',
+                  }
+                }
+              },
+              yaxis: {
+                labels: {
+                  style: {
+                    colors: document.body.classList.contains('dark') ? '#9ca3af' : '#4b5563',
+                  }
+                }
+              },
+              legend: {
+                show: false
+              },
+              grid: {
+                borderColor: document.body.classList.contains('dark') ? '#374151' : '#e5e7eb',
+              },
+              tooltip: {
+                theme: document.body.classList.contains('dark') ? 'dark' : 'light',
+                y: {
+                  formatter: (val) => val.toFixed(2) + ' / 10'
+                }
+              }
+            };
+
+            this.scoresChart = new ApexCharts(chartEl, options);
+            this.scoresChart.render();
+          },
+
+          showPropertyDetails(property) {
+            this.selectedProperty = property;
+          },
+
+          // Format the raw Figure value for display
+          formatFigure(value, key) {
+            if (value === null || value === undefined) return '—';
+            
+            // Percentage factors
+            const percentageFactors = ['populationGrowth', 'renterHouseholdsPercent', 
+              'submarketVacancy', 'submarketDeliveredPercent', 'submarketConstructionPercent'];
+            if (percentageFactors.includes(key)) {
+              return (value * 100).toFixed(2) + '%';
+            }
+            
+            // Currency factors
+            const currencyFactors = ['medianHHIncome', 'medianHomeValue'];
+            if (currencyFactors.includes(key)) {
+              return '$' + value.toLocaleString();
+            }
+            
+            // Large numbers (population)
+            if (key === 'population' && value > 1000) {
+              return value.toLocaleString();
+            }
+            
+            // Crime rates (decimal)
+            const crimeFactors = ['violentCrimeRate', 'propertyCrimeRate'];
+            if (crimeFactors.includes(key)) {
+              return value.toFixed(1);
+            }
+            
+            // Scores (walk, transit, school) - integers
+            const scoreFactors = ['walkScore', 'transitScore', 'schoolRatings'];
+            if (scoreFactors.includes(key)) {
+              return Math.round(value).toString();
+            }
+            
+            // Default: show as number with appropriate precision
+            if (Number.isInteger(value)) return value.toString();
+            return value.toFixed(2);
+          }
+        }));
+      });
+    </script>
+  </body>
+</html>
+
