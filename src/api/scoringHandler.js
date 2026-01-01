@@ -14,6 +14,14 @@ import { PropertyService } from '../services/property_service.js';
 import { db } from '../config/database.js';
 import fs from 'fs/promises';
 import path from 'path';
+import { 
+  STATE_TO_REGION, 
+  REGIONS, 
+  getRegionForState, 
+  getStatesInRegion, 
+  getStateName, 
+  getRegionName 
+} from '../config/census_regions.js';
 
 const router = express.Router();
 
@@ -571,6 +579,224 @@ router.get('/properties', async (req, res) => {
     res.status(500).json({
       success: false,
       error: error.message,
+    });
+  }
+});
+
+/**
+ * GET /api/scoring/aggregate
+ * 
+ * Get aggregated property data grouped by geographic level for dashboard drill-down.
+ * 
+ * Query Parameters:
+ * - groupBy: 'region' | 'state' | 'city' (default: 'region')
+ * - region: Filter by region key (e.g., 'west') - required for state/city groupBy
+ * - state: Filter by state abbr (e.g., 'CA') - required for city groupBy
+ * 
+ * Response:
+ * {
+ *   "groups": [
+ *     { "name": "West", "key": "west", "moveForward": 12, "needsReview": 5, "rejected": 3, "total": 20 }
+ *   ],
+ *   "breadcrumb": [
+ *     { "level": 0, "label": "All Regions", "key": null },
+ *     { "level": 1, "label": "West", "key": "west" }
+ *   ],
+ *   "currentLevel": 0,
+ *   "filteredProperties": [...] // Properties matching current filter (for table sync)
+ * }
+ */
+router.get('/aggregate', async (req, res) => {
+  try {
+    const { groupBy = 'region', region, state, city } = req.query;
+    
+    // Get all active properties with scores from database
+    const dbProperties = await propertyService.getAllWithScores({ includeDeleted: false });
+    
+    // Build breadcrumb based on current filters
+    const breadcrumb = [{ level: 0, label: 'All Regions', key: null }];
+    
+    if (region) {
+      breadcrumb.push({ level: 1, label: getRegionName(region), key: region });
+    }
+    if (state) {
+      breadcrumb.push({ level: 2, label: getStateName(state), key: state });
+    }
+    if (city) {
+      breadcrumb.push({ level: 3, label: city, key: city });
+    }
+    
+    // Filter properties based on current selection
+    let filteredProperties = dbProperties.map(p => ({
+      id: p.id,
+      propertyName: p.name,
+      address: {
+        street: p.address_street,
+        city: p.address_city,
+        state: p.address_state,
+        stateAbbr: p.address_state_abbr,
+        zipCode: p.address_zip,
+        fullAddress: p.address_full
+      },
+      score: p.score ? parseFloat(p.score) : null,
+      decision: p.decision,
+      decisionColor: p.decision_color,
+      breakdown: p.breakdown,
+      region: getRegionForState(p.address_state_abbr)
+    }));
+    
+    // Apply filters
+    if (region) {
+      filteredProperties = filteredProperties.filter(p => p.region === region.toLowerCase());
+    }
+    if (state) {
+      filteredProperties = filteredProperties.filter(p => 
+        p.address.stateAbbr?.toUpperCase() === state.toUpperCase()
+      );
+    }
+    if (city) {
+      filteredProperties = filteredProperties.filter(p => 
+        p.address.city?.toLowerCase() === city.toLowerCase()
+      );
+    }
+    
+    // Aggregate based on groupBy level
+    let groups = [];
+    let currentLevel = 0;
+    
+    if (groupBy === 'region') {
+      // Group by Census regions
+      currentLevel = 0;
+      const regionCounts = {};
+      
+      for (const regionKey of Object.keys(REGIONS)) {
+        regionCounts[regionKey] = { moveForward: 0, needsReview: 0, rejected: 0, total: 0 };
+      }
+      
+      for (const p of filteredProperties) {
+        const regionKey = p.region;
+        if (!regionKey || !regionCounts[regionKey]) continue;
+        
+        regionCounts[regionKey].total++;
+        if (p.decisionColor === 'green') {
+          regionCounts[regionKey].moveForward++;
+        } else if (p.decisionColor === 'yellow') {
+          regionCounts[regionKey].needsReview++;
+        } else {
+          regionCounts[regionKey].rejected++;
+        }
+      }
+      
+      groups = Object.entries(REGIONS).map(([key, region]) => ({
+        key,
+        name: region.name,
+        ...regionCounts[key]
+      })).filter(g => g.total > 0);
+      
+    } else if (groupBy === 'state') {
+      // Group by states within region
+      currentLevel = 1;
+      const stateCounts = {};
+      
+      for (const p of filteredProperties) {
+        const stateAbbr = p.address.stateAbbr?.toUpperCase();
+        if (!stateAbbr) continue;
+        
+        if (!stateCounts[stateAbbr]) {
+          stateCounts[stateAbbr] = { 
+            key: stateAbbr, 
+            name: getStateName(stateAbbr),
+            moveForward: 0, 
+            needsReview: 0, 
+            rejected: 0, 
+            total: 0 
+          };
+        }
+        
+        stateCounts[stateAbbr].total++;
+        if (p.decisionColor === 'green') {
+          stateCounts[stateAbbr].moveForward++;
+        } else if (p.decisionColor === 'yellow') {
+          stateCounts[stateAbbr].needsReview++;
+        } else {
+          stateCounts[stateAbbr].rejected++;
+        }
+      }
+      
+      groups = Object.values(stateCounts).sort((a, b) => b.total - a.total);
+      
+    } else if (groupBy === 'city') {
+      // Group by cities within state
+      currentLevel = 2;
+      const cityCounts = {};
+      
+      for (const p of filteredProperties) {
+        const cityName = p.address.city;
+        if (!cityName) continue;
+        
+        const cityKey = cityName.toLowerCase().replace(/\s+/g, '_');
+        
+        if (!cityCounts[cityKey]) {
+          cityCounts[cityKey] = { 
+            key: cityKey, 
+            name: cityName,
+            moveForward: 0, 
+            needsReview: 0, 
+            rejected: 0, 
+            total: 0 
+          };
+        }
+        
+        cityCounts[cityKey].total++;
+        if (p.decisionColor === 'green') {
+          cityCounts[cityKey].moveForward++;
+        } else if (p.decisionColor === 'yellow') {
+          cityCounts[cityKey].needsReview++;
+        } else {
+          cityCounts[cityKey].rejected++;
+        }
+      }
+      
+      groups = Object.values(cityCounts).sort((a, b) => b.total - a.total);
+      
+    } else if (groupBy === 'property') {
+      // Return individual properties (deepest level)
+      currentLevel = 3;
+      groups = filteredProperties.map(p => ({
+        key: String(p.id),
+        name: p.propertyName || 'Unknown Property',
+        score: p.score,
+        decisionColor: p.decisionColor,
+        moveForward: p.decisionColor === 'green' ? 1 : 0,
+        needsReview: p.decisionColor === 'yellow' ? 1 : 0,
+        rejected: p.decisionColor === 'red' ? 1 : 0,
+        total: 1
+      })).sort((a, b) => (b.score || 0) - (a.score || 0));
+    }
+    
+    // Calculate summary for current filter level
+    const summary = {
+      total: filteredProperties.length,
+      moveForward: filteredProperties.filter(p => p.decisionColor === 'green').length,
+      needsReview: filteredProperties.filter(p => p.decisionColor === 'yellow').length,
+      rejected: filteredProperties.filter(p => p.decisionColor === 'red').length,
+    };
+    
+    res.json({
+      success: true,
+      currentLevel,
+      groupBy,
+      breadcrumb,
+      groups,
+      summary,
+      filteredProperties
+    });
+    
+  } catch (error) {
+    console.error('[Scoring] Aggregate error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
     });
   }
 });

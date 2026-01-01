@@ -42,7 +42,7 @@
 
         <!-- ===== Main Content Start ===== -->
         <main>
-          <div class="mx-auto max-w-screen-2xl p-4 md:p-6 2xl:p-10" x-data="propertyDashboard" x-init="loadProperties()">
+          <div class="mx-auto max-w-screen-2xl p-4 md:p-6 2xl:p-10" x-data="propertyDashboard" x-init="init()">
             <!-- Page Header -->
             <div class="mb-6 flex items-center justify-between">
               <div>
@@ -74,8 +74,8 @@
               </svg>
             </div>
 
-            <!-- Empty State -->
-            <div x-show="!loading && properties.length === 0" class="py-12 text-center">
+            <!-- Empty State (only show when no properties exist at all) -->
+            <div x-show="!loading && filteredProperties.length === 0 && aggregateGroups.length === 0" style="display: none;" class="py-12 text-center">
               <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
               </svg>
@@ -95,8 +95,44 @@
             </div>
 
             <!-- Dashboard Content -->
-            <div x-show="!loading && properties.length > 0">
-              <!-- Summary Cards -->
+            <div x-cloak x-show="!loading && (filteredProperties.length > 0 || aggregateGroups.length > 0)">
+              
+              <!-- Breadcrumb Navigation -->
+              <div class="mb-4 flex items-center gap-2">
+                <!-- Back Button -->
+                <button
+                  x-show="drillLevel > 0"
+                  @click="navigateBack()"
+                  class="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 hover:text-gray-700 dark:border-gray-700 dark:bg-boxdark dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+                  title="Go back"
+                >
+                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                  </svg>
+                </button>
+                
+                <!-- Breadcrumb Trail -->
+                <nav class="flex items-center gap-1 text-sm">
+                  <template x-for="(crumb, index) in breadcrumb" :key="index">
+                    <div class="flex items-center gap-1">
+                      <!-- Separator -->
+                      <span x-show="index > 0" class="text-gray-400 dark:text-gray-500">/</span>
+                      <!-- Crumb Link/Text -->
+                      <button
+                        @click="navigateToCrumb(index)"
+                        class="transition-colors"
+                        :class="index === breadcrumb.length - 1 
+                          ? 'font-medium text-gray-900 dark:text-white cursor-default' 
+                          : 'text-gray-500 hover:text-brand-500 dark:text-gray-400 dark:hover:text-brand-400'"
+                        :disabled="index === breadcrumb.length - 1"
+                        x-text="crumb.label"
+                      ></button>
+                    </div>
+                  </template>
+                </nav>
+              </div>
+              
+              <!-- Summary Cards (filtered by current selection) -->
               <div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 <!-- Total Properties -->
                 <div class="rounded-lg border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-boxdark">
@@ -108,7 +144,7 @@
                     </div>
                     <div>
                       <p class="text-sm text-gray-500 dark:text-gray-400">Total Properties</p>
-                      <p class="text-2xl font-bold text-gray-900 dark:text-white" x-text="summary.count"></p>
+                      <p class="text-2xl font-bold text-gray-900 dark:text-white" x-text="filteredSummary.total"></p>
                     </div>
                   </div>
                 </div>
@@ -123,7 +159,7 @@
                     </div>
                     <div>
                       <p class="text-sm text-gray-500 dark:text-gray-400">Move Forward</p>
-                      <p class="text-2xl font-bold text-green-600 dark:text-green-400" x-text="summary.moveForward"></p>
+                      <p class="text-2xl font-bold text-green-600 dark:text-green-400" x-text="filteredSummary.moveForward"></p>
                     </div>
                   </div>
                 </div>
@@ -138,7 +174,7 @@
                     </div>
                     <div>
                       <p class="text-sm text-gray-500 dark:text-gray-400">Needs Review</p>
-                      <p class="text-2xl font-bold text-yellow-600 dark:text-yellow-400" x-text="summary.quickCheck"></p>
+                      <p class="text-2xl font-bold text-yellow-600 dark:text-yellow-400" x-text="filteredSummary.needsReview"></p>
                     </div>
                   </div>
                 </div>
@@ -153,7 +189,7 @@
                     </div>
                     <div>
                       <p class="text-sm text-gray-500 dark:text-gray-400">Rejected</p>
-                      <p class="text-2xl font-bold text-red-600 dark:text-red-400" x-text="summary.dontMove"></p>
+                      <p class="text-2xl font-bold text-red-600 dark:text-red-400" x-text="filteredSummary.rejected"></p>
                     </div>
                   </div>
                 </div>
@@ -161,29 +197,35 @@
 
               <!-- Charts Row -->
               <div class="mb-6 grid grid-cols-12 gap-6">
-                <!-- Score Distribution Donut Chart -->
+                <!-- Score Distribution Donut Chart (filtered) -->
                 <div class="col-span-12 xl:col-span-5">
                   <div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-boxdark">
-                    <h3 class="mb-4 text-lg font-semibold text-gray-900 dark:text-white">Score Distribution</h3>
+                    <h3 class="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
+                      Score Distribution
+                      <span x-show="drillLevel > 0" class="text-sm font-normal text-gray-500 dark:text-gray-400" x-text="'(' + getFilterLabel() + ')'"></span>
+                    </h3>
                     <div id="distributionChart" class="h-[300px]"></div>
                   </div>
                 </div>
 
-                <!-- Property Scores Bar Chart -->
+                <!-- Geographic Drill-Down Bar Chart -->
                 <div class="col-span-12 xl:col-span-7">
                   <div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-boxdark">
-                    <h3 class="mb-4 text-lg font-semibold text-gray-900 dark:text-white">Property Scores</h3>
-                    <div id="scoresChart" class="h-[300px]"></div>
+                    <h3 class="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
+                      <span x-text="getChartTitle()"></span>
+                    </h3>
+                    <div id="drilldownChart" class="h-[300px]"></div>
                   </div>
                 </div>
               </div>
 
-              <!-- Properties Table -->
+              <!-- Properties Table (filtered) -->
               <div class="rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-boxdark">
                 <div class="flex items-center justify-between border-b border-gray-200 px-6 py-4 dark:border-gray-700">
                   <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
                     <span x-show="!showingDeleted">Properties</span>
                     <span x-show="showingDeleted">Deleted Properties</span>
+                    <span x-show="drillLevel > 0 && !showingDeleted" class="text-sm font-normal text-gray-500 dark:text-gray-400" x-text="'in ' + getFilterLabel()"></span>
                   </h3>
                   <div class="flex items-center gap-2">
                     <!-- Toggle deleted properties -->
@@ -214,7 +256,7 @@
                       </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-                      <template x-for="property in properties" :key="property.id">
+                      <template x-for="property in filteredProperties" :key="property.id">
                         <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50">
                           <td class="px-6 py-4 max-w-[200px]">
                             <div class="min-w-0">
@@ -551,49 +593,39 @@
     <script>
       document.addEventListener('alpine:init', () => {
         Alpine.data('propertyDashboard', () => ({
+          // Core state
           loading: true,
-          properties: [],
-          summary: {
-            count: 0,
+          allProperties: [],        // All properties from API
+          filteredProperties: [],   // Properties filtered by current drill-down
+          aggregateGroups: [],      // Aggregated data for bar chart
+          
+          // Drill-down navigation state
+          drillLevel: 0,            // 0=regions, 1=states, 2=cities, 3=properties
+          currentRegion: null,      // e.g., "west"
+          currentState: null,       // e.g., "CA"
+          currentCity: null,        // e.g., "Los Angeles"
+          breadcrumb: [{ level: 0, label: 'All Regions', key: null }],
+          
+          // Summary stats (filtered)
+          filteredSummary: {
+            total: 0,
             moveForward: 0,
-            quickCheck: 0,
-            dontMove: 0,
-            averageScore: 0,
+            needsReview: 0,
+            rejected: 0
           },
+          
+          // Modal and UI state
           selectedProperty: null,
           distributionChart: null,
-          scoresChart: null,
+          drilldownChart: null,
           
-          // Factor display order (must match user's preferred order)
+          // Factor display order
           factorOrder: [
-            'population',
-            'populationGrowth',
-            'medianHHIncome',
-            'medianHomeValue',
-            'renterHouseholdsPercent',
-            'violentCrimeRate',
-            'propertyCrimeRate',
-            'schoolRatings',
-            'walkScore',
-            'transitScore',
-            'submarketVacancy',
-            'submarketDeliveredPercent',
-            'submarketConstructionPercent'
+            'population', 'populationGrowth', 'medianHHIncome', 'medianHomeValue',
+            'renterHouseholdsPercent', 'violentCrimeRate', 'propertyCrimeRate',
+            'schoolRatings', 'walkScore', 'transitScore', 'submarketVacancy',
+            'submarketDeliveredPercent', 'submarketConstructionPercent'
           ],
-          
-          // Get breakdown entries in correct order
-          getOrderedBreakdown() {
-            if (!this.selectedProperty?.breakdown) return [];
-            return this.factorOrder
-              .filter(key => this.selectedProperty.breakdown[key])
-              .map(key => ({ key, ...this.selectedProperty.breakdown[key] }));
-          },
-          
-          // Count missing items in a property's breakdown (items with null rawValue)
-          getMissingCount(property) {
-            if (!property?.breakdown) return 0;
-            return Object.values(property.breakdown).filter(f => f.rawValue === null || f.rawValue === undefined).length;
-          },
           
           // Delete/Restore state
           showingDeleted: false,
@@ -605,164 +637,248 @@
           showDebug: false,
           copySuccess: false,
           
-          // Copy extraction ID to clipboard
-          async copyExtractionId() {
-            const id = this.selectedProperty?.extractionId;
-            if (!id) return;
+          // ========== Initialization ==========
+          
+          async init() {
+            // Parse URL params and restore state
+            this.restoreFromUrl();
             
-            try {
-              await navigator.clipboard.writeText(id);
-              this.copySuccess = true;
-              setTimeout(() => { this.copySuccess = false; }, 2000);
-            } catch (err) {
-              console.error('Failed to copy:', err);
-            }
-          },
-
-          async loadProperties() {
-            this.loading = true;
+            // Listen for browser back/forward
+            window.addEventListener('popstate', () => this.restoreFromUrl());
             
-            try {
-              const response = await fetch('/api/scoring/properties');
-              const data = await response.json();
-              
-              if (data.success) {
-                this.properties = data.properties || [];
-                this.summary = data.summary || this.summary;
-                this.deletedCount = this.summary.deletedCount || 0;
-                
-                // Initialize charts after data loads
-                this.$nextTick(() => {
-                  this.initCharts();
-                });
-              }
-            } catch (error) {
-              console.error('Failed to load properties:', error);
-            } finally {
-              this.loading = false;
-            }
+            // Load initial data
+            await this.loadData();
           },
           
-          async loadDeletedProperties() {
-            this.loading = true;
-            
-            try {
-              const response = await fetch('/api/properties/deleted');
-              const data = await response.json();
-              
-              if (data.success) {
-                // Transform to match property format
-                this.properties = (data.properties || []).map(p => ({
-                  ...p,
-                  propertyName: p.name,
-                  decisionColor: p.score >= 7 ? 'green' : p.score >= 5.5 ? 'yellow' : 'red'
-                }));
-              }
-            } catch (error) {
-              console.error('Failed to load deleted properties:', error);
-            } finally {
-              this.loading = false;
-            }
-          },
+          // ========== URL State Management ==========
           
-          async toggleDeletedView() {
-            this.showingDeleted = !this.showingDeleted;
+          restoreFromUrl() {
+            const params = new URLSearchParams(window.location.search);
+            this.currentRegion = params.get('region');
+            this.currentState = params.get('state');
+            this.currentCity = params.get('city');
             
-            if (this.showingDeleted) {
-              await this.loadDeletedProperties();
+            // Calculate drill level
+            if (this.currentCity) {
+              this.drillLevel = 3;
+            } else if (this.currentState) {
+              this.drillLevel = 2;
+            } else if (this.currentRegion) {
+              this.drillLevel = 1;
             } else {
-              await this.loadProperties();
+              this.drillLevel = 0;
+            }
+            
+            // Update breadcrumb
+            this.updateBreadcrumb();
+          },
+          
+          updateUrl() {
+            const params = new URLSearchParams();
+            if (this.currentRegion) params.set('region', this.currentRegion);
+            if (this.currentState) params.set('state', this.currentState);
+            if (this.currentCity) params.set('city', this.currentCity);
+            
+            const newUrl = params.toString() 
+              ? `${window.location.pathname}?${params.toString()}`
+              : window.location.pathname;
+            
+            history.pushState({
+              region: this.currentRegion,
+              state: this.currentState,
+              city: this.currentCity
+            }, '', newUrl);
+          },
+          
+          updateBreadcrumb() {
+            this.breadcrumb = [{ level: 0, label: 'All Regions', key: null }];
+            
+            if (this.currentRegion) {
+              const regionName = this.getRegionDisplayName(this.currentRegion);
+              this.breadcrumb.push({ level: 1, label: regionName, key: this.currentRegion });
+            }
+            if (this.currentState) {
+              const stateName = this.getStateDisplayName(this.currentState);
+              this.breadcrumb.push({ level: 2, label: stateName, key: this.currentState });
+            }
+            if (this.currentCity) {
+              this.breadcrumb.push({ level: 3, label: this.currentCity, key: this.currentCity });
             }
           },
           
-          confirmDelete(property) {
-            this.deleteConfirmProperty = property;
-          },
+          // ========== Data Loading ==========
           
-          async deleteProperty() {
-            if (!this.deleteConfirmProperty) return;
-            
-            this.deleting = true;
+          async loadData() {
+            this.loading = true;
             
             try {
-              const response = await fetch(`/api/properties/${this.deleteConfirmProperty.id}`, {
-                method: 'DELETE'
-              });
+              // Determine groupBy level
+              let groupBy = 'region';
+              if (this.currentCity) {
+                groupBy = 'property';
+              } else if (this.currentState) {
+                groupBy = 'city';
+              } else if (this.currentRegion) {
+                groupBy = 'state';
+              }
+              
+              // Build query params
+              const params = new URLSearchParams({ groupBy });
+              if (this.currentRegion) params.set('region', this.currentRegion);
+              if (this.currentState) params.set('state', this.currentState);
+              if (this.currentCity) params.set('city', this.currentCity);
+              
+              const response = await fetch(`/api/scoring/aggregate?${params}`);
               const data = await response.json();
               
               if (data.success) {
-                // Remove from current list
-                this.properties = this.properties.filter(p => p.id !== this.deleteConfirmProperty.id);
-                this.deletedCount++;
+                this.aggregateGroups = data.groups || [];
+                this.filteredProperties = data.filteredProperties || [];
+                this.allProperties = data.filteredProperties || [];
+                this.filteredSummary = data.summary || this.filteredSummary;
+                this.deletedCount = data.summary?.deletedCount || 0;
                 
-                // Update summary counts
-                if (this.deleteConfirmProperty.decisionColor === 'green') {
-                  this.summary.moveForward--;
-                } else if (this.deleteConfirmProperty.decisionColor === 'yellow') {
-                  this.summary.quickCheck--;
-                } else {
-                  this.summary.dontMove--;
-                }
-                this.summary.count--;
-                
-                // Reinitialize charts
+                // Initialize charts
                 this.$nextTick(() => {
                   this.initCharts();
                 });
-              } else {
-                alert('Failed to delete property: ' + (data.error || 'Unknown error'));
               }
             } catch (error) {
-              console.error('Failed to delete property:', error);
-              alert('Failed to delete property');
+              console.error('Failed to load data:', error);
             } finally {
-              this.deleting = false;
-              this.deleteConfirmProperty = null;
+              this.loading = false;
             }
           },
           
-          async restoreProperty(property) {
-            try {
-              const response = await fetch(`/api/properties/${property.id}/restore`, {
-                method: 'POST'
-              });
-              const data = await response.json();
-              
-              if (data.success) {
-                // Remove from deleted list and reload
-                this.properties = this.properties.filter(p => p.id !== property.id);
-                this.deletedCount--;
-                
-                // If no more deleted properties, switch back to active view
-                if (this.properties.length === 0) {
-                  this.showingDeleted = false;
-                  await this.loadProperties();
-                }
-              } else {
-                alert('Failed to restore property: ' + (data.error || 'Unknown error'));
+          // ========== Navigation ==========
+          
+          drillDown(groupKey, groupName) {
+            // At property level (drillLevel 3), show property details instead
+            if (this.drillLevel === 3) {
+              const property = this.filteredProperties.find(p => String(p.id) === groupKey);
+              if (property) {
+                this.showPropertyDetails(property);
               }
-            } catch (error) {
-              console.error('Failed to restore property:', error);
-              alert('Failed to restore property');
+              return;
             }
+            
+            // Navigate deeper
+            if (this.drillLevel === 0) {
+              this.currentRegion = groupKey;
+              this.drillLevel = 1;
+            } else if (this.drillLevel === 1) {
+              this.currentState = groupKey;
+              this.drillLevel = 2;
+            } else if (this.drillLevel === 2) {
+              this.currentCity = groupName;  // Use name for city (key is normalized)
+              this.drillLevel = 3;
+            }
+            
+            this.updateBreadcrumb();
+            this.updateUrl();
+            this.loadData();
           },
-
+          
+          navigateBack() {
+            if (this.drillLevel === 3) {
+              this.currentCity = null;
+              this.drillLevel = 2;
+            } else if (this.drillLevel === 2) {
+              this.currentState = null;
+              this.drillLevel = 1;
+            } else if (this.drillLevel === 1) {
+              this.currentRegion = null;
+              this.drillLevel = 0;
+            }
+            
+            this.updateBreadcrumb();
+            this.updateUrl();
+            this.loadData();
+          },
+          
+          navigateToCrumb(index) {
+            const targetLevel = this.breadcrumb[index].level;
+            
+            if (targetLevel === 0) {
+              this.currentRegion = null;
+              this.currentState = null;
+              this.currentCity = null;
+              this.drillLevel = 0;
+            } else if (targetLevel === 1) {
+              this.currentState = null;
+              this.currentCity = null;
+              this.drillLevel = 1;
+            } else if (targetLevel === 2) {
+              this.currentCity = null;
+              this.drillLevel = 2;
+            }
+            // Level 3 is current, no action needed
+            
+            this.updateBreadcrumb();
+            this.updateUrl();
+            this.loadData();
+          },
+          
+          // ========== Display Helpers ==========
+          
+          getChartTitle() {
+            if (this.drillLevel === 0) return 'Properties by Region';
+            if (this.drillLevel === 1) return 'Properties by State';
+            if (this.drillLevel === 2) return 'Properties by City';
+            return 'Property Scores';
+          },
+          
+          getFilterLabel() {
+            const parts = [];
+            if (this.currentRegion) parts.push(this.getRegionDisplayName(this.currentRegion));
+            if (this.currentState) parts.push(this.getStateDisplayName(this.currentState));
+            if (this.currentCity) parts.push(this.currentCity);
+            return parts.join(' / ') || 'All';
+          },
+          
+          // Region and state name lookups (mirror backend census_regions.js)
+          getRegionDisplayName(key) {
+            const names = { northeast: 'Northeast', midwest: 'Midwest', south: 'South', west: 'West' };
+            return names[key?.toLowerCase()] || key;
+          },
+          
+          getStateDisplayName(abbr) {
+            const names = {
+              AL: 'Alabama', AK: 'Alaska', AZ: 'Arizona', AR: 'Arkansas', CA: 'California',
+              CO: 'Colorado', CT: 'Connecticut', DE: 'Delaware', DC: 'D.C.', FL: 'Florida',
+              GA: 'Georgia', HI: 'Hawaii', ID: 'Idaho', IL: 'Illinois', IN: 'Indiana',
+              IA: 'Iowa', KS: 'Kansas', KY: 'Kentucky', LA: 'Louisiana', ME: 'Maine',
+              MD: 'Maryland', MA: 'Massachusetts', MI: 'Michigan', MN: 'Minnesota', MS: 'Mississippi',
+              MO: 'Missouri', MT: 'Montana', NE: 'Nebraska', NV: 'Nevada', NH: 'New Hampshire',
+              NJ: 'New Jersey', NM: 'New Mexico', NY: 'New York', NC: 'North Carolina', ND: 'North Dakota',
+              OH: 'Ohio', OK: 'Oklahoma', OR: 'Oregon', PA: 'Pennsylvania', RI: 'Rhode Island',
+              SC: 'South Carolina', SD: 'South Dakota', TN: 'Tennessee', TX: 'Texas', UT: 'Utah',
+              VT: 'Vermont', VA: 'Virginia', WA: 'Washington', WV: 'West Virginia', WI: 'Wisconsin', WY: 'Wyoming'
+            };
+            return names[abbr?.toUpperCase()] || abbr;
+          },
+          
+          // ========== Chart Initialization ==========
+          
           initCharts() {
             this.initDistributionChart();
-            this.initScoresChart();
+            this.initDrilldownChart();
           },
-
+          
           initDistributionChart() {
             const chartEl = document.getElementById('distributionChart');
             if (!chartEl) return;
-
-            // Destroy existing chart
+            
             if (this.distributionChart) {
               this.distributionChart.destroy();
             }
-
+            
             const options = {
-              series: [this.summary.moveForward, this.summary.quickCheck, this.summary.dontMove],
+              series: [
+                this.filteredSummary.moveForward, 
+                this.filteredSummary.needsReview, 
+                this.filteredSummary.rejected
+              ],
               chart: {
                 type: 'donut',
                 height: 300,
@@ -784,43 +900,114 @@
                       total: {
                         show: true,
                         label: 'Total',
-                        formatter: () => this.summary.count,
+                        formatter: () => this.filteredSummary.total,
                         color: document.body.classList.contains('dark') ? '#fff' : '#333',
                       }
                     }
                   }
                 }
               },
-              dataLabels: {
-                enabled: false
-              },
+              dataLabels: { enabled: false },
               responsive: [{
                 breakpoint: 480,
-                options: {
-                  chart: {
-                    width: 200
-                  },
-                  legend: {
-                    position: 'bottom'
-                  }
-                }
+                options: { chart: { width: 200 }, legend: { position: 'bottom' } }
               }]
             };
-
+            
             this.distributionChart = new ApexCharts(chartEl, options);
             this.distributionChart.render();
           },
-
-          initScoresChart() {
-            const chartEl = document.getElementById('scoresChart');
-            if (!chartEl || this.properties.length === 0) return;
-
-            // Destroy existing chart
-            if (this.scoresChart) {
-              this.scoresChart.destroy();
+          
+          initDrilldownChart() {
+            const chartEl = document.getElementById('drilldownChart');
+            if (!chartEl) return;
+            
+            if (this.drilldownChart) {
+              this.drilldownChart.destroy();
             }
-
-            const sortedProperties = [...this.properties].sort((a, b) => b.score - a.score);
+            
+            // At property level, show individual scores
+            if (this.drillLevel === 3) {
+              this.initPropertyScoresChart(chartEl);
+              return;
+            }
+            
+            // For aggregate levels, show stacked bars
+            const categories = this.aggregateGroups.map(g => g.name);
+            const moveForwardData = this.aggregateGroups.map(g => g.moveForward);
+            const needsReviewData = this.aggregateGroups.map(g => g.needsReview);
+            const rejectedData = this.aggregateGroups.map(g => g.rejected);
+            
+            const self = this;
+            
+            const options = {
+              series: [
+                { name: 'Move Forward', data: moveForwardData },
+                { name: 'Needs Review', data: needsReviewData },
+                { name: 'Rejected', data: rejectedData }
+              ],
+              chart: {
+                type: 'bar',
+                height: 300,
+                stacked: true,
+                toolbar: { show: false },
+                events: {
+                  dataPointSelection: function(event, chartContext, config) {
+                    const groupIndex = config.dataPointIndex;
+                    const group = self.aggregateGroups[groupIndex];
+                    if (group) {
+                      self.drillDown(group.key, group.name);
+                    }
+                  }
+                }
+              },
+              plotOptions: {
+                bar: {
+                  horizontal: true,
+                  barHeight: '70%',
+                  borderRadius: 4,
+                }
+              },
+              colors: ['#22c55e', '#eab308', '#ef4444'],
+              dataLabels: {
+                enabled: true,
+                formatter: (val) => val > 0 ? val : '',
+                style: { fontSize: '11px', colors: ['#fff'] }
+              },
+              xaxis: {
+                categories: categories,
+                labels: {
+                  style: { colors: document.body.classList.contains('dark') ? '#9ca3af' : '#4b5563' }
+                }
+              },
+              yaxis: {
+                labels: {
+                  style: { colors: document.body.classList.contains('dark') ? '#9ca3af' : '#4b5563' }
+                }
+              },
+              legend: {
+                position: 'top',
+                labels: { colors: document.body.classList.contains('dark') ? '#fff' : '#333' }
+              },
+              grid: {
+                borderColor: document.body.classList.contains('dark') ? '#374151' : '#e5e7eb',
+              },
+              tooltip: {
+                theme: document.body.classList.contains('dark') ? 'dark' : 'light',
+                y: { formatter: (val) => val + ' properties' }
+              },
+              states: {
+                hover: { filter: { type: 'darken', value: 0.85 } }
+              }
+            };
+            
+            this.drilldownChart = new ApexCharts(chartEl, options);
+            this.drilldownChart.render();
+          },
+          
+          initPropertyScoresChart(chartEl) {
+            // Individual property scores at deepest level
+            const sortedProperties = [...this.filteredProperties].sort((a, b) => (b.score || 0) - (a.score || 0));
             const categories = sortedProperties.map(p => p.propertyName || 'Unknown');
             const scores = sortedProperties.map(p => p.score || 0);
             const colors = sortedProperties.map(p => {
@@ -828,17 +1015,22 @@
               if (p.decisionColor === 'yellow') return '#eab308';
               return '#ef4444';
             });
-
+            
+            const self = this;
+            
             const options = {
-              series: [{
-                name: 'Score',
-                data: scores
-              }],
+              series: [{ name: 'Score', data: scores }],
               chart: {
                 type: 'bar',
                 height: 300,
-                toolbar: {
-                  show: false
+                toolbar: { show: false },
+                events: {
+                  dataPointSelection: function(event, chartContext, config) {
+                    const property = sortedProperties[config.dataPointIndex];
+                    if (property) {
+                      self.showPropertyDetails(property);
+                    }
+                  }
                 }
               },
               plotOptions: {
@@ -853,90 +1045,185 @@
               dataLabels: {
                 enabled: true,
                 formatter: (val) => val.toFixed(1),
-                style: {
-                  fontSize: '12px',
-                  colors: ['#fff']
-                }
+                style: { fontSize: '12px', colors: ['#fff'] }
               },
               xaxis: {
                 categories: categories,
                 max: 10,
                 labels: {
-                  style: {
-                    colors: document.body.classList.contains('dark') ? '#9ca3af' : '#4b5563',
-                  }
+                  style: { colors: document.body.classList.contains('dark') ? '#9ca3af' : '#4b5563' }
                 }
               },
               yaxis: {
                 labels: {
-                  style: {
-                    colors: document.body.classList.contains('dark') ? '#9ca3af' : '#4b5563',
-                  }
+                  style: { colors: document.body.classList.contains('dark') ? '#9ca3af' : '#4b5563' }
                 }
               },
-              legend: {
-                show: false
-              },
+              legend: { show: false },
               grid: {
                 borderColor: document.body.classList.contains('dark') ? '#374151' : '#e5e7eb',
               },
               tooltip: {
                 theme: document.body.classList.contains('dark') ? 'dark' : 'light',
-                y: {
-                  formatter: (val) => val.toFixed(2) + ' / 10'
-                }
+                y: { formatter: (val) => val.toFixed(2) + ' / 10' }
               }
             };
-
-            this.scoresChart = new ApexCharts(chartEl, options);
-            this.scoresChart.render();
+            
+            this.drilldownChart = new ApexCharts(chartEl, options);
+            this.drilldownChart.render();
           },
-
+          
+          // ========== Property Details ==========
+          
+          getOrderedBreakdown() {
+            if (!this.selectedProperty?.breakdown) return [];
+            return this.factorOrder
+              .filter(key => this.selectedProperty.breakdown[key])
+              .map(key => ({ key, ...this.selectedProperty.breakdown[key] }));
+          },
+          
+          getMissingCount(property) {
+            if (!property?.breakdown) return 0;
+            return Object.values(property.breakdown).filter(f => f.rawValue === null || f.rawValue === undefined).length;
+          },
+          
           showPropertyDetails(property) {
             this.selectedProperty = property;
           },
-
-          // Format the raw Figure value for display
+          
           formatFigure(value, key) {
             if (value === null || value === undefined) return '—';
             
-            // Percentage factors
             const percentageFactors = ['populationGrowth', 'renterHouseholdsPercent', 
               'submarketVacancy', 'submarketDeliveredPercent', 'submarketConstructionPercent'];
             if (percentageFactors.includes(key)) {
               return (value * 100).toFixed(2) + '%';
             }
             
-            // Currency factors
             const currencyFactors = ['medianHHIncome', 'medianHomeValue'];
             if (currencyFactors.includes(key)) {
               return '$' + value.toLocaleString();
             }
             
-            // Large numbers (population)
             if (key === 'population' && value > 1000) {
               return value.toLocaleString();
             }
             
-            // Crime rates (decimal)
             const crimeFactors = ['violentCrimeRate', 'propertyCrimeRate'];
             if (crimeFactors.includes(key)) {
               return value.toFixed(1);
             }
             
-            // Scores (walk, transit, school) - integers
             const scoreFactors = ['walkScore', 'transitScore', 'schoolRatings'];
             if (scoreFactors.includes(key)) {
               return Math.round(value).toString();
             }
             
-            // Default: show as number with appropriate precision
             if (Number.isInteger(value)) return value.toString();
             return value.toFixed(2);
+          },
+          
+          // ========== Delete/Restore ==========
+          
+          async toggleDeletedView() {
+            this.showingDeleted = !this.showingDeleted;
+            
+            if (this.showingDeleted) {
+              await this.loadDeletedProperties();
+            } else {
+              await this.loadData();
+            }
+          },
+          
+          async loadDeletedProperties() {
+            this.loading = true;
+            
+            try {
+              const response = await fetch('/api/properties/deleted');
+              const data = await response.json();
+              
+              if (data.success) {
+                this.filteredProperties = (data.properties || []).map(p => ({
+                  ...p,
+                  propertyName: p.name,
+                  decisionColor: p.score >= 7 ? 'green' : p.score >= 5.5 ? 'yellow' : 'red'
+                }));
+              }
+            } catch (error) {
+              console.error('Failed to load deleted properties:', error);
+            } finally {
+              this.loading = false;
+            }
+          },
+          
+          confirmDelete(property) {
+            this.deleteConfirmProperty = property;
+          },
+          
+          async deleteProperty() {
+            if (!this.deleteConfirmProperty) return;
+            
+            this.deleting = true;
+            
+            try {
+              const response = await fetch(`/api/properties/${this.deleteConfirmProperty.id}`, {
+                method: 'DELETE'
+              });
+              const data = await response.json();
+              
+              if (data.success) {
+                this.deletedCount++;
+                await this.loadData();
+              } else {
+                alert('Failed to delete property: ' + (data.error || 'Unknown error'));
+              }
+            } catch (error) {
+              console.error('Failed to delete property:', error);
+              alert('Failed to delete property');
+            } finally {
+              this.deleting = false;
+              this.deleteConfirmProperty = null;
+            }
+          },
+          
+          async restoreProperty(property) {
+            try {
+              const response = await fetch(`/api/properties/${property.id}/restore`, {
+                method: 'POST'
+              });
+              const data = await response.json();
+              
+              if (data.success) {
+                this.filteredProperties = this.filteredProperties.filter(p => p.id !== property.id);
+                this.deletedCount--;
+                
+                if (this.filteredProperties.length === 0) {
+                  this.showingDeleted = false;
+                  await this.loadData();
+                }
+              } else {
+                alert('Failed to restore property: ' + (data.error || 'Unknown error'));
+              }
+            } catch (error) {
+              console.error('Failed to restore property:', error);
+              alert('Failed to restore property');
+            }
+          },
+          
+          async copyExtractionId() {
+            const id = this.selectedProperty?.extractionId;
+            if (!id) return;
+            
+            try {
+              await navigator.clipboard.writeText(id);
+              this.copySuccess = true;
+              setTimeout(() => { this.copySuccess = false; }, 2000);
+            } catch (err) {
+              console.error('Failed to copy:', err);
+            }
           }
         }));
       });
     </script>
   </body>
 </html>
-

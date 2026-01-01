@@ -3,6 +3,11 @@ layer(base);
 
 @import "tailwindcss";
 
+/* Alpine.js cloak - hide elements until Alpine initializes */
+[x-cloak] {
+  display: none !important;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme {
