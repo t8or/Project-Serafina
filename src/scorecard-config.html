@@ -98,6 +98,17 @@
                   </div>
                   <div class="p-6">
                     <!-- Factor Table -->
+                    <div class="mb-4 flex justify-end">
+                      <button
+                        @click="showThresholdPreview = true"
+                        class="flex items-center gap-2 rounded-lg border border-brand-500 bg-white px-4 py-2 text-sm font-medium text-brand-600 hover:bg-brand-50 dark:border-brand-400 dark:bg-gray-700 dark:text-brand-400 dark:hover:bg-gray-600"
+                      >
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/>
+                        </svg>
+                        Preview All Thresholds
+                      </button>
+                    </div>
                     <div class="overflow-x-auto">
                       <table class="w-full table-auto">
                         <thead>
@@ -105,7 +116,7 @@
                             <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">Factor</th>
                             <th class="px-4 py-3 text-center text-sm font-semibold text-gray-700 dark:text-gray-300">Weight (%)</th>
                             <th class="px-4 py-3 text-center text-sm font-semibold text-gray-700 dark:text-gray-300">Increment</th>
-                            <th class="px-4 py-3 text-center text-sm font-semibold text-gray-700 dark:text-gray-300">Max Score</th>
+                            <th class="px-4 py-3 text-center text-sm font-semibold text-gray-700 dark:text-gray-300">Top Value</th>
                           </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
@@ -143,12 +154,10 @@
                               </td>
                               <td class="px-4 py-3">
                                 <input
-                                  type="number"
-                                  step="1"
-                                  min="1"
-                                  max="20"
-                                  x-model.number="factor.maxScore"
-                                  class="w-16 rounded border border-gray-300 bg-white px-2 py-1 text-center text-sm text-gray-900 focus:border-brand-500 focus:ring-brand-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                                  type="text"
+                                  :value="formatTopValue(factor)"
+                                  @input="updateTopValue(key, $event.target.value)"
+                                  class="w-28 rounded border border-gray-300 bg-white px-2 py-1 text-center text-sm text-gray-900 focus:border-brand-500 focus:ring-brand-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                                 />
                               </td>
                             </tr>
@@ -290,6 +299,98 @@
                 </div>
               </div>
             </div>
+
+            <!-- Threshold Preview Modal -->
+          <div
+            x-show="showThresholdPreview"
+            x-transition:enter="transition ease-out duration-200"
+            x-transition:enter-start="opacity-0"
+            x-transition:enter-end="opacity-100"
+            x-transition:leave="transition ease-in duration-150"
+            x-transition:leave-start="opacity-100"
+            x-transition:leave-end="opacity-0"
+            class="fixed z-50 flex flex-col overflow-hidden rounded-xl bg-white shadow-2xl dark:bg-boxdark"
+            style="top: 40px; right: 40px; bottom: 40px; left: 40px;"
+            @click.outside="showThresholdPreview = false"
+          >
+            <!-- Modal Header -->
+            <div class="flex shrink-0 items-center justify-between border-b border-gray-200 px-6 py-4 dark:border-gray-700">
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Threshold Values by Score</h3>
+              <button
+                @click="showThresholdPreview = false"
+                class="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300"
+              >
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+              </button>
+            </div>
+            
+            <!-- Modal Body -->
+            <div class="min-h-0 flex-1 overflow-hidden px-6 pb-6 pt-4">
+              <p class="mb-4 text-sm text-gray-500 dark:text-gray-400">
+                This table shows the threshold values required to achieve each score level. 
+                <span class="text-blue-600 dark:text-blue-400">Blue rows</span> indicate "lower is better" factors (inverted scoring).
+              </p>
+              <!-- Table wrapper for scrolling -->
+              <div class="relative h-[calc(100%-2.5rem)] overflow-auto rounded-lg border border-gray-200 dark:border-gray-700">
+                <table class="text-sm">
+                  <thead class="sticky top-0 z-20">
+                    <tr>
+                      <!-- Sticky Factor column header - fit content width -->
+                      <th class="sticky left-0 z-30 border-b border-r border-gray-200 bg-gray-100 px-4 py-3 text-left font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300" style="width: 1%; white-space: nowrap;">Factor</th>
+                      <!-- Score headers -->
+                      <template x-for="score in [10, 9, 8, 7, 6, 5, 4, 3, 2, 1]" :key="score">
+                        <th class="border-b border-gray-200 bg-gray-100 px-5 py-3 text-center font-semibold tabular-nums text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300" style="white-space: nowrap;" x-text="score"></th>
+                      </template>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <template x-for="(factor, key) in config.factors" :key="key">
+                      <tr :class="factor.lowerIsBetter ? 'bg-blue-50 dark:bg-blue-900/20' : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'">
+                        <!-- Sticky Factor name column - fit content width -->
+                        <td 
+                          class="sticky left-0 z-10 border-r border-gray-200 px-4 py-2.5 font-medium text-gray-900 dark:border-gray-700 dark:text-white" 
+                          :class="factor.lowerIsBetter ? 'bg-blue-50 dark:bg-blue-900/30' : 'bg-white dark:bg-boxdark'"
+                          style="width: 1%; white-space: nowrap;"
+                        >
+                          <span x-text="factor.name"></span>
+                          <span x-show="factor.lowerIsBetter" class="ml-1 text-xs text-blue-600 dark:text-blue-400">↓</span>
+                        </td>
+                        <!-- Score value columns -->
+                        <template x-for="score in [10, 9, 8, 7, 6, 5, 4, 3, 2, 1]" :key="score">
+                          <td class="px-5 py-2.5 text-center tabular-nums text-gray-600 dark:text-gray-400" style="white-space: nowrap;" x-text="formatThresholdValue(factor, score)"></td>
+                        </template>
+                      </tr>
+                    </template>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            
+            <!-- Modal Footer -->
+            <div class="flex shrink-0 justify-end border-t border-gray-200 px-6 py-4 dark:border-gray-700">
+              <button
+                @click="showThresholdPreview = false"
+                class="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+          
+          <!-- Modal Backdrop -->
+          <div
+            x-show="showThresholdPreview"
+            x-transition:enter="transition ease-out duration-200"
+            x-transition:enter-start="opacity-0"
+            x-transition:enter-end="opacity-100"
+            x-transition:leave="transition ease-in duration-150"
+            x-transition:leave-start="opacity-100"
+            x-transition:leave-end="opacity-0"
+            class="fixed inset-0 z-40 bg-black/50"
+            @click="showThresholdPreview = false"
+          ></div>
           </div>
         </main>
         <!-- ===== Main Content End ===== -->
@@ -317,6 +418,7 @@
           },
           saving: false,
           recalculating: false,
+          showThresholdPreview: false,
 
           async loadConfig() {
             try {
@@ -359,18 +461,63 @@
           updateIncrement(factorKey, value) {
             // Parse increment value (could be number, percentage, or currency)
             let increment = parseFloat(value.replace(/[$%,]/g, ''));
-            if (!isNaN(increment)) {
-              // If it was a percentage, convert to decimal
-              if (value.includes('%')) {
-                increment = increment / 100;
+            if (isNaN(increment)) return;
+            
+            // If it was a percentage, convert to decimal
+            const name = (this.config.factors[factorKey]?.name || '').toLowerCase();
+            const isPercentage = value.includes('%') || 
+                                 name.includes('%') || name.includes('growth') || 
+                                 name.includes('vacancy') || name.includes('delivered') || 
+                                 name.includes('construction') || name.includes('renter');
+            if (isPercentage && !value.includes('%')) {
+              // User entered without %, assume it's already a percentage value
+              increment = increment / 100;
+            } else if (value.includes('%')) {
+              increment = increment / 100;
+            }
+            
+            // Store the increment value
+            this.config.factors[factorKey].increment = increment;
+            
+            // Rebuild thresholds based on the new increment
+            // Using maxScore as the anchor (defaults to 10)
+            const factor = this.config.factors[factorKey];
+            const maxScore = factor.maxScore || 10;
+            
+            if (factor.thresholds && factor.thresholds[maxScore] !== undefined) {
+              const base = factor.thresholds[maxScore];
+              const lowerIsBetter = factor.lowerIsBetter || false;
+              
+              for (let score = maxScore; score >= 1; score--) {
+                // For "higher is better": thresholds decrease as score decreases
+                // For "lower is better": thresholds increase as score decreases
+                if (lowerIsBetter) {
+                  factor.thresholds[score] = base + (increment * (maxScore - score));
+                } else {
+                  factor.thresholds[score] = base - (increment * (maxScore - score));
+                }
               }
-              this.config.factors[factorKey].increment = increment;
             }
           },
 
           formatIncrement(factor) {
-            const value = factor.increment;
-            const name = factor.name.toLowerCase();
+            if (!factor) return '';
+            
+            // Compute increment from thresholds if available
+            // Increment = difference between adjacent score thresholds (maxScore and maxScore-1)
+            let value = factor.increment;
+            
+            if ((value === undefined || value === null) && factor.thresholds) {
+              const maxScore = factor.maxScore || 10;
+              // Get increment from the two highest scores
+              if (factor.thresholds[maxScore] !== undefined && factor.thresholds[maxScore - 1] !== undefined) {
+                value = Math.abs(factor.thresholds[maxScore] - factor.thresholds[maxScore - 1]);
+              }
+            }
+            
+            if (value === undefined || value === null) return '';
+            
+            const name = (factor.name || '').toLowerCase();
             
             // Format based on factor type
             if (name.includes('income') || name.includes('value') || name.includes('price')) {
@@ -379,6 +526,99 @@
               return (value * 100).toFixed(2) + '%';
             }
             return value.toLocaleString();
+          },
+
+          // Format the top value (threshold for score 10) for display
+          formatTopValue(factor) {
+            if (!factor || !factor.thresholds) return '';
+            
+            const maxScore = factor.maxScore || 10;
+            const value = factor.thresholds[maxScore];
+            if (value === undefined || value === null) return '';
+            
+            return this.formatValueByType(factor, value);
+          },
+
+          // Update the top value (threshold for score 10) and rebuild all thresholds
+          updateTopValue(factorKey, value) {
+            const factor = this.config.factors[factorKey];
+            if (!factor) return;
+            
+            // Parse the input value
+            let parsed = parseFloat(value.replace(/[$%,]/g, ''));
+            if (isNaN(parsed)) return;
+            
+            const name = (factor.name || '').toLowerCase();
+            const isPercentage = name.includes('%') || name.includes('growth') || 
+                                 name.includes('vacancy') || name.includes('delivered') || 
+                                 name.includes('construction') || name.includes('renter');
+            
+            // Convert percentage input to decimal
+            if (isPercentage) {
+              parsed = parsed / 100;
+            }
+            
+            const maxScore = factor.maxScore || 10;
+            const oldTop = factor.thresholds[maxScore];
+            const increment = this.getIncrement(factor);
+            
+            // Update the top value
+            factor.thresholds[maxScore] = parsed;
+            
+            // Rebuild all other thresholds based on the new top value and existing increment
+            if (increment) {
+              const lowerIsBetter = factor.lowerIsBetter || false;
+              for (let score = maxScore - 1; score >= 1; score--) {
+                if (lowerIsBetter) {
+                  factor.thresholds[score] = parsed + (increment * (maxScore - score));
+                } else {
+                  factor.thresholds[score] = parsed - (increment * (maxScore - score));
+                }
+              }
+            }
+          },
+
+          // Get the increment value for a factor
+          getIncrement(factor) {
+            if (!factor) return null;
+            
+            if (factor.increment !== undefined && factor.increment !== null) {
+              return factor.increment;
+            }
+            
+            if (factor.thresholds) {
+              const maxScore = factor.maxScore || 10;
+              if (factor.thresholds[maxScore] !== undefined && factor.thresholds[maxScore - 1] !== undefined) {
+                return Math.abs(factor.thresholds[maxScore] - factor.thresholds[maxScore - 1]);
+              }
+            }
+            
+            return null;
+          },
+
+          // Format a threshold value for the preview modal
+          formatThresholdValue(factor, score) {
+            if (!factor || !factor.thresholds) return '-';
+            
+            const value = factor.thresholds[score];
+            if (value === undefined || value === null) return '-';
+            
+            return this.formatValueByType(factor, value);
+          },
+
+          // Format a value based on factor type (currency, percentage, or number)
+          formatValueByType(factor, value) {
+            const name = (factor.name || '').toLowerCase();
+            
+            if (name.includes('income') || name.includes('value') || name.includes('price')) {
+              return '$' + value.toLocaleString(undefined, { maximumFractionDigits: 0 });
+            } else if (name.includes('%') || name.includes('growth') || name.includes('vacancy') || 
+                       name.includes('delivered') || name.includes('construction') || name.includes('renter')) {
+              return (value * 100).toFixed(1) + '%';
+            } else if (name.includes('crime') || name.includes('score') || name.includes('rating')) {
+              return value.toFixed(1);
+            }
+            return value.toLocaleString(undefined, { maximumFractionDigits: 0 });
           },
 
           validateWeights() {

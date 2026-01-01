@@ -11,6 +11,10 @@ import { ScraperService } from '../services/scrapers/scraper_service.js';
 import { AddressExtractor } from '../services/address_extractor.js';
 import { PropertyService } from '../services/property_service.js';
 import { ScoringService } from '../services/scoring_service.js';
+import { 
+  extractDemographicsFromDocling, 
+  extractSubmarketFromDocling 
+} from './scoringHandler.js';
 
 // Force reload environment variables
 dotenv.config();
@@ -118,7 +122,7 @@ async function linkExtractionToProperty(fileId, sectionFiles, address, originalF
       }
       console.log(`[Extract] Linked ${sectionFiles.length} extracted files`);
 
-      // Load section data and calculate score
+      // Load section data and calculate score (v2 - with demographics extraction)
       const sectionsData = {};
       for (const sectionFile of sectionFiles) {
         const sectionFilename = path.basename(sectionFile);
@@ -142,12 +146,40 @@ async function linkExtractionToProperty(fileId, sectionFiles, address, originalF
         }
       }
 
-      // Build property data for scoring (simplified - full logic in scoringHandler)
+      // Extract demographics and submarket data from Docling sections
+      console.log('[Extract] Calling extraction functions...');
+      console.log('[Extract] Available sections:', Object.keys(sectionsData));
+      
+      let demographicsData = {};
+      let submarketData = {};
+      
+      try {
+        demographicsData = extractDemographicsFromDocling(
+          sectionsData.demographics, 
+          sectionsData.submarket_report
+        ) || {};
+        console.log('[Extract] Extracted demographics:', JSON.stringify(demographicsData));
+      } catch (e) {
+        console.error('[Extract] Demographics extraction error:', e.message);
+      }
+      
+      try {
+        submarketData = extractSubmarketFromDocling(
+          sectionsData.submarket_report, 
+          sectionsData.construction, 
+          sectionsData.demographics
+        ) || {};
+        console.log('[Extract] Extracted submarket:', JSON.stringify(submarketData));
+      } catch (e) {
+        console.error('[Extract] Submarket extraction error:', e.message);
+      }
+
+      // Build property data for scoring
       const propertyData = {
         address,
-        demographics: {},
+        demographics: demographicsData,
         property: {},
-        submarket: {},
+        submarket: submarketData,
         external: sectionsData.external || {}
       };
 

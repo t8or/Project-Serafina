@@ -353,6 +353,22 @@ router.get('/properties', async (req, res) => {
         const dbProperties = await propertyService.getAllWithScores({ includeDeleted });
         
         if (dbProperties.length > 0) {
+          // Get extraction IDs for each property
+          const extractionIds = {};
+          for (const p of dbProperties) {
+            const efResult = await db.query(
+              'SELECT storage_path FROM extracted_files WHERE property_id = $1 AND deleted_at IS NULL LIMIT 1',
+              [p.id]
+            );
+            if (efResult.rows.length > 0) {
+              // Extract base name from path like "extracted/e_1767282984002-t1xksm_demographics.json"
+              const storagePath = efResult.rows[0].storage_path;
+              const filename = storagePath.split('/').pop();
+              const match = filename.match(/^(e_\d+-[a-z0-9]+)_/);
+              extractionIds[p.id] = match ? match[1] : null;
+            }
+          }
+          
           // Format properties for API response
           const properties = dbProperties.map(p => ({
             id: p.id,
@@ -372,7 +388,8 @@ router.get('/properties', async (req, res) => {
             calculatedAt: p.calculated_at,
             createdAt: p.created_at,
             deletedAt: p.deleted_at,
-            status: p.status
+            status: p.status,
+            extractionId: extractionIds[p.id] || null
           }));
 
           // Get summary from database
@@ -946,7 +963,7 @@ function extractSubmarketFromDocling(submarketSection, constructionSection, demo
     }
   }
   
-  console.log(`[Scoring] Submarket extraction: found ${allTables.length} tables from ${[constructionSection, submarketSection, demographicsSection].filter(Boolean).length} sections`);
+  console.log(`[Scoring] Submarket extraction: found ${allTables.length} tables`);
   
   // First, try to find vacancy from text
   const combinedText = allText.join(' ');
@@ -967,9 +984,13 @@ function extractSubmarketFromDocling(submarketSection, constructionSection, demo
     if (!table.rows) continue;
     
     const tableHeaders = table.headers || (table.rows[0] ? Object.keys(table.rows[0]) : []);
-    if (!tableHeaders.includes('Current Quarter')) continue;
     
-    console.log(`[Scoring] Found table with Current Quarter, ${table.rows.length} rows`);
+    // Check if headers is an array of strings or objects with 'text' property
+    const headerTexts = Array.isArray(tableHeaders) && tableHeaders[0]?.text 
+      ? tableHeaders.map(h => h.text || h) 
+      : tableHeaders;
+    
+    if (!headerTexts.includes('Current Quarter')) continue;
     
     for (const row of table.rows) {
       const currentQuarter = row['Current Quarter'] || '';
@@ -1103,3 +1124,10 @@ function extractPropertyMetricsFromDocling(subjectPropertySection) {
 
 export default router;
 
+// Export extraction utilities for use in other handlers
+export {
+  extractDemographicsFromDocling,
+  extractSubmarketFromDocling,
+  extractPropertyMetricsFromDocling,
+  parseNumericValue
+};

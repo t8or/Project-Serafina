@@ -77,7 +77,11 @@ app.use((err, req, res, next) => {
 
 // Start server with timeout configuration
 const server = app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
+  console.log(`\n========================================`);
+  console.log(`Server v2.1 started at ${new Date().toISOString()}`);
+  console.log(`Running on port ${port}`);
+  console.log(`Demographics extraction: ENABLED`);
+  console.log(`========================================\n`);
 });
 
 server.timeout = 300000; // 5 minutes timeout
