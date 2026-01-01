@@ -361,6 +361,7 @@ class ScoringService {
       const rawValue = this._getValueByPath(propertyData, factorConfig.dataPath);
       const factorResult = this._calculateFactorScore(rawValue, factorConfig);
       
+      
       const weightedScore = factorResult.score * factorConfig.weight;
       totalWeightedScore += weightedScore;
       totalWeight += factorConfig.weight;

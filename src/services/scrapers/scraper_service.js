@@ -13,7 +13,7 @@ import { WalkScoreScraper } from './walkscore_scraper.js';
 
 // Browser configuration defaults
 const DEFAULT_CONFIG = {
-  headless: true,
+  headless: true,   // Set to false for visual debugging
   timeout: 30000,           // 30 second timeout per operation
   navigationTimeout: 60000, // 60 second timeout for page loads
   retryAttempts: 2,
@@ -68,6 +68,7 @@ class ScraperService {
         '--disable-accelerated-2d-canvas',
         '--disable-gpu',
         '--window-size=1920,1080',
+        '--start-maximized',
       ],
     });
 
@@ -362,20 +363,16 @@ class ScraperService {
       // Initialize browser once for all scraping
       await this.initBrowser();
 
-      // Scrape crime data (use city if no zip)
-      const crimeResult = await this.scrapeCrimeData(state, locationKey, useCity);
+      // Run all scrapers in parallel for better performance
+      console.log('[ScraperService] Running all scrapers in parallel...');
       
-      // Add delay between scraping different sites
-      await this.randomDelay();
-
-      // Scrape school data
-      const schoolResult = await this.scrapeSchoolData(address, city, state, zipCode);
+      const [crimeResult, schoolResult, walkScoreResult] = await Promise.all([
+        this.scrapeCrimeData(state, locationKey, useCity),
+        this.scrapeSchoolData(address, city, state, zipCode),
+        this.scrapeWalkScore(address, city, state, zipCode),
+      ]);
       
-      // Add delay between scraping different sites
-      await this.randomDelay();
-      
-      // Scrape WalkScore data
-      const walkScoreResult = await this.scrapeWalkScore(address, city, state, zipCode);
+      console.log('[ScraperService] All scrapers completed');
 
       // Combine results
       const result = {

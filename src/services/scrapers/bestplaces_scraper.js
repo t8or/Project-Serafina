@@ -89,13 +89,13 @@ class BestPlacesScraper {
         throw new Error(`Failed to load page: HTTP ${response?.status() || 'unknown'}`);
       }
 
-      // Wait for the page content to load
-      await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {
-        console.log('[BestPlaces] Network idle timeout - proceeding with extraction');
-      });
-
-      // Add a small delay to ensure dynamic content loads
-      await page.waitForTimeout(2000);
+      // Wait for the crime data card to load (much faster than networkidle)
+      try {
+        await page.waitForSelector('.card-body.m-3.p-0', { state: 'visible', timeout: 10000 });
+        console.log('[BestPlaces] Crime data card loaded');
+      } catch (e) {
+        console.log('[BestPlaces] Card not found, proceeding anyway...');
+      }
 
       // Extract crime indices from the page
       const crimeData = await this.extractCrimeData(page);

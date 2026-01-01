@@ -3,13 +3,22 @@ description: how to start this server
 globs: 
 ---
 Always run in a new terminal window
-# Your rule content
-You have to start the datavabse first
-- npm run init-db
 
+# Start Services
 
-Frontend is port 3000
-- npm start
-Backend is port 3001
-- npm run server
+## 1. Initialize Database (first time or after schema changes)
+```
+node src/config/init-db.js
+```
 
+## 2. Frontend (port 3000)
+```
+npm start
+```
+
+## 3. Backend (port 3002)
+```
+node server.js
+```
+
+Note: The webpack dev server proxies /api requests to the backend on port 3002.

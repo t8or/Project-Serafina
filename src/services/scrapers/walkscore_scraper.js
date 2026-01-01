@@ -45,24 +45,32 @@ class WalkScoreScraper {
     console.log(`[WalkScore] Scraping scores for: ${address}, ${city}, ${state}`);
     
     try {
-      // Navigate to WalkScore with the address
-      const fullAddress = zipCode 
-        ? `${address}, ${city}, ${state} ${zipCode}`
-        : `${address}, ${city}, ${state}`;
+      // Build address for URL - WalkScore prefers hyphenated format
+      // Format: /score/123-Main-St-City-State-Zip
+      const streetFormatted = address.replace(/\s+/g, '-').replace(/[^a-zA-Z0-9-]/g, '');
+      const cityFormatted = city.replace(/\s+/g, '-');
+      const stateAbbr = state.length === 2 ? state : this.getStateAbbr(state);
       
-      const searchUrl = `${this.baseUrl}/score/${encodeURIComponent(fullAddress)}`;
-      console.log(`[WalkScore] Navigating to: ${searchUrl}`);
+      // Try direct address URL first (most reliable)
+      const directUrl = zipCode
+        ? `${this.baseUrl}/score/${streetFormatted}-${cityFormatted}-${stateAbbr}-${zipCode}`
+        : `${this.baseUrl}/score/${streetFormatted}-${cityFormatted}-${stateAbbr}`;
       
-      await page.goto(searchUrl, { 
+      console.log(`[WalkScore] Trying direct URL: ${directUrl}`);
+      
+      await page.goto(directUrl, { 
         waitUntil: 'domcontentloaded',
         timeout: 30000 
       });
       
-      // Wait for the page to load scores
-      await page.waitForTimeout(2000);
+      // Handle cookie consent popup if present
+      await this.dismissOverlays(page);
+      
+      // Wait for score elements to appear
+      await page.waitForTimeout(3000);
       
       // Extract scores from the page
-      const scores = await this.extractScores(page);
+      let scores = await this.extractScores(page);
       
       if (scores.walk_score !== null || scores.transit_score !== null) {
         console.log(`[WalkScore] Extracted scores:`, scores);
@@ -72,8 +80,34 @@ class WalkScoreScraper {
         };
       }
       
-      // Try alternative method - search form
-      console.log('[WalkScore] Direct URL failed, trying search...');
+      // Try encoded URL format as fallback
+      const fullAddress = zipCode 
+        ? `${address}, ${city}, ${state} ${zipCode}`
+        : `${address}, ${city}, ${state}`;
+      
+      const encodedUrl = `${this.baseUrl}/score/${encodeURIComponent(fullAddress)}`;
+      console.log(`[WalkScore] Trying encoded URL: ${encodedUrl}`);
+      
+      await page.goto(encodedUrl, { 
+        waitUntil: 'networkidle',
+        timeout: 30000 
+      });
+      
+      await this.dismissOverlays(page);
+      await page.waitForTimeout(2000);
+      
+      scores = await this.extractScores(page);
+      
+      if (scores.walk_score !== null || scores.transit_score !== null) {
+        console.log(`[WalkScore] Extracted scores:`, scores);
+        return {
+          success: true,
+          data: scores,
+        };
+      }
+      
+      // Last resort: use search form
+      console.log('[WalkScore] Direct URLs failed, trying search...');
       return await this.scrapeViaSearch(page, fullAddress);
       
     } catch (error) {
@@ -85,6 +119,46 @@ class WalkScoreScraper {
       };
     }
   }
+  
+  /**
+   * Get state abbreviation from full name
+   */
+  getStateAbbr(stateName) {
+    const stateToAbbr = Object.fromEntries(
+      Object.entries(STATE_NAMES).map(([abbr, name]) => [name.replace(/_/g, ' '), abbr])
+    );
+    return stateToAbbr[stateName] || stateName;
+  }
+  
+  /**
+   * Dismiss cookie banners and overlays that might block interaction
+   */
+  async dismissOverlays(page) {
+    try {
+      // Common cookie consent button selectors
+      const consentSelectors = [
+        'button[id*="accept"]',
+        'button[class*="accept"]',
+        'button[class*="consent"]',
+        'a[id*="accept"]',
+        '.cookie-accept',
+        '#onetrust-accept-btn-handler',
+        '.cc-accept',
+        '[data-testid="cookie-accept"]',
+      ];
+      
+      for (const selector of consentSelectors) {
+        const btn = await page.$(selector);
+        if (btn) {
+          await btn.click().catch(() => {});
+          await page.waitForTimeout(500);
+          break;
+        }
+      }
+    } catch (e) {
+      // Ignore overlay dismissal errors
+    }
+  }
 
   /**
    * Alternative scrape method using the search form.
@@ -92,13 +166,38 @@ class WalkScoreScraper {
   async scrapeViaSearch(page, fullAddress) {
     try {
       // Go to the main page
-      await page.goto(this.baseUrl, { waitUntil: 'domcontentloaded' });
+      await page.goto(this.baseUrl, { waitUntil: 'networkidle', timeout: 30000 });
+      await this.dismissOverlays(page);
       await page.waitForTimeout(1000);
       
-      // Look for search input
-      const searchInput = await page.$('input[type="text"], input[name="location"], #gs-search-box, .search-input');
+      // Multiple selectors for the search input (WalkScore changes their UI)
+      const searchSelectors = [
+        '#gs-search-box',
+        'input[name="location"]',
+        'input[placeholder*="address"]',
+        'input[placeholder*="Address"]',
+        '.search-input input',
+        'input.search-box',
+        'input[type="search"]',
+        '#location-search',
+      ];
+      
+      let searchInput = null;
+      for (const selector of searchSelectors) {
+        searchInput = await page.$(selector);
+        if (searchInput) {
+          // Check if it's visible
+          const isVisible = await searchInput.isVisible().catch(() => false);
+          if (isVisible) {
+            console.log(`[WalkScore] Found visible search input: ${selector}`);
+            break;
+          }
+          searchInput = null;
+        }
+      }
       
       if (searchInput) {
+        await searchInput.click();
         await searchInput.fill(fullAddress);
         await page.keyboard.press('Enter');
         await page.waitForTimeout(3000);
@@ -111,6 +210,8 @@ class WalkScoreScraper {
             data: scores,
           };
         }
+      } else {
+        console.log('[WalkScore] No visible search input found');
       }
       
       return {
@@ -143,7 +244,7 @@ class WalkScoreScraper {
     };
     
     try {
-      // Method 1: Look for score badges/circles (common WalkScore UI pattern)
+      // Method 1: Look for score badges using data-eventsrc attributes and alt text
       const scoreData = await page.evaluate(() => {
         const scores = {
           walk_score: null,
@@ -151,46 +252,62 @@ class WalkScoreScraper {
           bike_score: null,
         };
         
-        // Look for score elements with aria-label or specific classes
-        const walkScoreEl = document.querySelector('[data-score-type="walk"]') ||
-                           document.querySelector('.walkscore-badge .score') ||
-                           document.querySelector('.ws-score') ||
-                           document.querySelector('#walk-score');
-        
-        const transitScoreEl = document.querySelector('[data-score-type="transit"]') ||
-                               document.querySelector('.transit-score .score') ||
-                               document.querySelector('.ts-score') ||
-                               document.querySelector('#transit-score');
-        
-        const bikeScoreEl = document.querySelector('[data-score-type="bike"]') ||
-                            document.querySelector('.bike-score .score') ||
-                            document.querySelector('.bs-score') ||
-                            document.querySelector('#bike-score');
-        
-        // Extract numeric values
-        if (walkScoreEl) {
-          const text = walkScoreEl.textContent.trim();
-          const match = text.match(/\d+/);
-          if (match) scores.walk_score = parseInt(match[0], 10);
+        // Primary method: Look for badge elements with data-eventsrc attribute
+        // Walk Score badge
+        const walkBadge = document.querySelector('[data-eventsrc="score page walk badge"]');
+        if (walkBadge) {
+          const img = walkBadge.querySelector('img') || walkBadge;
+          const alt = img.getAttribute('alt') || '';
+          // Parse: "43 Walk Score of 123 Main St..."
+          const match = alt.match(/^(\d+)\s*Walk\s*Score/i);
+          if (match) scores.walk_score = parseInt(match[1], 10);
         }
         
-        if (transitScoreEl) {
-          const text = transitScoreEl.textContent.trim();
-          const match = text.match(/\d+/);
-          if (match) scores.transit_score = parseInt(match[0], 10);
+        // Transit Score badge
+        const transitBadge = document.querySelector('[data-eventsrc="score page transit badge"]');
+        if (transitBadge) {
+          const img = transitBadge.querySelector('img') || transitBadge;
+          const alt = img.getAttribute('alt') || '';
+          // Parse: "37 Transit Score of 123 Main St..."
+          const match = alt.match(/^(\d+)\s*Transit\s*Score/i);
+          if (match) scores.transit_score = parseInt(match[1], 10);
         }
         
-        if (bikeScoreEl) {
-          const text = bikeScoreEl.textContent.trim();
-          const match = text.match(/\d+/);
-          if (match) scores.bike_score = parseInt(match[0], 10);
+        // Bike Score badge
+        const bikeBadge = document.querySelector('[data-eventsrc="score page bike badge"]');
+        if (bikeBadge) {
+          const img = bikeBadge.querySelector('img') || bikeBadge;
+          const alt = img.getAttribute('alt') || '';
+          // Parse: "50 Bike Score of 123 Main St..."
+          const match = alt.match(/^(\d+)\s*Bike\s*Score/i);
+          if (match) scores.bike_score = parseInt(match[1], 10);
         }
         
-        // Alternative: Look for score numbers in the page
+        // Fallback: Look for any img with alt containing score info
+        if (scores.walk_score === null || scores.transit_score === null) {
+          document.querySelectorAll('img[alt*="Score"]').forEach(img => {
+            const alt = img.getAttribute('alt') || '';
+            
+            if (scores.walk_score === null) {
+              const walkMatch = alt.match(/^(\d+)\s*Walk\s*Score/i);
+              if (walkMatch) scores.walk_score = parseInt(walkMatch[1], 10);
+            }
+            
+            if (scores.transit_score === null) {
+              const transitMatch = alt.match(/^(\d+)\s*Transit\s*Score/i);
+              if (transitMatch) scores.transit_score = parseInt(transitMatch[1], 10);
+            }
+            
+            if (scores.bike_score === null) {
+              const bikeMatch = alt.match(/^(\d+)\s*Bike\s*Score/i);
+              if (bikeMatch) scores.bike_score = parseInt(bikeMatch[1], 10);
+            }
+          });
+        }
+        
+        // Secondary fallback: Look in page text
         if (scores.walk_score === null) {
           const pageText = document.body.innerText;
-          
-          // Pattern: "Walk Score: 43" or "Walk Score® 43"
           const walkMatch = pageText.match(/Walk\s*Score[®:\s]+(\d+)/i);
           if (walkMatch) scores.walk_score = parseInt(walkMatch[1], 10);
           
@@ -200,17 +317,6 @@ class WalkScoreScraper {
           const bikeMatch = pageText.match(/Bike\s*Score[®:\s]+(\d+)/i);
           if (bikeMatch) scores.bike_score = parseInt(bikeMatch[1], 10);
         }
-        
-        // Try JSON-LD data
-        const scripts = document.querySelectorAll('script[type="application/ld+json"]');
-        scripts.forEach(script => {
-          try {
-            const data = JSON.parse(script.textContent);
-            if (data.walkScore) scores.walk_score = parseInt(data.walkScore, 10);
-            if (data.transitScore) scores.transit_score = parseInt(data.transitScore, 10);
-            if (data.bikeScore) scores.bike_score = parseInt(data.bikeScore, 10);
-          } catch (e) {}
-        });
         
         return scores;
       });

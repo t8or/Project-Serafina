@@ -210,24 +210,11 @@ router.use((req, res, next) => {
  * - pdfProcessor: Same as query parameter (body takes precedence)
  */
 router.post('/extract/:fileId', async (req, res) => {
-  // #region agent log - H9: Server-side extract request
-  console.log('[DEBUG-H9] Extract request received:', {
-    fileId: req.params.fileId,
-    queryProcessor: req.query?.pdfProcessor,
-    bodyProcessor: req.body?.pdfProcessor,
-    validProcessors: VALID_PDF_PROCESSORS
-  });
-  // #endregion
-  
   try {
     const { fileId } = req.params;
     
     // Get PDF processor option from query or body
     const pdfProcessor = req.body?.pdfProcessor || req.query?.pdfProcessor || PDF_PROCESSOR_TYPES.DEFAULT;
-    
-    // #region agent log - H9: Resolved processor value
-    console.log('[DEBUG-H9] Resolved pdfProcessor:', pdfProcessor, 'isValid:', VALID_PDF_PROCESSORS.includes(pdfProcessor));
-    // #endregion
     
     // Validate processor option
     if (!VALID_PDF_PROCESSORS.includes(pdfProcessor)) {
@@ -297,6 +284,7 @@ router.post('/extract/:fileId', async (req, res) => {
       try {
         // Find subject_property section file to extract address
         const subjectPropertyFile = sectionFiles.find(f => f.includes('_subject_property.json'));
+        
         if (subjectPropertyFile) {
           const subjectPropertyPath = path.join(process.cwd(), 'uploads/extracted', path.basename(subjectPropertyFile));
           const subjectPropertyData = JSON.parse(await fs.readFile(subjectPropertyPath, 'utf-8'));
@@ -307,6 +295,7 @@ router.post('/extract/:fileId', async (req, res) => {
           
           // Only scrape if we have enough address info
           const canScrape = address.stateAbbr && (address.city || address.zipCode);
+          
           if (canScrape) {
             console.log(`[Extract] Starting external data scrape for ${address.street}, ${address.city}, ${address.stateAbbr}`);
             
@@ -316,6 +305,7 @@ router.post('/extract/:fileId', async (req, res) => {
               state: address.stateAbbr,
               zipCode: address.zipCode || null,
             });
+            
             
             if (scraperResult.success) {
               // Save external data alongside the section files
@@ -411,6 +401,103 @@ router.post('/extract/:fileId', async (req, res) => {
       code: error.code,
       stack: error.stack
     });
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * Manually trigger external data scraping for an existing extraction.
+ * 
+ * POST /api/extract/scrape/:baseName
+ * 
+ * This endpoint allows you to run the crime, schools, and walkscore scrapers
+ * for a property that was extracted without scraping (or to refresh the data).
+ */
+router.post('/extract/scrape/:baseName', async (req, res) => {
+  try {
+    const { baseName } = req.params;
+    const extractedDir = path.join(process.cwd(), 'uploads/extracted');
+    
+    // Find the subject_property file
+    const subjectPropertyPath = path.join(extractedDir, `${baseName}_subject_property.json`);
+    
+    try {
+      await fs.access(subjectPropertyPath);
+    } catch {
+      return res.status(404).json({
+        success: false,
+        error: `No subject_property file found for ${baseName}. Expected: ${subjectPropertyPath}`
+      });
+    }
+    
+    // Load subject property and extract address
+    const subjectPropertyData = JSON.parse(await fs.readFile(subjectPropertyPath, 'utf-8'));
+    const address = addressExtractor.extractFromSubjectProperty(subjectPropertyData);
+    
+    console.log('[Extract] Manual scrape - extracted address:', address);
+    
+    // Check if we have enough address info
+    const canScrape = address.stateAbbr && (address.city || address.zipCode);
+    if (!canScrape) {
+      return res.status(400).json({
+        success: false,
+        error: 'Insufficient address info for scraping',
+        address
+      });
+    }
+    
+    console.log(`[Extract] Manual scrape starting for ${address.street}, ${address.city}, ${address.stateAbbr}`);
+    
+    const scraperResult = await scraperService.scrapeAllData({
+      address: address.street || '',
+      city: address.city || '',
+      state: address.stateAbbr,
+      zipCode: address.zipCode || null,
+    });
+    
+    console.log('[Extract] Manual scrape result:', {
+      success: scraperResult.success,
+      hasCrime: !!scraperResult.crime,
+      hasSchools: !!scraperResult.schools,
+      hasWalkScore: !!scraperResult.walkScore,
+      errors: scraperResult.errors
+    });
+    
+    if (scraperResult.success || scraperResult.crime || scraperResult.schools || scraperResult.walkScore) {
+      // Save external data
+      const externalDataPath = path.join(extractedDir, `${baseName}_external.json`);
+      
+      const externalData = {
+        crime: scraperResult.crime || {},
+        schools: scraperResult.schools || {},
+        walkScore: scraperResult.walkScore || {},
+        timestamp: new Date().toISOString(),
+        address: address,
+      };
+      
+      await fs.writeFile(externalDataPath, JSON.stringify(externalData, null, 2));
+      console.log(`[Extract] Manual scrape - saved external data to ${externalDataPath}`);
+      
+      res.json({
+        success: true,
+        message: 'External data scraped and saved',
+        outputFile: `${baseName}_external.json`,
+        data: externalData,
+        errors: scraperResult.errors || []
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        error: 'All scrapers failed',
+        errors: scraperResult.errors
+      });
+    }
+    
+  } catch (error) {
+    console.error('[Extract] Manual scrape error:', error);
     res.status(500).json({
       success: false,
       error: error.message

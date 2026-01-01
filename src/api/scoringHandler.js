@@ -1096,6 +1096,7 @@ function extractPropertyMetricsFromDocling(subjectPropertySection) {
     if (transitMatch) result.transit_score = parseInt(transitMatch[1]);
   }
   
+  
   console.log('[Scoring] Extracted property metrics:', result);
   return result;
 }

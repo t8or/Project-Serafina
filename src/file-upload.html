@@ -128,7 +128,7 @@
                 <!-- Upload Button - Opens Options Modal -->
                 <div class="mt-6 flex justify-end">
                   <button
-                    @click="fetch('http://127.0.0.1:7243/ingest/989934bd-196c-4f27-8680-9983681d066e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'file-upload.html:upload-btn',message:'Upload button clicked',data:{filesCount:files.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H3'})}).catch(()=>{}); showOptionsModal = true"
+                    @click="showOptionsModal = true"
                     :disabled="uploading || files.length === 0"
                     class="flex items-center gap-2 rounded-lg bg-brand-500 px-6 py-3 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
@@ -305,7 +305,7 @@
                       Cancel
                     </button>
                     <button
-                      @click="fetch('http://127.0.0.1:7243/ingest/989934bd-196c-4f27-8680-9983681d066e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'file-upload.html:start-btn',message:'Start Processing button clicked',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H4'})}).catch(()=>{}); startProcessing()"
+                      @click="startProcessing()"
                       :disabled="processing"
                       class="flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-50"
                     >
@@ -329,16 +329,8 @@
 
     <!-- File Upload Component Script -->
     <script>
-      // #region agent log - H1: Check if alpine:init fires
-      fetch('http://127.0.0.1:7243/ingest/989934bd-196c-4f27-8680-9983681d066e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'file-upload.html:script-load',message:'Script block loaded',data:{alpineExists:typeof Alpine !== 'undefined'},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1'})}).catch(()=>{});
-      // #endregion
-      
       // Register the fileUploadWithOptions Alpine component
       document.addEventListener('alpine:init', () => {
-        // #region agent log - H1: alpine:init event fired
-        fetch('http://127.0.0.1:7243/ingest/989934bd-196c-4f27-8680-9983681d066e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'file-upload.html:alpine-init',message:'alpine:init event fired',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1'})}).catch(()=>{});
-        // #endregion
-        
         Alpine.data('fileUploadWithOptions', () => ({
           files: [],
           maxSize: 52428800, // 50MB
@@ -358,9 +350,6 @@
           },
 
           handleFiles(fileList) {
-            // #region agent log - H2: Check if files are added
-            fetch('http://127.0.0.1:7243/ingest/989934bd-196c-4f27-8680-9983681d066e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'file-upload.html:handleFiles',message:'handleFiles called',data:{fileCount:fileList.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H2'})}).catch(()=>{});
-            // #endregion
             this.validateAndAddFiles(fileList);
           },
 
@@ -389,19 +378,12 @@
               this.files.push(file);
             });
             
-            // #region agent log - H2: Files after validation
-            fetch('http://127.0.0.1:7243/ingest/989934bd-196c-4f27-8680-9983681d066e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'file-upload.html:validateAndAddFiles',message:'Files validated',data:{validFiles:this.files.length,invalidFiles:invalidFiles.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H2'})}).catch(()=>{});
-            // #endregion
-
             if (invalidFiles.length > 0) {
               alert('Some files were not added:\n' + invalidFiles.join('\n'));
             }
           },
 
           async startProcessing() {
-            // #region agent log - H4: startProcessing called
-            fetch('http://127.0.0.1:7243/ingest/989934bd-196c-4f27-8680-9983681d066e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'file-upload.html:startProcessing',message:'startProcessing called',data:{filesCount:this.files.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H4'})}).catch(()=>{});
-            // #endregion
             if (this.files.length === 0) return;
             
             this.processing = true;
@@ -412,10 +394,6 @@
               this.processingStep = 'Uploading files...';
               this.processingProgress = 10;
               
-              // #region agent log - H5: Before upload API call
-              fetch('http://127.0.0.1:7243/ingest/989934bd-196c-4f27-8680-9983681d066e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'file-upload.html:before-upload',message:'About to call upload API',data:{fileNames:this.files.map(f=>f.name)},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H5'})}).catch(()=>{});
-              // #endregion
-              
               const formData = new FormData();
               this.files.forEach(file => formData.append('files', file));
               
@@ -424,18 +402,12 @@
                 body: formData
               });
               
-              // #region agent log - H5: After upload API call
-              fetch('http://127.0.0.1:7243/ingest/989934bd-196c-4f27-8680-9983681d066e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'file-upload.html:after-upload',message:'Upload API returned',data:{ok:uploadResponse.ok,status:uploadResponse.status},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H5'})}).catch(()=>{});
-              // #endregion
 
               if (!uploadResponse.ok) {
                 throw new Error('Upload failed');
               }
 
               const uploadResult = await uploadResponse.json();
-              // #region agent log - H6: Upload result parsed
-              fetch('http://127.0.0.1:7243/ingest/989934bd-196c-4f27-8680-9983681d066e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'file-upload.html:upload-result',message:'Upload result parsed',data:{filesCount:uploadResult.files?.length,result:uploadResult},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H6'})}).catch(()=>{});
-              // #endregion
               console.log('Upload result:', uploadResult);
               this.processingProgress = 30;
 
@@ -443,19 +415,11 @@
               this.processingStep = 'Extracting document data...';
               const uploadedFiles = uploadResult.files || [];
               
-              // #region agent log - H8: Before extraction loop
-              fetch('http://127.0.0.1:7243/ingest/989934bd-196c-4f27-8680-9983681d066e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'file-upload.html:before-extract-loop',message:'About to start extraction loop',data:{uploadedFilesCount:uploadedFiles.length,fileIds:uploadedFiles.map(f=>f.id)},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H8'})}).catch(()=>{});
-              // #endregion
-              
               for (let i = 0; i < uploadedFiles.length; i++) {
                 const file = uploadedFiles[i];
                 const processor = this.options.fullDocling ? 'docling_full' : 'docling';
                 
                 this.processingStep = `Processing ${file.original_filename}...`;
-                
-                // #region agent log - H8: Before extract API call
-                fetch('http://127.0.0.1:7243/ingest/989934bd-196c-4f27-8680-9983681d066e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'file-upload.html:before-extract',message:'About to call extract API',data:{fileId:file.id,processor:processor,index:i},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H8'})}).catch(()=>{});
-                // #endregion
                 
                 const extractResponse = await fetch(`/api/extract/${file.id}?pdfProcessor=${processor}`, {
                   method: 'POST',
@@ -463,9 +427,6 @@
                   body: JSON.stringify({ pdfProcessor: processor })
                 });
                 
-                // #region agent log - H8: After extract API call
-                fetch('http://127.0.0.1:7243/ingest/989934bd-196c-4f27-8680-9983681d066e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'file-upload.html:after-extract',message:'Extract API returned',data:{fileId:file.id,ok:extractResponse.ok,status:extractResponse.status},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H8'})}).catch(()=>{});
-                // #endregion
 
                 if (!extractResponse.ok) {
                   console.error('Extraction failed for:', file.original_filename);
@@ -474,10 +435,6 @@
                 this.processingProgress = 30 + Math.round((i + 1) / uploadedFiles.length * 30);
               }
               
-              // #region agent log - H8: After extraction loop
-              fetch('http://127.0.0.1:7243/ingest/989934bd-196c-4f27-8680-9983681d066e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'file-upload.html:after-extract-loop',message:'Extraction loop completed',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H8'})}).catch(()=>{});
-              // #endregion
-
               // Step 3: Run external data scraping if enabled
               if (this.options.bestPlaces || this.options.greatSchools) {
                 this.processingStep = 'Fetching external data...';
@@ -516,9 +473,6 @@
               }, 1500);
 
             } catch (error) {
-              // #region agent log - H7: Catch block error
-              fetch('http://127.0.0.1:7243/ingest/989934bd-196c-4f27-8680-9983681d066e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'file-upload.html:catch-error',message:'Error caught in startProcessing',data:{errorMessage:error.message,errorStack:error.stack},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H7'})}).catch(()=>{});
-              // #endregion
               console.error('Processing error:', error);
               alert('Processing failed: ' + error.message);
               this.processing = false;
