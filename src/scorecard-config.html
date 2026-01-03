@@ -92,23 +92,21 @@
             <div class="grid grid-cols-12 gap-6">
               <!-- Factor Weights Configuration -->
               <div class="col-span-12 xl:col-span-8">
-                <div class="rounded-sm border border-stroke bg-white shadow-default dark:border-strokedark dark:bg-boxdark">
-                  <div class="border-b border-stroke px-6 py-4 dark:border-strokedark">
+                <div class="rounded-sm border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">
+                  <div class="flex items-center justify-between border-b border-gray-200 px-6 py-4 dark:border-gray-700">
                     <h3 class="text-lg font-semibold text-black dark:text-white">Factor Weights & Increments</h3>
+                    <button
+                      @click="showThresholdPreview = true"
+                      class="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+                    >
+                      <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/>
+                      </svg>
+                      Preview All Thresholds
+                    </button>
                   </div>
                   <div class="p-6">
                     <!-- Factor Table -->
-                    <div class="mb-4 flex justify-end">
-                      <button
-                        @click="showThresholdPreview = true"
-                        class="flex items-center gap-2 rounded-lg border border-brand-500 bg-white px-4 py-2 text-sm font-medium text-brand-600 hover:bg-brand-50 dark:border-brand-400 dark:bg-gray-700 dark:text-brand-400 dark:hover:bg-gray-600"
-                      >
-                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/>
-                        </svg>
-                        Preview All Thresholds
-                      </button>
-                    </div>
                     <div class="overflow-x-auto">
                       <table class="w-full table-auto">
                         <thead>
@@ -119,47 +117,66 @@
                             <th class="px-4 py-3 text-center text-sm font-semibold text-gray-700 dark:text-gray-300">Top Value</th>
                           </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-                          <template x-for="(factor, key) in config.factors" :key="key">
-                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                              <td class="px-4 py-3">
-                                <div>
-                                  <span class="text-sm font-medium text-gray-900 dark:text-white" x-text="factor.name"></span>
-                                  <span 
-                                    x-show="factor.isInverted" 
-                                    class="ml-2 inline-flex items-center rounded bg-blue-100 px-1.5 py-0.5 text-xs text-blue-700 dark:bg-blue-500/20 dark:text-blue-300"
-                                  >
-                                    Inverted
-                                  </span>
-                                </div>
-                              </td>
-                              <td class="px-4 py-3">
-                                <input
-                                  type="number"
-                                  step="0.5"
-                                  min="0"
-                                  max="100"
-                                  :value="(factor.weight * 100).toFixed(1)"
-                                  @input="updateWeight(key, $event.target.value)"
-                                  class="w-20 rounded border border-gray-300 bg-white px-2 py-1 text-center text-sm text-gray-900 focus:border-brand-500 focus:ring-brand-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                                />
-                              </td>
-                              <td class="px-4 py-3">
-                                <input
-                                  type="text"
-                                  :value="formatIncrement(factor)"
-                                  @input="updateIncrement(key, $event.target.value)"
-                                  class="w-24 rounded border border-gray-300 bg-white px-2 py-1 text-center text-sm text-gray-900 focus:border-brand-500 focus:ring-brand-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                                />
-                              </td>
-                              <td class="px-4 py-3">
-                                <input
-                                  type="text"
-                                  :value="formatTopValue(factor)"
-                                  @input="updateTopValue(key, $event.target.value)"
-                                  class="w-28 rounded border border-gray-300 bg-white px-2 py-1 text-center text-sm text-gray-900 focus:border-brand-500 focus:ring-brand-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                                />
-                              </td>
+                        <tbody>
+                          <template x-for="item in getFactorRows()" :key="item.id">
+                            <tr 
+                              :class="item.type === 'header' 
+                                ? '' 
+                                : 'hover:bg-gray-50 dark:hover:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700'"
+                            >
+                              <!-- Section Header -->
+                              <template x-if="item.type === 'header'">
+                                <td colspan="4" class="bg-gray-100 dark:bg-gray-800 px-4 py-2 border-b border-gray-200 dark:border-gray-700">
+                                  <span class="text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300" x-text="item.name"></span>
+                                </td>
+                              </template>
+                              <!-- Factor Data -->
+                              <template x-if="item.type === 'factor'">
+                                <td class="px-4 py-3">
+                                  <div>
+                                    <span class="text-sm font-medium text-gray-900 dark:text-white" x-text="item.factor?.name"></span>
+                                    <span 
+                                      x-show="item.factor?.isInverted" 
+                                      class="ml-2 inline-flex items-center rounded bg-blue-100 px-1.5 py-0.5 text-xs text-blue-700 dark:bg-blue-500/20 dark:text-blue-300"
+                                    >
+                                      Inverted
+                                    </span>
+                                  </div>
+                                </td>
+                              </template>
+                              <template x-if="item.type === 'factor'">
+                                <td class="px-4 py-3">
+                                  <input
+                                    type="number"
+                                    step="0.5"
+                                    min="0"
+                                    max="100"
+                                    :value="item.factor ? (item.factor.weight * 100).toFixed(1) : ''"
+                                    @input="updateWeight(item.key, $event.target.value)"
+                                    class="w-20 rounded border border-gray-300 bg-white px-2 py-1 text-center text-sm text-gray-900 focus:border-brand-500 focus:ring-brand-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                                  />
+                                </td>
+                              </template>
+                              <template x-if="item.type === 'factor'">
+                                <td class="px-4 py-3">
+                                  <input
+                                    type="text"
+                                    :value="item.factor ? formatIncrement(item.factor) : ''"
+                                    @input="updateIncrement(item.key, $event.target.value)"
+                                    class="w-24 rounded border border-gray-300 bg-white px-2 py-1 text-center text-sm text-gray-900 focus:border-brand-500 focus:ring-brand-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                                  />
+                                </td>
+                              </template>
+                              <template x-if="item.type === 'factor'">
+                                <td class="px-4 py-3">
+                                  <input
+                                    type="text"
+                                    :value="item.factor ? formatTopValue(item.factor) : ''"
+                                    @input="updateTopValue(item.key, $event.target.value)"
+                                    class="w-28 rounded border border-gray-300 bg-white px-2 py-1 text-center text-sm text-gray-900 focus:border-brand-500 focus:ring-brand-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                                  />
+                                </td>
+                              </template>
                             </tr>
                           </template>
                         </tbody>
@@ -184,8 +201,8 @@
 
               <!-- Threshold Settings -->
               <div class="col-span-12 xl:col-span-4">
-                <div class="rounded-sm border border-stroke bg-white shadow-default dark:border-strokedark dark:bg-boxdark">
-                  <div class="border-b border-stroke px-6 py-4 dark:border-strokedark">
+                <div class="rounded-sm border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">
+                  <div class="border-b border-gray-200 px-6 py-4 dark:border-gray-700">
                     <h3 class="text-lg font-semibold text-black dark:text-white">Decision Thresholds</h3>
                   </div>
                   <div class="p-6 space-y-6">
@@ -269,7 +286,7 @@
                 </div>
 
                 <!-- Quick Actions -->
-                <div class="mt-6 rounded-sm border border-stroke bg-white p-6 shadow-default dark:border-strokedark dark:bg-boxdark">
+                <div class="mt-6 rounded-sm border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-900">
                   <h3 class="mb-4 text-lg font-semibold text-black dark:text-white">Quick Actions</h3>
                   <div class="space-y-3">
                     <button
@@ -309,7 +326,7 @@
             x-transition:leave="transition ease-in duration-150"
             x-transition:leave-start="opacity-100"
             x-transition:leave-end="opacity-0"
-            class="fixed z-50 flex flex-col overflow-hidden rounded-xl bg-white shadow-2xl dark:bg-boxdark"
+            class="fixed z-50 flex flex-col overflow-hidden rounded-xl bg-white shadow-2xl dark:bg-gray-900"
             style="top: 40px; right: 40px; bottom: 40px; left: 40px;"
             @click.outside="showThresholdPreview = false"
           >
@@ -351,7 +368,7 @@
                         <!-- Sticky Factor name column - fit content width -->
                         <td 
                           class="sticky left-0 z-10 border-r border-gray-200 px-4 py-2.5 font-medium text-gray-900 dark:border-gray-700 dark:text-white" 
-                          :class="factor.lowerIsBetter ? 'bg-blue-50 dark:bg-blue-900/30' : 'bg-white dark:bg-boxdark'"
+                          :class="factor.lowerIsBetter ? 'bg-blue-50 dark:bg-blue-900/30' : 'bg-white dark:bg-gray-900'"
                           style="width: 1%; white-space: nowrap;"
                         >
                           <span x-text="factor.name"></span>
@@ -411,6 +428,31 @@
               dontMoveForward: 0,
             }
           },
+          
+          // Section groupings for factor display
+          factorSections: [
+            {
+              name: 'CoStar Properties: Demographics',
+              keys: ['population', 'populationGrowth', 'medianHHIncome', 'medianHomeValue', 'renterHouseholdsPercent']
+            },
+            {
+              name: 'Best Places',
+              keys: ['violentCrimeRate', 'propertyCrimeRate']
+            },
+            {
+              name: 'Great Schools',
+              keys: ['schoolRatings']
+            },
+            {
+              name: 'Walk Score',
+              keys: ['walkScore', 'transitScore']
+            },
+            {
+              name: 'CoStar Properties: Analytics - Submarket',
+              keys: ['submarketVacancy', 'submarketDeliveredPercent', 'submarketConstructionPercent']
+            }
+          ],
+          
           validation: {
             valid: true,
             totalWeight: 1.0,
@@ -419,6 +461,27 @@
           saving: false,
           recalculating: false,
           showThresholdPreview: false,
+
+          // Generate rows array with section headers interleaved
+          getFactorRows() {
+            const rows = [];
+            for (const section of this.factorSections) {
+              // Add section header
+              rows.push({ type: 'header', name: section.name, id: 'header-' + section.name });
+              // Add factor rows for this section
+              for (const key of section.keys) {
+                if (this.config.factors[key]) {
+                  rows.push({ 
+                    type: 'factor', 
+                    key: key, 
+                    factor: this.config.factors[key],
+                    id: 'factor-' + key
+                  });
+                }
+              }
+            }
+            return rows;
+          },
 
           async loadConfig() {
             try {

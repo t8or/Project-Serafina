@@ -103,7 +103,7 @@
                 <button
                   x-show="drillLevel > 0"
                   @click="navigateBack()"
-                  class="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 hover:text-gray-700 dark:border-gray-700 dark:bg-boxdark dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+                  class="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 hover:text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
                   title="Go back"
                 >
                   <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -132,10 +132,43 @@
                 </nav>
               </div>
               
+              <!-- Decision Filter Indicator (shows when filter is active) -->
+              <div 
+                x-show="decisionFilter" 
+                x-cloak
+                class="mb-4 flex items-center gap-2"
+              >
+                <span class="text-sm text-gray-500 dark:text-gray-400">Showing:</span>
+                <span 
+                  class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium"
+                  :class="{
+                    'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400': decisionFilter === 'green',
+                    'bg-yellow-100 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-400': decisionFilter === 'yellow',
+                    'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400': decisionFilter === 'red'
+                  }"
+                >
+                  <span x-text="getDecisionFilterLabel()"></span>
+                  <button 
+                    @click="clearDecisionFilter()"
+                    class="ml-1 rounded-full p-0.5 hover:bg-black/10 dark:hover:bg-white/10"
+                    title="Clear filter"
+                  >
+                    <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                  </button>
+                </span>
+                <span class="text-sm text-gray-500 dark:text-gray-400" x-text="'(' + displayProperties.length + ' properties)'"></span>
+              </div>
+              
               <!-- Summary Cards (filtered by current selection) -->
               <div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 <!-- Total Properties -->
-                <div class="rounded-lg border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-boxdark">
+                <div 
+                  class="rounded-lg border bg-white p-5 dark:bg-gray-900 transition-all cursor-pointer"
+                  :class="decisionFilter === null ? 'border-blue-400 ring-2 ring-blue-200 dark:ring-blue-800' : 'border-gray-200 dark:border-gray-700 hover:border-blue-300'"
+                  @click="clearDecisionFilter()"
+                >
                   <div class="flex items-center gap-4">
                     <div class="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-500/20">
                       <svg class="h-6 w-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -150,7 +183,11 @@
                 </div>
 
                 <!-- Move Forward -->
-                <div class="rounded-lg border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-boxdark">
+                <div 
+                  class="rounded-lg border bg-white p-5 dark:bg-gray-900 transition-all cursor-pointer"
+                  :class="decisionFilter === 'green' ? 'border-green-400 ring-2 ring-green-200 dark:ring-green-800' : 'border-gray-200 dark:border-gray-700 hover:border-green-300'"
+                  @click="toggleDecisionFilter('green')"
+                >
                   <div class="flex items-center gap-4">
                     <div class="flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-500/20">
                       <svg class="h-6 w-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -165,7 +202,11 @@
                 </div>
 
                 <!-- Needs Review -->
-                <div class="rounded-lg border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-boxdark">
+                <div 
+                  class="rounded-lg border bg-white p-5 dark:bg-gray-900 transition-all cursor-pointer"
+                  :class="decisionFilter === 'yellow' ? 'border-yellow-400 ring-2 ring-yellow-200 dark:ring-yellow-800' : 'border-gray-200 dark:border-gray-700 hover:border-yellow-300'"
+                  @click="toggleDecisionFilter('yellow')"
+                >
                   <div class="flex items-center gap-4">
                     <div class="flex h-12 w-12 items-center justify-center rounded-full bg-yellow-100 dark:bg-yellow-500/20">
                       <svg class="h-6 w-6 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -180,7 +221,11 @@
                 </div>
 
                 <!-- Rejected -->
-                <div class="rounded-lg border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-boxdark">
+                <div 
+                  class="rounded-lg border bg-white p-5 dark:bg-gray-900 transition-all cursor-pointer"
+                  :class="decisionFilter === 'red' ? 'border-red-400 ring-2 ring-red-200 dark:ring-red-800' : 'border-gray-200 dark:border-gray-700 hover:border-red-300'"
+                  @click="toggleDecisionFilter('red')"
+                >
                   <div class="flex items-center gap-4">
                     <div class="flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-500/20">
                       <svg class="h-6 w-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -197,20 +242,23 @@
 
               <!-- Charts Row -->
               <div class="mb-6 grid grid-cols-12 gap-6">
-                <!-- Score Distribution Donut Chart (filtered) -->
+                <!-- Score Distribution Donut Chart (filtered) - Click to filter by decision -->
                 <div class="col-span-12 xl:col-span-5">
-                  <div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-boxdark">
-                    <h3 class="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
-                      Score Distribution
-                      <span x-show="drillLevel > 0" class="text-sm font-normal text-gray-500 dark:text-gray-400" x-text="'(' + getFilterLabel() + ')'"></span>
-                    </h3>
+                  <div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-900">
+                    <div class="mb-4 flex items-center justify-between">
+                      <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                        Score Distribution
+                        <span x-show="drillLevel > 0" class="text-sm font-normal text-gray-500 dark:text-gray-400" x-text="'(' + getFilterLabel() + ')'"></span>
+                      </h3>
+                      <span class="text-xs text-gray-400 dark:text-gray-500">Click to filter</span>
+                    </div>
                     <div id="distributionChart" class="h-[300px]"></div>
                   </div>
                 </div>
 
                 <!-- Geographic Drill-Down Bar Chart -->
                 <div class="col-span-12 xl:col-span-7">
-                  <div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-boxdark">
+                  <div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-900">
                     <h3 class="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
                       <span x-text="getChartTitle()"></span>
                     </h3>
@@ -220,7 +268,7 @@
               </div>
 
               <!-- Properties Table (filtered) -->
-              <div class="rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-boxdark">
+              <div class="rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">
                 <div class="flex items-center justify-between border-b border-gray-200 px-6 py-4 dark:border-gray-700">
                   <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
                     <span x-show="!showingDeleted">Properties</span>
@@ -256,7 +304,7 @@
                       </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-                      <template x-for="property in filteredProperties" :key="property.id">
+                      <template x-for="property in displayProperties" :key="property.id">
                         <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50">
                           <td class="px-6 py-4 max-w-[200px]">
                             <div class="min-w-0">
@@ -385,7 +433,7 @@
               @keydown.escape.window="selectedProperty = null"
             >
               <div 
-                class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-white p-6 shadow-xl dark:bg-boxdark"
+                class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-white p-6 shadow-xl dark:bg-gray-900"
                 x-transition:enter="transition ease-out duration-300"
                 x-transition:enter-start="opacity-0 transform scale-95"
                 x-transition:enter-end="opacity-100 transform scale-100"
@@ -544,7 +592,7 @@
               @keydown.escape.window="deleteConfirmProperty = null"
             >
               <div 
-                class="w-full max-w-md overflow-visible rounded-lg bg-white p-6 shadow-xl dark:bg-boxdark"
+                class="w-full max-w-md overflow-visible rounded-lg bg-white p-6 shadow-xl dark:bg-gray-900"
                 x-transition:enter="transition ease-out duration-200"
                 x-transition:enter-start="opacity-0 transform scale-95"
                 x-transition:enter-end="opacity-100 transform scale-100"
@@ -637,6 +685,74 @@
           showDebug: false,
           copySuccess: false,
           
+          // Decision filter (null = all, 'green' = Move Forward, 'yellow' = Needs Review, 'red' = Rejected)
+          decisionFilter: null,
+          
+          // ========== Computed/Filtered Data ==========
+          
+          // Get properties filtered by decision type
+          get displayProperties() {
+            if (!this.decisionFilter) return this.filteredProperties;
+            return this.filteredProperties.filter(p => p.decisionColor === this.decisionFilter);
+          },
+          
+          // Get aggregate groups filtered by decision type
+          get displayAggregateGroups() {
+            if (!this.decisionFilter) return this.aggregateGroups;
+            // Filter aggregate data to show only the selected decision count
+            return this.aggregateGroups.map(g => {
+              if (this.decisionFilter === 'green') {
+                return { ...g, needsReview: 0, rejected: 0, total: g.moveForward };
+              } else if (this.decisionFilter === 'yellow') {
+                return { ...g, moveForward: 0, rejected: 0, total: g.needsReview };
+              } else if (this.decisionFilter === 'red') {
+                return { ...g, moveForward: 0, needsReview: 0, total: g.rejected };
+              }
+              return g;
+            }).filter(g => g.total > 0);
+          },
+          
+          // Get display summary for current filter
+          get displaySummary() {
+            if (!this.decisionFilter) return this.filteredSummary;
+            const count = this.displayProperties.length;
+            return {
+              total: count,
+              moveForward: this.decisionFilter === 'green' ? count : 0,
+              needsReview: this.decisionFilter === 'yellow' ? count : 0,
+              rejected: this.decisionFilter === 'red' ? count : 0
+            };
+          },
+          
+          // Get decision filter label for display
+          getDecisionFilterLabel() {
+            if (this.decisionFilter === 'green') return 'Move Forward';
+            if (this.decisionFilter === 'yellow') return 'Needs Review';
+            if (this.decisionFilter === 'red') return 'Rejected';
+            return null;
+          },
+          
+          // Toggle decision filter (click same to clear)
+          toggleDecisionFilter(color) {
+            if (this.decisionFilter === color) {
+              this.decisionFilter = null;
+            } else {
+              this.decisionFilter = color;
+            }
+            // Reinit charts to update bar chart
+            this.$nextTick(() => {
+              this.initDrilldownChart();
+            });
+          },
+          
+          // Clear decision filter
+          clearDecisionFilter() {
+            this.decisionFilter = null;
+            this.$nextTick(() => {
+              this.initDrilldownChart();
+            });
+          },
+          
           // ========== Initialization ==========
           
           async init() {
@@ -710,6 +826,9 @@
           
           async loadData() {
             this.loading = true;
+            
+            // Reset decision filter when navigating to new data
+            this.decisionFilter = null;
             
             try {
               // Determine groupBy level
@@ -873,6 +992,11 @@
               this.distributionChart.destroy();
             }
             
+            const self = this;
+            const decisionColors = ['green', 'yellow', 'red'];
+            
+            const isDark = document.body.classList.contains('dark');
+            
             const options = {
               series: [
                 this.filteredSummary.moveForward, 
@@ -882,13 +1006,28 @@
               chart: {
                 type: 'donut',
                 height: 300,
+                background: 'transparent',
+                events: {
+                  // Click on pie segment to filter
+                  dataPointSelection: function(event, chartContext, config) {
+                    const selectedColor = decisionColors[config.dataPointIndex];
+                    self.toggleDecisionFilter(selectedColor);
+                  }
+                }
+              },
+              theme: {
+                mode: isDark ? 'dark' : 'light'
               },
               labels: ['Move Forward', 'Needs Review', 'Rejected'],
               colors: ['#22c55e', '#eab308', '#ef4444'],
               legend: {
                 position: 'bottom',
                 labels: {
-                  colors: document.body.classList.contains('dark') ? '#fff' : '#333',
+                  colors: isDark ? '#fff' : '#333',
+                },
+                // Click legend to filter
+                onItemClick: {
+                  toggleDataSeries: false
                 }
               },
               plotOptions: {
@@ -899,13 +1038,18 @@
                       show: true,
                       total: {
                         show: true,
-                        label: 'Total',
-                        formatter: () => this.filteredSummary.total,
-                        color: document.body.classList.contains('dark') ? '#fff' : '#333',
+                        label: this.decisionFilter ? this.getDecisionFilterLabel() : 'Total',
+                        formatter: () => this.decisionFilter ? this.displayProperties.length : this.filteredSummary.total,
+                        color: isDark ? '#fff' : '#333',
                       }
                     }
-                  }
+                  },
+                  expandOnClick: true
                 }
+              },
+              states: {
+                hover: { filter: { type: 'darken', value: 0.85 } },
+                active: { filter: { type: 'none' } }
               },
               dataLabels: { enabled: false },
               responsive: [{
@@ -932,13 +1076,15 @@
               return;
             }
             
-            // For aggregate levels, show stacked bars
-            const categories = this.aggregateGroups.map(g => g.name);
-            const moveForwardData = this.aggregateGroups.map(g => g.moveForward);
-            const needsReviewData = this.aggregateGroups.map(g => g.needsReview);
-            const rejectedData = this.aggregateGroups.map(g => g.rejected);
+            // For aggregate levels, show stacked bars (use filtered data if decision filter active)
+            const displayGroups = this.displayAggregateGroups;
+            const categories = displayGroups.map(g => g.name);
+            const moveForwardData = displayGroups.map(g => g.moveForward);
+            const needsReviewData = displayGroups.map(g => g.needsReview);
+            const rejectedData = displayGroups.map(g => g.rejected);
             
             const self = this;
+            const isDark = document.body.classList.contains('dark');
             
             const options = {
               series: [
@@ -950,16 +1096,20 @@
                 type: 'bar',
                 height: 300,
                 stacked: true,
+                background: 'transparent',
                 toolbar: { show: false },
                 events: {
                   dataPointSelection: function(event, chartContext, config) {
                     const groupIndex = config.dataPointIndex;
-                    const group = self.aggregateGroups[groupIndex];
+                    const group = displayGroups[groupIndex];
                     if (group) {
                       self.drillDown(group.key, group.name);
                     }
                   }
                 }
+              },
+              theme: {
+                mode: isDark ? 'dark' : 'light'
               },
               plotOptions: {
                 bar: {
@@ -977,23 +1127,23 @@
               xaxis: {
                 categories: categories,
                 labels: {
-                  style: { colors: document.body.classList.contains('dark') ? '#9ca3af' : '#4b5563' }
+                  style: { colors: isDark ? '#9ca3af' : '#4b5563' }
                 }
               },
               yaxis: {
                 labels: {
-                  style: { colors: document.body.classList.contains('dark') ? '#9ca3af' : '#4b5563' }
+                  style: { colors: isDark ? '#9ca3af' : '#4b5563' }
                 }
               },
               legend: {
                 position: 'top',
-                labels: { colors: document.body.classList.contains('dark') ? '#fff' : '#333' }
+                labels: { colors: isDark ? '#fff' : '#333' }
               },
               grid: {
-                borderColor: document.body.classList.contains('dark') ? '#374151' : '#e5e7eb',
+                borderColor: isDark ? '#374151' : '#e5e7eb',
               },
               tooltip: {
-                theme: document.body.classList.contains('dark') ? 'dark' : 'light',
+                theme: isDark ? 'dark' : 'light',
                 y: { formatter: (val) => val + ' properties' }
               },
               states: {
@@ -1006,8 +1156,8 @@
           },
           
           initPropertyScoresChart(chartEl) {
-            // Individual property scores at deepest level
-            const sortedProperties = [...this.filteredProperties].sort((a, b) => (b.score || 0) - (a.score || 0));
+            // Individual property scores at deepest level (use filtered data if decision filter active)
+            const sortedProperties = [...this.displayProperties].sort((a, b) => (b.score || 0) - (a.score || 0));
             const categories = sortedProperties.map(p => p.propertyName || 'Unknown');
             const scores = sortedProperties.map(p => p.score || 0);
             const colors = sortedProperties.map(p => {
@@ -1017,12 +1167,14 @@
             });
             
             const self = this;
+            const isDark = document.body.classList.contains('dark');
             
             const options = {
               series: [{ name: 'Score', data: scores }],
               chart: {
                 type: 'bar',
                 height: 300,
+                background: 'transparent',
                 toolbar: { show: false },
                 events: {
                   dataPointSelection: function(event, chartContext, config) {
@@ -1032,6 +1184,9 @@
                     }
                   }
                 }
+              },
+              theme: {
+                mode: isDark ? 'dark' : 'light'
               },
               plotOptions: {
                 bar: {
@@ -1051,20 +1206,20 @@
                 categories: categories,
                 max: 10,
                 labels: {
-                  style: { colors: document.body.classList.contains('dark') ? '#9ca3af' : '#4b5563' }
+                  style: { colors: isDark ? '#9ca3af' : '#4b5563' }
                 }
               },
               yaxis: {
                 labels: {
-                  style: { colors: document.body.classList.contains('dark') ? '#9ca3af' : '#4b5563' }
+                  style: { colors: isDark ? '#9ca3af' : '#4b5563' }
                 }
               },
               legend: { show: false },
               grid: {
-                borderColor: document.body.classList.contains('dark') ? '#374151' : '#e5e7eb',
+                borderColor: isDark ? '#374151' : '#e5e7eb',
               },
               tooltip: {
-                theme: document.body.classList.contains('dark') ? 'dark' : 'light',
+                theme: isDark ? 'dark' : 'light',
                 y: { formatter: (val) => val.toFixed(2) + ' / 10' }
               }
             };
