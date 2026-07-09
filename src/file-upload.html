@@ -163,7 +163,7 @@
                   <!-- Modal Header -->
                   <div class="mb-6 flex items-center justify-between border-b border-gray-200 pb-4 dark:border-gray-700">
                     <h3 class="text-xl font-semibold text-gray-900 dark:text-white">
-                      Processing Options
+                      Local Processing
                     </h3>
                     <button 
                       @click="showOptionsModal = false"
@@ -175,110 +175,11 @@
                     </button>
                   </div>
 
-                  <!-- Processing Options -->
-                  <div class="space-y-6">
-                    <!-- Docling Processing Section -->
-                    <div>
-                      <h4 class="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
-                        Document Processing
-                      </h4>
-                      <div class="space-y-4 rounded-lg bg-gray-50 p-4 dark:bg-gray-800">
-                        <!-- Full Docling Toggle -->
-                        <div class="flex items-center justify-between">
-                          <div>
-                            <label class="text-sm font-medium text-gray-900 dark:text-white">Full Document Analysis</label>
-                            <p class="text-xs text-gray-500 dark:text-gray-400">Process all pages with section detection</p>
-                          </div>
-                          <button
-                            type="button"
-                            @click="options.fullDocling = !options.fullDocling"
-                            :class="options.fullDocling ? 'bg-brand-500' : 'bg-gray-300 dark:bg-gray-600'"
-                            class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2"
-                          >
-                            <span
-                              :class="options.fullDocling ? 'translate-x-5' : 'translate-x-0'"
-                              class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
-                            ></span>
-                          </button>
-                        </div>
-                        <p class="text-xs text-gray-500 dark:text-gray-400 italic" x-show="!options.fullDocling">
-                          Quick mode: Only first 2 pages will be processed
-                        </p>
-                      </div>
-                    </div>
-
-                    <!-- External Data Section -->
-                    <div>
-                      <h4 class="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
-                        External Data Collection
-                      </h4>
-                      <div class="space-y-4 rounded-lg bg-gray-50 p-4 dark:bg-gray-800">
-                        <!-- BestPlaces Toggle -->
-                        <div class="flex items-center justify-between">
-                          <div>
-                            <label class="text-sm font-medium text-gray-900 dark:text-white">BestPlaces Crime Data</label>
-                            <p class="text-xs text-gray-500 dark:text-gray-400">Fetch crime statistics for property area</p>
-                          </div>
-                          <button
-                            type="button"
-                            @click="options.bestPlaces = !options.bestPlaces"
-                            :class="options.bestPlaces ? 'bg-brand-500' : 'bg-gray-300 dark:bg-gray-600'"
-                            class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2"
-                          >
-                            <span
-                              :class="options.bestPlaces ? 'translate-x-5' : 'translate-x-0'"
-                              class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
-                            ></span>
-                          </button>
-                        </div>
-
-                        <!-- GreatSchools Toggle -->
-                        <div class="flex items-center justify-between">
-                          <div>
-                            <label class="text-sm font-medium text-gray-900 dark:text-white">GreatSchools Ratings</label>
-                            <p class="text-xs text-gray-500 dark:text-gray-400">Fetch school ratings for property area</p>
-                          </div>
-                          <button
-                            type="button"
-                            @click="options.greatSchools = !options.greatSchools"
-                            :class="options.greatSchools ? 'bg-brand-500' : 'bg-gray-300 dark:bg-gray-600'"
-                            class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2"
-                          >
-                            <span
-                              :class="options.greatSchools ? 'translate-x-5' : 'translate-x-0'"
-                              class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
-                            ></span>
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-
-                    <!-- Output Section -->
-                    <div>
-                      <h4 class="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
-                        Output Options
-                      </h4>
-                      <div class="space-y-4 rounded-lg bg-gray-50 p-4 dark:bg-gray-800">
-                        <!-- Generate CSV Toggle -->
-                        <div class="flex items-center justify-between">
-                          <div>
-                            <label class="text-sm font-medium text-gray-900 dark:text-white">Generate CSV Report</label>
-                            <p class="text-xs text-gray-500 dark:text-gray-400">Create Demos template CSV file</p>
-                          </div>
-                          <button
-                            type="button"
-                            @click="options.generateCsv = !options.generateCsv"
-                            :class="options.generateCsv ? 'bg-brand-500' : 'bg-gray-300 dark:bg-gray-600'"
-                            class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2"
-                          >
-                            <span
-                              :class="options.generateCsv ? 'translate-x-5' : 'translate-x-0'"
-                              class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
-                            ></span>
-                          </button>
-                        </div>
-                      </div>
-                    </div>
+                  <div class="rounded-lg bg-gray-50 p-4 text-sm dark:bg-gray-800">
+                    <p class="font-medium text-gray-900 dark:text-white">Local PDF analysis</p>
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      Every PDF is processed by local Docling across all pages. Reference metrics are used only when a matching local snapshot has already been imported.
+                    </p>
                   </div>
 
                   <!-- Progress Indicator -->
@@ -341,14 +242,6 @@
           processingStep: '',
           processingProgress: 0,
           
-          // Processing options - defaults
-          options: {
-            fullDocling: true,      // Default: Full analysis ON
-            bestPlaces: true,       // Default: BestPlaces ON
-            greatSchools: true,     // Default: GreatSchools ON
-            generateCsv: false,     // Default: CSV generation OFF
-          },
-
           handleFiles(fileList) {
             this.validateAndAddFiles(fileList);
           },
@@ -356,11 +249,7 @@
           validateAndAddFiles(fileList) {
             const SUPPORTED_FILE_TYPES = {
               'application/pdf': '.pdf',
-              'image/png': '.png',
-              'image/jpeg': '.jpg',
-              'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': '.xlsx',
-              'application/vnd.ms-excel': '.xls',
-              'text/csv': '.csv',
+              'application/pdf': '.pdf',
             };
 
             const files = [...fileList];
@@ -417,15 +306,9 @@
               
               for (let i = 0; i < uploadedFiles.length; i++) {
                 const file = uploadedFiles[i];
-                const processor = this.options.fullDocling ? 'docling_full' : 'docling';
-                
                 this.processingStep = `Processing ${file.original_filename}...`;
                 
-                const extractResponse = await fetch(`/api/extract/${file.id}?pdfProcessor=${processor}`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ pdfProcessor: processor })
-                });
+                const extractResponse = await fetch(`/api/extract/${file.id}`, { method: 'POST' });
                 
 
                 if (!extractResponse.ok) {
@@ -435,28 +318,7 @@
                 this.processingProgress = 30 + Math.round((i + 1) / uploadedFiles.length * 30);
               }
               
-              // Step 3: Run external data scraping if enabled
-              if (this.options.bestPlaces || this.options.greatSchools) {
-                this.processingStep = 'Fetching external data...';
-                this.processingProgress = 70;
-                
-                // For each file, try to extract address and scrape data
-                // This would require address extraction from the Docling output
-                // For now, we'll note this as a future enhancement
-                console.log('External scraping options:', {
-                  bestPlaces: this.options.bestPlaces,
-                  greatSchools: this.options.greatSchools
-                });
-              }
-
               this.processingProgress = 90;
-
-              // Step 4: Generate CSV if enabled
-              if (this.options.generateCsv) {
-                this.processingStep = 'Generating CSV report...';
-                // CSV generation would go here
-                console.log('CSV generation requested');
-              }
 
               this.processingProgress = 100;
               this.processingStep = 'Complete!';

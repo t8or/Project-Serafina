@@ -4,7 +4,7 @@
  * Backfill Script: Migrate Existing Data to Property-Centric Schema
  * 
  * This script:
- * 1. Reads existing extracted files from uploads/extracted/
+ * 1. Reads extracted files from the local application-data directory
  * 2. Groups them by property (based on filename prefix)
  * 3. Creates property records with addresses extracted from subject_property sections
  * 4. Links extracted files to properties
@@ -29,14 +29,12 @@ import {
   getScoringService,
   ensureScoringConfigLoaded,
 } from '../src/services/property_data_assembler.js';
+import { EXTRACTED_DIR, DOCUMENTS_DIR } from '../src/config/runtime_paths.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // Directory paths
-const UPLOADS_DIR = path.join(process.cwd(), 'uploads');
-const EXTRACTED_DIR = path.join(UPLOADS_DIR, 'extracted');
-const DOCUMENTS_DIR = path.join(UPLOADS_DIR, 'documents');
 
 // Services
 const propertyService = new PropertyService();
@@ -308,4 +306,3 @@ backfill()
     console.error('Fatal error:', error);
     process.exit(1);
   });
-

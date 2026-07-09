@@ -1,244 +1,224 @@
-import pg from 'pg';
-import dotenv from 'dotenv';
+/**
+ * SQLite-backed local persistence module.
+ *
+ * Interface preserved for callers:
+ *   db.query(sql, params?) -> { rows, rowCount }
+ *   db.connect() -> transaction client with query/release
+ *   initDb() -> initialize local schema
+ *
+ * The adapter keeps existing modules focused on property behaviour rather than
+ * database mechanics. It intentionally supports one local application process;
+ * no network database is part of the runtime.
+ */
 
-const { Pool } = pg;
+import { DatabaseSync } from 'node:sqlite';
+import { ensureDataDirectories, DATABASE_PATH } from './runtime_paths.js';
 
-// Load environment variables
-dotenv.config();
+let database = null;
 
-console.log('=== Database Configuration Initialization ===');
-console.log('Loading environment variables...');
+const JSON_COLUMNS = new Set(['breakdown', 'raw_data', 'config_snapshot', 'records_json']);
 
-const {
-  DB_USER,
-  DB_HOST,
-  DB_NAME = 'serafina_db',
-  DB_PORT = 5432,
-  DB_PASSWORD,
-  NODE_ENV
-} = process.env;
+function getDatabase() {
+  if (!database) {
+    throw new Error('Local database is not initialized. Run initDb() before handling requests.');
+  }
+  return database;
+}
 
-console.log('Environment variables loaded:', {
-  DB_USER,
-  DB_HOST,
-  DB_NAME,
-  DB_PORT,
-  NODE_ENV
-});
+function toSqliteSql(sql) {
+  return sql
+    .replace(/\$\d+/g, '?')
+    .replace(/\bILIKE\b/gi, 'LIKE');
+}
 
-// Create connection pool
-const pool = new Pool({
-  user: DB_USER,
-  host: DB_HOST,
-  database: DB_NAME,
-  password: DB_PASSWORD,
-  port: DB_PORT,
-  // Pool configuration
-  max: 20,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
-});
+function toSqliteParameter(value) {
+  if (value === undefined) return null;
+  if (value instanceof Date) return value.toISOString();
+  if (value && typeof value === 'object' && !Buffer.isBuffer(value)) return JSON.stringify(value);
+  return value;
+}
 
-console.log('Pool configuration:', {
-  user: pool.options.user,
-  host: pool.options.host,
-  database: pool.options.database,
-  port: pool.options.port
-});
+function hydrateRow(row) {
+  const hydrated = { ...row };
+  for (const column of JSON_COLUMNS) {
+    if (typeof hydrated[column] === 'string') {
+      try {
+        hydrated[column] = JSON.parse(hydrated[column]);
+      } catch {
+        // Preserve malformed historic data for inspection instead of inventing values.
+      }
+    }
+  }
+  return hydrated;
+}
 
-// Connection event handlers
-pool.on('connect', (client) => {
-  console.log('=== New Database Connection ===');
-  console.log('Client connected:', {
-    user: client.connectionParameters.user,
-    database: client.connectionParameters.database,
-    host: client.connectionParameters.host,
-    pid: client.processID
-  });
-});
+function isRowQuery(sql) {
+  return /^(?:\s*(?:WITH\b[\s\S]*?\b)?(?:SELECT|PRAGMA|EXPLAIN)\b)/i.test(sql)
+    || /\bRETURNING\b/i.test(sql);
+}
 
-pool.on('error', (err) => {
-  console.error('=== Database Pool Error ===');
-  console.error('Error details:', {
-    name: err.name,
-    message: err.message,
-    code: err.code,
-    stack: err.stack
-  });
-});
+class LocalDatabase {
+  async query(sql, params = []) {
+    const statement = getDatabase().prepare(toSqliteSql(sql));
+    const values = params.map(toSqliteParameter);
 
-// Test the connection
-async function validateConnection() {
-  try {
-    const client = await pool.connect();
-    console.log('Successfully connected to database');
-    const result = await client.query('SELECT current_database() as db, current_user as user');
-    console.log('Database connection details:', result.rows[0]);
-    client.release();
-    return true;
-  } catch (err) {
-    console.error('Failed to validate database connection:', err);
-    return false;
+    if (isRowQuery(sql)) {
+      const rows = statement.all(...values).map(hydrateRow);
+      return { rows, rowCount: rows.length };
+    }
+
+    const result = statement.run(...values);
+    return {
+      rows: [],
+      rowCount: Number(result.changes || 0),
+      lastInsertRowid: result.lastInsertRowid,
+    };
+  }
+
+  async connect() {
+    // A single DatabaseSync connection is intentional: Serafina has one local
+    // writer, which avoids cross-process locking complexity for user data.
+    return {
+      query: this.query.bind(this),
+      release() {},
+    };
+  }
+
+  close() {
+    if (database) {
+      database.close();
+      database = null;
+    }
   }
 }
 
-// Initialize database tables
-async function initDb() {
-  console.log('=== Initializing Database Tables ===');
-  try {
-    const client = await pool.connect();
-    
-    // Log current tables
-    const tablesQuery = await client.query(`
-      SELECT table_name 
-      FROM information_schema.tables 
-      WHERE table_schema = 'public';
-    `);
-    console.log('Existing tables:', tablesQuery.rows);
+const db = new LocalDatabase();
 
-    // Legacy files table (kept for backward compatibility during migration)
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS files (
-        id SERIAL PRIMARY KEY,
-        filename VARCHAR(255) NOT NULL,
-        original_filename VARCHAR(255) NOT NULL,
-        file_type VARCHAR(100) NOT NULL,
-        file_size BIGINT NOT NULL,
-        user_id VARCHAR(100) DEFAULT '000',
-        storage_path TEXT NOT NULL,
-        upload_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        status VARCHAR(50) DEFAULT 'active',
-        is_extracted BOOLEAN DEFAULT false,
-        extracted_text TEXT
-      )
-    `);
+const SCHEMA = `
+  CREATE TABLE IF NOT EXISTS files (
+    id INTEGER PRIMARY KEY,
+    filename TEXT NOT NULL,
+    original_filename TEXT NOT NULL,
+    file_type TEXT NOT NULL,
+    file_size INTEGER NOT NULL,
+    user_id TEXT NOT NULL DEFAULT '000',
+    storage_path TEXT NOT NULL,
+    upload_date TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    status TEXT NOT NULL DEFAULT 'active',
+    is_extracted INTEGER NOT NULL DEFAULT 0,
+    extracted_text TEXT
+  );
 
-    // Properties: Central entity representing a real estate property
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS properties (
-        id SERIAL PRIMARY KEY,
-        name VARCHAR(255),
-        address_street VARCHAR(255),
-        address_city VARCHAR(100),
-        address_state VARCHAR(50),
-        address_state_abbr VARCHAR(2),
-        address_zip VARCHAR(20),
-        address_full TEXT,
-        address_normalized VARCHAR(255),
-        status VARCHAR(50) DEFAULT 'active',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        deleted_at TIMESTAMP
-      )
-    `);
+  CREATE TABLE IF NOT EXISTS properties (
+    id INTEGER PRIMARY KEY,
+    name TEXT,
+    address_street TEXT,
+    address_city TEXT,
+    address_state TEXT,
+    address_state_abbr TEXT,
+    address_zip TEXT,
+    address_full TEXT,
+    address_normalized TEXT,
+    status TEXT NOT NULL DEFAULT 'active',
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TEXT
+  );
 
-    // Documents: Uploaded PDF files linked to properties
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS documents (
-        id SERIAL PRIMARY KEY,
-        property_id INTEGER REFERENCES properties(id) ON DELETE CASCADE,
-        filename VARCHAR(255) NOT NULL,
-        original_filename VARCHAR(255) NOT NULL,
-        file_type VARCHAR(100) NOT NULL,
-        file_size BIGINT NOT NULL,
-        storage_path TEXT NOT NULL,
-        user_id VARCHAR(100) DEFAULT '000',
-        uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        deleted_at TIMESTAMP
-      )
-    `);
+  CREATE TABLE IF NOT EXISTS documents (
+    id INTEGER PRIMARY KEY,
+    property_id INTEGER REFERENCES properties(id) ON DELETE CASCADE,
+    filename TEXT NOT NULL,
+    original_filename TEXT NOT NULL,
+    file_type TEXT NOT NULL,
+    file_size INTEGER NOT NULL,
+    storage_path TEXT NOT NULL,
+    user_id TEXT NOT NULL DEFAULT '000',
+    uploaded_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TEXT
+  );
 
-    // Extracted Files: JSON data extracted from documents
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS extracted_files (
-        id SERIAL PRIMARY KEY,
-        property_id INTEGER REFERENCES properties(id) ON DELETE CASCADE,
-        document_id INTEGER REFERENCES documents(id) ON DELETE CASCADE,
-        section_type VARCHAR(100) NOT NULL,
-        storage_path TEXT NOT NULL,
-        data_hash VARCHAR(64),
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        deleted_at TIMESTAMP
-      )
-    `);
+  CREATE TABLE IF NOT EXISTS extracted_files (
+    id INTEGER PRIMARY KEY,
+    property_id INTEGER REFERENCES properties(id) ON DELETE CASCADE,
+    document_id INTEGER REFERENCES documents(id) ON DELETE CASCADE,
+    section_type TEXT NOT NULL,
+    storage_path TEXT NOT NULL,
+    data_hash TEXT,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TEXT
+  );
 
-    // Scores: Persisted scoring results for properties
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS scores (
-        id SERIAL PRIMARY KEY,
-        property_id INTEGER REFERENCES properties(id) ON DELETE CASCADE UNIQUE,
-        score DECIMAL(4, 2) NOT NULL,
-        decision VARCHAR(100) NOT NULL,
-        decision_color VARCHAR(20) NOT NULL,
-        breakdown JSONB,
-        raw_data JSONB,
-        config_snapshot JSONB,
-        calculated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
+  CREATE TABLE IF NOT EXISTS scores (
+    id INTEGER PRIMARY KEY,
+    property_id INTEGER NOT NULL REFERENCES properties(id) ON DELETE CASCADE UNIQUE,
+    score REAL NOT NULL,
+    decision TEXT NOT NULL,
+    decision_color TEXT NOT NULL,
+    breakdown TEXT,
+    raw_data TEXT,
+    config_snapshot TEXT,
+    calculated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  );
 
-    // Generated Files: Spreadsheets and reports generated for properties
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS generated_files (
-        id SERIAL PRIMARY KEY,
-        property_id INTEGER REFERENCES properties(id) ON DELETE CASCADE,
-        file_type VARCHAR(50) NOT NULL,
-        file_name VARCHAR(255) NOT NULL,
-        storage_path TEXT NOT NULL,
-        template_used VARCHAR(255),
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        deleted_at TIMESTAMP
-      )
-    `);
+  CREATE TABLE IF NOT EXISTS generated_files (
+    id INTEGER PRIMARY KEY,
+    property_id INTEGER REFERENCES properties(id) ON DELETE CASCADE,
+    file_type TEXT NOT NULL,
+    file_name TEXT NOT NULL,
+    storage_path TEXT NOT NULL,
+    template_used TEXT,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TEXT
+  );
 
-    // Create indexes for better query performance
-    await client.query(`CREATE INDEX IF NOT EXISTS idx_properties_address_normalized ON properties(address_normalized)`);
-    await client.query(`CREATE INDEX IF NOT EXISTS idx_properties_status ON properties(status)`);
-    await client.query(`CREATE INDEX IF NOT EXISTS idx_properties_deleted_at ON properties(deleted_at)`);
-    await client.query(`CREATE INDEX IF NOT EXISTS idx_documents_property_id ON documents(property_id)`);
-    await client.query(`CREATE INDEX IF NOT EXISTS idx_extracted_files_property_id ON extracted_files(property_id)`);
-    await client.query(`CREATE INDEX IF NOT EXISTS idx_scores_property_id ON scores(property_id)`);
-    await client.query(`CREATE INDEX IF NOT EXISTS idx_generated_files_property_id ON generated_files(property_id)`);
+  CREATE TABLE IF NOT EXISTS reference_snapshots (
+    id INTEGER PRIMARY KEY,
+    source TEXT NOT NULL,
+    as_of TEXT NOT NULL,
+    imported_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    content_hash TEXT NOT NULL UNIQUE,
+    records_json TEXT NOT NULL
+  );
 
-    // Create trigger function for updated_at
-    await client.query(`
-      CREATE OR REPLACE FUNCTION update_updated_at_column()
-      RETURNS TRIGGER AS $$
-      BEGIN
-        NEW.updated_at = CURRENT_TIMESTAMP;
-        RETURN NEW;
-      END;
-      $$ language 'plpgsql'
-    `);
+  CREATE INDEX IF NOT EXISTS idx_properties_address_normalized ON properties(address_normalized);
+  CREATE INDEX IF NOT EXISTS idx_properties_status ON properties(status);
+  CREATE INDEX IF NOT EXISTS idx_documents_property_id ON documents(property_id);
+  CREATE INDEX IF NOT EXISTS idx_extracted_files_property_id ON extracted_files(property_id);
+  CREATE INDEX IF NOT EXISTS idx_scores_property_id ON scores(property_id);
+  CREATE INDEX IF NOT EXISTS idx_generated_files_property_id ON generated_files(property_id);
+  CREATE INDEX IF NOT EXISTS idx_reference_snapshots_as_of ON reference_snapshots(as_of);
 
-    // Apply triggers (drop first to avoid duplicates)
-    await client.query(`DROP TRIGGER IF EXISTS update_properties_updated_at ON properties`);
-    await client.query(`
-      CREATE TRIGGER update_properties_updated_at
-        BEFORE UPDATE ON properties
-        FOR EACH ROW
-        EXECUTE FUNCTION update_updated_at_column()
-    `);
+  CREATE TRIGGER IF NOT EXISTS update_properties_updated_at
+  AFTER UPDATE ON properties
+  FOR EACH ROW WHEN NEW.updated_at = OLD.updated_at
+  BEGIN
+    UPDATE properties SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+  END;
 
-    await client.query(`DROP TRIGGER IF EXISTS update_scores_updated_at ON scores`);
-    await client.query(`
-      CREATE TRIGGER update_scores_updated_at
-        BEFORE UPDATE ON scores
-        FOR EACH ROW
-        EXECUTE FUNCTION update_updated_at_column()
-    `);
+  CREATE TRIGGER IF NOT EXISTS update_scores_updated_at
+  AFTER UPDATE ON scores
+  FOR EACH ROW WHEN NEW.updated_at = OLD.updated_at
+  BEGIN
+    UPDATE scores SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+  END;
+`;
 
-    console.log('Database tables initialized successfully');
-    client.release();
-  } catch (error) {
-    console.error('Database initialization error:', error);
-    throw error;
+export async function initDb() {
+  await ensureDataDirectories();
+  if (!database) {
+    database = new DatabaseSync(DATABASE_PATH, { timeout: 5_000 });
   }
+
+  // SQLite 3.51.3+ is bundled by the supported local Node runtime. We stay in
+  // rollback-journal mode until this app has measured a workload that benefits
+  // from WAL. That is deliberate: a single local writer does not need WAL and
+  // this avoids filesystem-sync and multi-process WAL failure modes.
+  database.exec('PRAGMA foreign_keys = ON; PRAGMA journal_mode = DELETE; PRAGMA busy_timeout = 5000;');
+  database.exec(SCHEMA);
+  return { path: DATABASE_PATH };
 }
 
-// Validate connection on startup
-validateConnection();
-
-export { pool as db, initDb }; 
+export { db };

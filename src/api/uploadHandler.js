@@ -8,12 +8,6 @@ const router = express.Router();
 // Define supported MIME types
 const SUPPORTED_MIME_TYPES = {
   'application/pdf': '.pdf',
-  'image/png': '.png',
-  'image/jpeg': '.jpg',
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': '.xlsx',
-  'application/vnd.ms-excel': '.xls',
-  'text/csv': '.csv',
-  'application/csv': '.csv'  // Some systems use this MIME type for CSV
 };
 
 const fileFilter = (req, file, cb) => {
@@ -26,7 +20,7 @@ const fileFilter = (req, file, cb) => {
   if (SUPPORTED_MIME_TYPES[file.mimetype]) {
     cb(null, true);
   } else {
-    cb(new Error(`Unsupported file type: ${file.mimetype}. Supported types: PDF, PNG, JPEG, Excel, and CSV`), false);
+    cb(new Error(`Unsupported file type: ${file.mimetype}. Local extraction accepts PDF documents only.`), false);
   }
 };
 
@@ -121,4 +115,4 @@ router.post('/upload', (req, res) => {
   });
 });
 
-export default router; 
+export default router;

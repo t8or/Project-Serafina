@@ -6,6 +6,11 @@ Vocabulary: **module**, **interface**, **depth**, **deep**, **shallow**, **seam*
 **Session started:** 2026-07-08  
 **Do not rewrite (already deep enough):** ScoringService core algorithm, PropertyService, DoclingBridge/XLSXBridge, ScraperService, AddressExtractor, docling_full_processor.py
 
+> **2026-07-09 local-runtime supersession:** ScraperService and all live-web
+> adapters were removed. The current runtime is one local Docling-full pipeline,
+> local SQLite storage, and imported reference snapshots with provenance. This
+> historic document remains as the record of the prior deepening work.
+
 ---
 
 ## Dependency graph

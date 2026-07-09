@@ -16,20 +16,21 @@ import path from 'path';
 import { spawn } from 'child_process';
 import { fileURLToPath } from 'url';
 import { SECTION_TYPES } from './costar_extract.js';
+import { LOCAL_PYTHON_PATH } from '../config/runtime_paths.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const TRANSFORMER_PATH = path.join(__dirname, 'processors', 'docling_transformer.py');
 const PROJECT_ROOT = path.resolve(__dirname, '../..');
-const VENV_PYTHON = path.join(PROJECT_ROOT, '.venv', 'bin', 'python');
-
 async function resolvePythonPath() {
   try {
-    await fs.access(VENV_PYTHON);
-    return VENV_PYTHON;
-  } catch {
-    return 'python3';
+    await fs.access(LOCAL_PYTHON_PATH);
+    return LOCAL_PYTHON_PATH;
+  } catch (error) {
+    throw new Error(
+      `Local Python is unavailable at ${LOCAL_PYTHON_PATH}. Set SERAFINA_PYTHON after provisioning. ${error.message}`
+    );
   }
 }
 

@@ -7,7 +7,7 @@
 
 import { db } from '../config/database.js';
 import fs from 'fs/promises';
-import path from 'path';
+import { UPLOADS_DIR, resolveUploadPath } from '../config/runtime_paths.js';
 
 /**
  * Normalize an address string for consistent matching.
@@ -55,7 +55,7 @@ function buildNormalizedAddress(address) {
 
 class PropertyService {
   constructor() {
-    this.uploadsDir = path.join(process.cwd(), 'uploads');
+    this.uploadsDir = UPLOADS_DIR;
   }
 
   /**
@@ -495,21 +495,21 @@ class PropertyService {
     // Collect document files
     for (const doc of property.documents || []) {
       if (doc.storage_path) {
-        filesToDelete.push(path.join(this.uploadsDir, doc.storage_path));
+        filesToDelete.push(resolveUploadPath(doc.storage_path));
       }
     }
 
     // Collect extracted files
     for (const ef of property.extractedFiles || []) {
       if (ef.storage_path) {
-        filesToDelete.push(path.join(this.uploadsDir, ef.storage_path));
+        filesToDelete.push(resolveUploadPath(ef.storage_path));
       }
     }
 
     // Collect generated files
     for (const gf of property.generatedFiles || []) {
       if (gf.storage_path) {
-        filesToDelete.push(path.join(this.uploadsDir, gf.storage_path));
+        filesToDelete.push(resolveUploadPath(gf.storage_path));
       }
     }
 
@@ -626,13 +626,13 @@ class PropertyService {
    */
   async getSummaryStats() {
     const result = await db.query(`
-      SELECT 
-        COUNT(*) FILTER (WHERE p.deleted_at IS NULL) as active_count,
-        COUNT(*) FILTER (WHERE p.deleted_at IS NOT NULL) as deleted_count,
-        COUNT(*) FILTER (WHERE s.decision = 'Move Forward' AND p.deleted_at IS NULL) as move_forward,
-        COUNT(*) FILTER (WHERE s.decision = 'Needs Review' AND p.deleted_at IS NULL) as needs_review,
-        COUNT(*) FILTER (WHERE s.decision = 'Rejected' AND p.deleted_at IS NULL) as rejected,
-        AVG(s.score) FILTER (WHERE p.deleted_at IS NULL) as average_score
+      SELECT
+        SUM(CASE WHEN p.deleted_at IS NULL THEN 1 ELSE 0 END) as active_count,
+        SUM(CASE WHEN p.deleted_at IS NOT NULL THEN 1 ELSE 0 END) as deleted_count,
+        SUM(CASE WHEN s.decision = 'Move Forward' AND p.deleted_at IS NULL THEN 1 ELSE 0 END) as move_forward,
+        SUM(CASE WHEN s.decision = 'Needs Review' AND p.deleted_at IS NULL THEN 1 ELSE 0 END) as needs_review,
+        SUM(CASE WHEN s.decision = 'Rejected' AND p.deleted_at IS NULL THEN 1 ELSE 0 END) as rejected,
+        AVG(CASE WHEN p.deleted_at IS NULL THEN s.score END) as average_score
       FROM properties p
       LEFT JOIN scores s ON s.property_id = p.id
     `);
@@ -652,4 +652,3 @@ class PropertyService {
 }
 
 export { PropertyService, normalizeAddress, buildNormalizedAddress };
-

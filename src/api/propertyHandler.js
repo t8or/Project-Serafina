@@ -11,6 +11,7 @@
 import express from 'express';
 import { PropertyService } from '../services/property_service.js';
 import { db } from '../config/database.js';
+import { EXTRACTED_DIR } from '../config/runtime_paths.js';
 
 const router = express.Router();
 const propertyService = new PropertyService();
@@ -249,7 +250,7 @@ router.delete('/:id', async (req, res) => {
     const fs = await import('fs/promises');
     const path = await import('path');
 
-    const extractedDir = path.default.join(process.cwd(), 'uploads', 'extracted');
+    const extractedDir = EXTRACTED_DIR;
     let files = [];
     try {
       files = await fs.default.readdir(extractedDir);
@@ -454,4 +455,3 @@ router.post('/cleanup', async (req, res) => {
 });
 
 export default router;
-

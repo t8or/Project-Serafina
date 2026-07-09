@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import { db } from '../config/database.js';
 import { FileUploadService } from '../services/fileUploadService.js';
+import { EXTRACTED_DIR, resolveUploadPath } from '../config/runtime_paths.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -30,7 +31,7 @@ router.get('/', async (req, res) => {
 // Get extracted files (must come before parameter routes)
 router.get('/extracted', async (req, res) => {
   try {
-    const extractedDir = path.join(process.cwd(), 'uploads/extracted');
+    const extractedDir = EXTRACTED_DIR;
     console.log('Reading extracted files from:', extractedDir);
     
     // Get list of files in the extracted directory
@@ -73,7 +74,7 @@ router.get('/extracted', async (req, res) => {
             file_type: fileType,
             file_size: stats.size,
             upload_date: stats.mtime,
-            storage_path: path.join('uploads/extracted', file),
+            storage_path: path.join('extracted', file),
             is_extracted: true
           };
         })
@@ -93,7 +94,7 @@ router.get('/:fileId/download', async (req, res) => {
     const { fileId } = req.params;
     
     // Check if this is a file in the extracted directory
-    const extractedDir = path.join(process.cwd(), 'uploads/extracted');
+    const extractedDir = EXTRACTED_DIR;
     const extractedFilePath = path.join(extractedDir, fileId);
     
     try {
@@ -128,7 +129,7 @@ router.delete('/:fileId', async (req, res) => {
     const { fileId } = req.params;
     
     // Check if this is a file in the extracted directory
-    const extractedDir = path.join(process.cwd(), 'uploads/extracted');
+    const extractedDir = EXTRACTED_DIR;
     const extractedFilePath = path.join(extractedDir, fileId);
     
     try {
@@ -146,7 +147,7 @@ router.delete('/:fileId', async (req, res) => {
         });
       }
 
-      const filePath = path.join(process.cwd(), 'uploads', file.storage_path);
+      const filePath = resolveUploadPath(file.storage_path);
       
       // Delete from filesystem
       try {
@@ -170,4 +171,4 @@ router.delete('/:fileId', async (req, res) => {
   }
 });
 
-export default router; 
+export default router;

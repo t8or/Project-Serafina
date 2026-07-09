@@ -14,6 +14,7 @@ import json
 import sys
 import logging
 import re
+import os
 from pathlib import Path
 from typing import Dict, Any, List, Optional, Tuple
 from datetime import datetime
@@ -148,6 +149,13 @@ class DoclingFullProcessor:
         pipeline_options = PdfPipelineOptions()
         pipeline_options.do_ocr = self.do_ocr
         pipeline_options.do_table_structure = True
+
+        # TODO(local-runtime): The destination-machine provisioner must populate
+        # this directory before the app starts. Keeping artifacts explicit stops
+        # Docling from reaching the network during document processing.
+        artifacts_path = os.environ.get("DOCLING_ARTIFACTS_PATH")
+        if artifacts_path:
+            pipeline_options.artifacts_path = Path(artifacts_path)
         
         # Configure OCR with EasyOCR
         if self.do_ocr:
@@ -639,4 +647,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

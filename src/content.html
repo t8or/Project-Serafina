@@ -123,29 +123,21 @@
           this.showNotification('Failed to delete file: ' + error.message, 'error');
         }
       },
-      async extractText(fileId, fileName, fileType, processor = 'default') {
+      async extractText(fileId, fileName, fileType) {
         if (this.processingFiles.has(fileId)) return;
         
         try {
           this.processingFiles.add(fileId);
-          // Determine processor label for notifications
-          const processorLabels = {
-            'default': 'Default',
-            'docling': 'Docling Quick',
-            'docling_full': 'Docling Full'
-          };
-          const processorLabel = processorLabels[processor] || processor;
-          this.showNotification(`Starting ${processorLabel} extraction...`, 'info');
+          this.showNotification('Starting local Docling extraction...', 'info');
           
-          const response = await fetch(`/api/extract/${fileId}?pdfProcessor=${processor}`, {
+          const response = await fetch(`/api/extract/${fileId}`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({
               fileName,
-              fileType,
-              pdfProcessor: processor
+              fileType
             })
           });
           
@@ -153,12 +145,11 @@
           
           const result = await response.json();
           if (result.success) {
-            // Show success notification with appropriate message
-            if (processor === 'docling_full' && result.sections) {
+            if (result.sections) {
               const sectionCount = result.sections.length;
-              this.showNotification(`Full extraction complete! Generated ${sectionCount} section files.`);
+              this.showNotification(`Local extraction complete! Generated ${sectionCount} section files.`);
             } else {
-              this.showNotification(`Text extracted successfully using ${processorLabel}!`);
+              this.showNotification('Text extracted successfully.');
             }
             // Refresh the file list
             await this.fetchFiles();
@@ -372,36 +363,15 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                               </svg>
                             </a>
-                            <!-- Extract Button (Docling Quick - first 7 pages) -->
+                            <!-- Local Docling extraction (all pages with section detection) -->
                             <button
-                              @click="extractText(file.id, file.original_filename, file.file_type, 'docling')"
-                              :disabled="processingFiles.has(file.id)"
-                              :class="{
-                                'opacity-50 cursor-not-allowed': processingFiles.has(file.id)
-                              }"
-                              class="inline-flex items-center justify-center w-8 h-8 text-blue-500 bg-gray-100 rounded-lg hover:text-blue-700 hover:bg-gray-200 dark:text-blue-400 dark:bg-gray-800 dark:hover:bg-gray-700 dark:hover:text-blue-200"
-                              title="Quick Extract with Docling (first 7 pages)"
-                            >
-                              <template x-if="!processingFiles.has(file.id)">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                </svg>
-                              </template>
-                              <template x-if="processingFiles.has(file.id)">
-                                <svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                </svg>
-                              </template>
-                            </button>
-                            <!-- Extract Button (Docling Full - all pages with section detection) -->
-                            <button
-                              @click="extractText(file.id, file.original_filename, file.file_type, 'docling_full')"
+                              @click="extractText(file.id, file.original_filename, file.file_type)"
                               :disabled="processingFiles.has(file.id)"
                               :class="{
                                 'opacity-50 cursor-not-allowed': processingFiles.has(file.id)
                               }"
                               class="inline-flex items-center justify-center w-8 h-8 text-emerald-500 bg-gray-100 rounded-lg hover:text-emerald-700 hover:bg-gray-200 dark:text-emerald-400 dark:bg-gray-800 dark:hover:bg-gray-700 dark:hover:text-emerald-200"
-                              title="Full Extract with Docling (all pages, section detection)"
+                              title="Extract locally with Docling (all pages, section detection)"
                             >
                               <template x-if="!processingFiles.has(file.id)">
                                 <!-- Clock with circular arrow icon -->
@@ -441,4 +411,4 @@
     </div>
     <!-- ===== Page Wrapper End ===== -->
   </body>
-</html> 
+</html>

@@ -1,3 +1,22 @@
+# Project Serafina — local-first property analysis
+
+Serafina runs as one loopback-only local application. Document processing uses
+local Docling artifacts, persistence uses SQLite in the machine's application
+data directory, and reference metrics come only from explicitly imported local
+snapshots. The runtime never scrapes public websites or calls cloud services.
+
+```sh
+npm run local:setup
+npm run local:doctor
+npm run local:start
+```
+
+`local:start` intentionally fails until the destination machine has provisioned
+the local Python environment, Docling artifacts, and configured Ollama model.
+See [the local runtime guide](docs/LOCAL_RUNTIME.md) for the exact contract.
+
+---
+
 # TailAdmin - Free Tailwind Admin Dashboard Template
 
 TailAdmin is a high-quality, open-source, and **free Tailwind CSS admin template** that is perfect for creating data-rich backends,

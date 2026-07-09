@@ -19,6 +19,13 @@ import {
   assembleFillPayload,
   assembleFillPayloadFromBaseName,
 } from '../services/property_extract_adapter.js';
+import {
+  UPLOADS_DIR,
+  FILLED_DIR,
+  EXTRACTED_DIR,
+  CONFIG_DIR as LOCAL_CONFIG_DIR,
+  resolveUploadPath,
+} from '../config/runtime_paths.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -33,9 +40,6 @@ const propertyService = new PropertyService();
 const PROJECT_ROOT = path.resolve(__dirname, '../..');
 const TEMPLATES_DIR = path.join(PROJECT_ROOT, '..'); // Root directory for templates
 const CONFIG_DIR = path.join(PROJECT_ROOT, 'src', 'config');
-const UPLOADS_DIR = path.join(process.cwd(), 'uploads');
-const FILLED_DIR = path.join(UPLOADS_DIR, 'filled');
-const EXTRACTED_DIR = path.join(UPLOADS_DIR, 'extracted');
 
 /**
  * Analyze an XLSX template to extract its structure.
@@ -81,7 +85,7 @@ router.post('/analyze', async (req, res) => {
     if (outputPath) {
       const resolvedOutputPath = path.isAbsolute(outputPath)
         ? outputPath
-        : path.resolve(CONFIG_DIR, outputPath);
+        : path.resolve(LOCAL_CONFIG_DIR, outputPath);
       
       await fs.writeFile(resolvedOutputPath, JSON.stringify(schema, null, 2));
       console.log('[FillHandler] Schema saved to:', resolvedOutputPath);
@@ -187,7 +191,7 @@ router.post('/template', async (req, res) => {
       }
       const sections = {};
       for (const row of efResult.rows) {
-        const filePath = path.join(process.cwd(), 'uploads', row.storage_path);
+          const filePath = resolveUploadPath(row.storage_path);
         try {
           sections[row.section_type] = JSON.parse(await fs.readFile(filePath, 'utf-8'));
         } catch (e) {
@@ -492,4 +496,3 @@ router.get('/status', async (req, res) => {
 });
 
 export default router;
-

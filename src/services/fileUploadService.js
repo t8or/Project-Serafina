@@ -1,18 +1,13 @@
 import { db } from '../config/database.js';
 import path from 'path';
 import fs from 'fs/promises';
+import { UPLOADS_DIR, resolveUploadPath } from '../config/runtime_paths.js';
 
-const UPLOAD_DIR = path.join(process.cwd(), 'uploads');
+const UPLOAD_DIR = UPLOADS_DIR;
 
 // Define file type directories
 const FILE_TYPE_DIRS = {
   'application/pdf': 'documents',
-  'image/png': 'images',
-  'image/jpeg': 'images',
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'spreadsheets',
-  'application/vnd.ms-excel': 'spreadsheets',
-  'text/csv': 'spreadsheets',
-  'application/csv': 'spreadsheets'  // Some systems use this MIME type for CSV
 };
 
 export class FileUploadService {
@@ -98,14 +93,6 @@ export class FileUploadService {
           relativePath
         });
 
-        // Query the table schema first
-        const schemaQuery = await db.query(`
-          SELECT column_name, data_type, character_maximum_length
-          FROM information_schema.columns 
-          WHERE table_name = 'files';
-        `);
-        console.log('Current database schema for files table:', schemaQuery.rows);
-
         const fileRecord = await db.query(
           `INSERT INTO files (
             filename,
@@ -184,7 +171,7 @@ export class FileUploadService {
       if (!file) {
         throw new Error('File not found');
       }
-      const fullPath = path.join(UPLOAD_DIR, file.storage_path);
+      const fullPath = resolveUploadPath(file.storage_path);
       console.log('Full file path:', fullPath);
       return fullPath;
     } catch (error) {
@@ -192,4 +179,4 @@ export class FileUploadService {
       throw error;
     }
   }
-} 
+}

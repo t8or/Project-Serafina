@@ -10,26 +10,21 @@
  */
 
 import fs from 'fs/promises';
-import path from 'path';
 import { ScoringService } from './scoring_service.js';
+import { SCORECARD_CONFIG_PATH } from '../config/runtime_paths.js';
 import {
   extractDemographicsFromDocling,
   extractSubmarketFromDocling,
   extractPropertyMetricsFromDocling,
 } from './costar_extract.js';
 
-export const SCORECARD_CONFIG_PATH = path.join(
-  process.cwd(),
-  'uploads',
-  'config',
-  'scorecard_config.json'
-);
+export { SCORECARD_CONFIG_PATH } from '../config/runtime_paths.js';
 
 let scoringServiceInstance = null;
 let configLoadPromise = null;
 
 /**
- * Load uploads/config/scorecard_config.json into the singleton once.
+ * Load the local application-data scorecard configuration into the singleton once.
  * Missing file → defaults (not an error).
  */
 async function loadSavedConfigOnce(service) {

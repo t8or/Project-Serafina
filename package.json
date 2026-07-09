@@ -2,10 +2,19 @@
   "name": "tailadmin-free",
   "version": "2.0.1",
   "description": "TailAdmin is a high-quality, open-source, and free Tailwind CSS admin template that is perfect for creating data-rich backends, powerful web applications and dashboard-admin projects.",
-  "main": "index.js",
+  "main": "server.js",
+  "type": "module",
+  "engines": {
+    "node": ">=24 <25"
+  },
   "scripts": {
-    "start": "webpack serve --open --config webpack.config.js",
+    "dev": "webpack serve --open --config webpack.config.js",
     "build": "webpack --config webpack.config.js",
+    "local:setup": "node scripts/local-setup.js",
+    "local:doctor": "node scripts/local-doctor.js",
+    "local:start": "npm run build && node server.js",
+    "start": "npm run local:start",
+    "test": "node --test",
     "sort": "npx prettier --write src"
   },
   "keywords": [],
@@ -49,8 +58,6 @@
     "alpinejs": "^3.14.1",
     "apexcharts": "^3.51.0",
     "chart.js": "^4.4.6",
-    "cors": "^2.8.5",
-    "csv-parse": "^6.1.0",
     "dotenv": "^17.2.3",
     "dropzone": "^6.0.0-beta.2",
     "express": "^5.2.1",
@@ -58,12 +65,6 @@
     "fullcalendar": "^6.1.15",
     "jsvectormap": "^1.6.0",
     "multer": "^2.0.2",
-    "node-fetch": "^3.3.2",
-    "node-tesseract-ocr": "^2.2.1",
-    "pdf-parse": "^2.4.5",
-    "pg": "^8.16.3",
-    "playwright": "^1.57.0",
-    "swiper": "^11.1.14",
-    "xlsx": "^0.18.5"
+    "swiper": "^11.1.14"
   }
 }

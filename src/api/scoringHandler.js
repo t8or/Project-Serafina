@@ -29,6 +29,7 @@ import {
   getStateName, 
   getRegionName 
 } from '../config/census_regions.js';
+import { EXTRACTED_DIR, resolveUploadPath } from '../config/runtime_paths.js';
 
 const router = express.Router();
 
@@ -432,7 +433,7 @@ router.get('/properties', async (req, res) => {
  * Kept behind ?source=files for emergency inspection until all data is backfilled.
  */
 async function listPropertiesFromFiles(req, res) {
-  const extractedDir = path.join(process.cwd(), 'uploads', 'extracted');
+  const extractedDir = EXTRACTED_DIR;
 
   let files;
   try {
@@ -766,7 +767,7 @@ router.post('/rescore', async (req, res) => {
         const sections = {};
         for (const ef of extractedFiles.rows) {
           try {
-            const filePath = path.join(process.cwd(), 'uploads', ef.storage_path);
+            const filePath = resolveUploadPath(ef.storage_path);
             const content = await fs.readFile(filePath, 'utf-8');
             sections[ef.section_type] = JSON.parse(content);
           } catch (e) {

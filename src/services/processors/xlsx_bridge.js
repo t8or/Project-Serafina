@@ -6,6 +6,7 @@
  */
 
 import { spawn } from 'child_process';
+import { FILLED_DIR, LOCAL_PYTHON_PATH } from '../../config/runtime_paths.js';
 import { fileURLToPath } from 'url';
 import path from 'path';
 import fs from 'fs/promises';
@@ -19,10 +20,9 @@ const TEMPLATE_FILLER_PATH = path.join(__dirname, 'xlsx_template_filler.py');
 
 // Default paths
 const PROJECT_ROOT = path.resolve(__dirname, '../../..');
-const VENV_PYTHON = path.join(PROJECT_ROOT, '.venv', 'bin', 'python');
 const CONFIG_DIR = path.join(PROJECT_ROOT, 'src', 'config');
 const DEFAULT_MAPPINGS_PATH = path.join(CONFIG_DIR, 'field_mappings.json');
-const OUTPUT_DIR = path.join(PROJECT_ROOT, 'uploads', 'filled');
+const OUTPUT_DIR = FILLED_DIR;
 
 /**
  * XLSXBridge class provides a Node.js interface to the Python XLSX processors.
@@ -35,7 +35,7 @@ const OUTPUT_DIR = path.join(PROJECT_ROOT, 'uploads', 'filled');
  */
 class XLSXBridge {
   constructor(options = {}) {
-    this.pythonPath = options.pythonPath || VENV_PYTHON;
+    this.pythonPath = options.pythonPath || LOCAL_PYTHON_PATH;
     this.timeout = options.timeout || 60000; // 1 minute default
     this.mappingsPath = options.mappingsPath || DEFAULT_MAPPINGS_PATH;
   }
@@ -288,4 +288,3 @@ class XLSXBridge {
 // Shallow XLSXProcessor wrapper removed — callers use XLSXBridge directly.
 
 export { XLSXBridge };
-

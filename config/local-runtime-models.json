@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "docling": {
+    "artifactsDirectory": "models/docling",
+    "artifactManifest": "serafina-artifacts.manifest.json",
+    "requiredPipelines": ["layout", "tableformer", "easyocr"],
+    "provisioningNote": "Download and checksum these artifacts on the destination machine. Serafina must never download them at runtime."
+  },
+  "ollama": {
+    "model": "qwen2.5:7b",
+    "provisioningNote": "Pull this exact model on the destination machine, then verify it with npm run local:doctor."
+  }
+}

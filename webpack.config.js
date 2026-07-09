@@ -48,11 +48,11 @@ export default {
       directory: path.join(__dirname, "./build"),
     },
     compress: true,
-    port: 3000,
+    port: 3001,
     hot: true,
     proxy: [{
       context: ['/api'],
-      target: 'http://localhost:3002',
+      target: 'http://127.0.0.1:3000',
       secure: false,
       changeOrigin: true
     }]
