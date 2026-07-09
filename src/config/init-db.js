@@ -1,28 +1,20 @@
-import { db } from './database.js';
+/**
+ * CLI entry for database initialization.
+ *
+ * Schema lives in database.js (initDb). This file only invokes that —
+ * do not maintain a second CREATE TABLE copy here.
+ *
+ * Usage: node src/config/init-db.js
+ */
 
-async function initializeDatabase() {
-  try {
-    console.log('Creating files table...');
-    
-    await db.query(`
-      CREATE TABLE IF NOT EXISTS files (
-        id SERIAL PRIMARY KEY,
-        filename VARCHAR(255) NOT NULL,
-        original_filename VARCHAR(255) NOT NULL,
-        file_type VARCHAR(100) NOT NULL,
-        file_size BIGINT NOT NULL,
-        user_id VARCHAR(100) DEFAULT '000',
-        storage_path TEXT NOT NULL,
-        upload_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        status VARCHAR(50) DEFAULT 'active'
-      )
-    `);
-    
-    console.log('Files table created successfully');
-  } catch (error) {
-    console.error('Error initializing database:', error);
+import { initDb } from './database.js';
+
+initDb()
+  .then(() => {
+    console.log('Database initialization complete');
+    process.exit(0);
+  })
+  .catch((error) => {
+    console.error('Database initialization failed:', error);
     process.exit(1);
-  }
-}
-
-initializeDatabase(); 
+  });

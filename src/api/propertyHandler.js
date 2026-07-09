@@ -10,6 +10,7 @@
 
 import express from 'express';
 import { PropertyService } from '../services/property_service.js';
+import { db } from '../config/database.js';
 
 const router = express.Router();
 const propertyService = new PropertyService();
@@ -193,24 +194,20 @@ router.get('/:id', async (req, res) => {
 
 /**
  * DELETE /api/properties/:id
- * 
- * Soft delete a property (can be restored within 30 days).
- * Supports both:
- * - Numeric database IDs (e.g., 123)
- * - File-based IDs (e.g., "e_1767155556269-bdo8hs") for backward compatibility
+ *
+ * Soft delete via PropertyService (numeric DB ids).
+ * Legacy e_* string ids: resolve to a DB property via extracted_files when possible;
+ * otherwise delete matching extracted JSON files (deprecated dual-identity path).
  */
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    
-    // Check if it's a numeric database ID or a file-based ID
-    const numericId = parseInt(id);
-    
-    if (!isNaN(numericId) && numericId > 0) {
-      // Database ID - use propertyService
+    const numericId = parseInt(id, 10);
+
+    if (!isNaN(numericId) && numericId > 0 && String(numericId) === String(id)) {
       const property = await propertyService.softDelete(numericId);
 
-      res.json({
+      return res.json({
         success: true,
         message: `Property "${property.name || id}" has been deleted. It can be restored within 30 days.`,
         property: {
@@ -219,54 +216,86 @@ router.delete('/:id', async (req, res) => {
           deletedAt: property.deleted_at
         }
       });
-    } else {
-      // File-based ID - delete the extracted files directly
-      const fs = await import('fs/promises');
-      const path = await import('path');
-      
-      const extractedDir = path.default.join(process.cwd(), 'uploads', 'extracted');
-      const files = await fs.default.readdir(extractedDir);
-      
-      // Find and delete all files matching this base name
-      const matchingFiles = files.filter(f => f.startsWith(id) && f.endsWith('.json'));
-      
-      if (matchingFiles.length === 0) {
-        return res.status(404).json({
-          success: false,
-          error: 'Property files not found'
+    }
+
+    // Legacy e_* (or other non-numeric) id — prefer resolving to PropertyService
+    if (typeof id === 'string' && id.startsWith('e_')) {
+      const resolved = await db.query(
+        `SELECT DISTINCT property_id FROM extracted_files
+         WHERE deleted_at IS NULL
+           AND (storage_path LIKE $1 OR storage_path LIKE $2)
+         LIMIT 1`,
+        [`%/${id}_%`, `${id}_%`]
+      );
+
+      if (resolved.rows.length > 0) {
+        const propertyId = resolved.rows[0].property_id;
+        const property = await propertyService.softDelete(propertyId);
+        return res.json({
+          success: true,
+          message: `Resolved legacy id "${id}" to property ${propertyId} and soft-deleted.`,
+          property: {
+            id: property.id,
+            name: property.name,
+            deletedAt: property.deleted_at,
+            legacyExtractionId: id
+          }
         });
       }
-      
-      let deletedCount = 0;
-      for (const file of matchingFiles) {
-        try {
-          await fs.default.unlink(path.default.join(extractedDir, file));
-          deletedCount++;
-        } catch (e) {
-          console.warn(`[Property API] Could not delete ${file}: ${e.message}`);
-        }
-      }
-      
-      res.json({
-        success: true,
-        message: `Deleted ${deletedCount} files for property "${id}"`,
-        property: {
-          id: id,
-          filesDeleted: deletedCount
-        }
+    }
+
+    // DEPRECATED: file-only identity with no DB row
+    console.warn(`[Property API] DEPRECATED file-delete for legacy id "${id}" (no DB property)`);
+    const fs = await import('fs/promises');
+    const path = await import('path');
+
+    const extractedDir = path.default.join(process.cwd(), 'uploads', 'extracted');
+    let files = [];
+    try {
+      files = await fs.default.readdir(extractedDir);
+    } catch {
+      files = [];
+    }
+
+    const matchingFiles = files.filter(f => f.startsWith(id) && f.endsWith('.json'));
+
+    if (matchingFiles.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Property not found in database or extracted files'
       });
     }
 
+    let deletedCount = 0;
+    for (const file of matchingFiles) {
+      try {
+        await fs.default.unlink(path.default.join(extractedDir, file));
+        deletedCount++;
+      } catch (e) {
+        console.warn(`[Property API] Could not delete ${file}: ${e.message}`);
+      }
+    }
+
+    res.json({
+      success: true,
+      deprecated: true,
+      message: `Deleted ${deletedCount} extracted files for legacy id "${id}" (no DB property). Prefer numeric property ids.`,
+      property: {
+        id,
+        filesDeleted: deletedCount
+      }
+    });
+
   } catch (error) {
     console.error('[Property API] Delete error:', error);
-    
+
     if (error.message.includes('not found')) {
       return res.status(404).json({
         success: false,
         error: 'Property not found'
       });
     }
-    
+
     res.status(500).json({
       success: false,
       error: error.message

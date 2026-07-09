@@ -10,6 +10,7 @@ Always run in a new terminal window
 ```
 node src/config/init-db.js
 ```
+Schema is defined in `src/config/database.js` (`initDb`). `init-db.js` is a thin CLI that calls it.
 
 ## 2. Frontend (port 3000)
 ```

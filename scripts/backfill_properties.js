@@ -23,7 +23,12 @@ import crypto from 'crypto';
 import { db, initDb } from '../src/config/database.js';
 import { PropertyService } from '../src/services/property_service.js';
 import { AddressExtractor } from '../src/services/address_extractor.js';
-import { ScoringService } from '../src/services/scoring_service.js';
+import { SECTION_TYPES } from '../src/services/costar_extract.js';
+import {
+  assemblePropertyData,
+  getScoringService,
+  ensureScoringConfigLoaded,
+} from '../src/services/property_data_assembler.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -33,16 +38,10 @@ const UPLOADS_DIR = path.join(process.cwd(), 'uploads');
 const EXTRACTED_DIR = path.join(UPLOADS_DIR, 'extracted');
 const DOCUMENTS_DIR = path.join(UPLOADS_DIR, 'documents');
 
-// Section types to look for
-const SECTION_TYPES = [
-  'subject_property', 'demographics', 'rent_comps', 'construction',
-  'sale_comps', 'submarket_report', 'market_report', 'unknown', 'external'
-];
-
 // Services
 const propertyService = new PropertyService();
 const addressExtractor = new AddressExtractor();
-const scoringService = new ScoringService();
+const scoringService = getScoringService();
 
 /**
  * Calculate SHA-256 hash of file content.
@@ -141,55 +140,6 @@ async function loadJsonFile(filename) {
 }
 
 /**
- * Build property data for scoring from extracted sections.
- */
-function buildPropertyDataForScoring(sections, address) {
-  // Extract demographics data
-  const demographicsData = {};
-  const submarket = sections.demographics || sections.submarket_report;
-  
-  if (submarket?.tables) {
-    // Try to extract from tables (simplified - full logic is in scoringHandler)
-    for (const table of submarket.tables) {
-      if (table.rows) {
-        for (const row of table.rows) {
-          const threeValue = row['3 Mile'];
-          if (threeValue) {
-            const label = String(Object.values(row)[0] || '').toLowerCase();
-            if (label.includes('population') && !label.includes('growth')) {
-              demographicsData.population_3mile = parseFloat(String(threeValue).replace(/[,$]/g, ''));
-            }
-            if (label.includes('growth')) {
-              demographicsData.population_growth_3mile = parseFloat(String(threeValue).replace('%', '')) / 100;
-            }
-            if (label.includes('median household income') || label.includes('median hh income')) {
-              demographicsData.median_hh_income_3mile = parseFloat(String(threeValue).replace(/[$,]/g, ''));
-            }
-            if (label.includes('median home value')) {
-              demographicsData.median_home_value_3mile = parseFloat(String(threeValue).replace(/[$,]/g, ''));
-            }
-            if (label.includes('renter')) {
-              demographicsData.renter_households_pct_3mile = parseFloat(String(threeValue).replace('%', '')) / 100;
-            }
-          }
-        }
-      }
-    }
-  }
-
-  // External data (crime, schools, walk score)
-  const externalData = sections.external || { crime: {}, schools: {}, walkScore: {} };
-
-  return {
-    address,
-    demographics: demographicsData,
-    property: {},
-    submarket: {},
-    external: externalData
-  };
-}
-
-/**
  * Process a single property group.
  */
 async function processPropertyGroup(baseName, group) {
@@ -279,7 +229,8 @@ async function processPropertyGroup(baseName, group) {
       sectionsData[key] = val.data;
     }
     
-    const propertyData = buildPropertyDataForScoring(sectionsData, address);
+    await ensureScoringConfigLoaded();
+    const propertyData = assemblePropertyData(sectionsData, address);
     const scoreResult = scoringService.calculateScore(propertyData);
     
     // Save score

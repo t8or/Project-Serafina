@@ -322,69 +322,8 @@ class DoclingBridge {
   }
 }
 
-/**
- * DoclingProcessor class - Compatible interface with existing processors.
- * 
- * This class wraps DoclingBridge to provide the same interface as
- * PDFProcessor and other processors in the system.
- */
-class DoclingProcessor {
-  constructor(options = {}) {
-    this.bridge = new DoclingBridge(options);
-  }
+// Shallow DoclingProcessor / DoclingFullProcessor wrappers removed —
+// FileProcessor uses DoclingBridge directly via small local adapters.
 
-  /**
-   * Process a PDF file (compatible with BaseProcessor interface).
-   * 
-   * @param {string} filePath - Path to the PDF file
-   * @returns {Promise<Object>} Processing result
-   */
-  async process(filePath) {
-    const result = await this.bridge.process(filePath);
-    
-    // Add processing_status if not present
-    if (!result.processing_status) {
-      result.processing_status = 'success';
-    }
-
-    return result;
-  }
-}
-
-/**
- * DoclingFullProcessor class - Full document processor with section detection.
- * 
- * This class processes ALL pages of a PDF and groups content by detected
- * CoStar sections, outputting separate JSON files per section.
- */
-class DoclingFullProcessor {
-  constructor(options = {}) {
-    this.bridge = new DoclingBridge(options);
-    // Default output directory for section files
-    this.defaultOutputDir = options.outputDir || path.join(PROJECT_ROOT, 'uploads', 'extracted');
-  }
-
-  /**
-   * Process a PDF file with full section detection (compatible with BaseProcessor interface).
-   * 
-   * @param {string} filePath - Path to the PDF file
-   * @param {Object} options - Processing options
-   * @param {string} options.outputDir - Override output directory for section files
-   * @returns {Promise<Object>} Processing result with section file paths
-   */
-  async process(filePath, options = {}) {
-    const outputDir = options.outputDir || this.defaultOutputDir;
-    
-    const result = await this.bridge.processFull(filePath, outputDir);
-    
-    // Add processing_status if not present
-    if (!result.processing_status) {
-      result.processing_status = 'success';
-    }
-
-    return result;
-  }
-}
-
-export { DoclingBridge, DoclingProcessor, DoclingFullProcessor };
+export { DoclingBridge };
 

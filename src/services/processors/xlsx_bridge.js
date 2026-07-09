@@ -285,40 +285,7 @@ class XLSXBridge {
   }
 }
 
-/**
- * XLSXProcessor class - Compatible interface with existing processors.
- * 
- * This class wraps XLSXBridge to provide an interface similar to
- * other processors in the system.
- */
-class XLSXProcessor {
-  constructor(options = {}) {
-    this.bridge = new XLSXBridge(options);
-  }
+// Shallow XLSXProcessor wrapper removed — callers use XLSXBridge directly.
 
-  /**
-   * Analyze an XLSX template (compatible with processor interface).
-   * 
-   * @param {string} templatePath - Path to the XLSX file
-   * @returns {Promise<Object>} Template schema
-   */
-  async analyze(templatePath) {
-    return await this.bridge.analyzeTemplate(templatePath);
-  }
-
-  /**
-   * Fill an XLSX template with JSON data.
-   * 
-   * @param {string} templatePath - Path to the XLSX template
-   * @param {Object} jsonData - Extracted JSON data
-   * @param {Object} options - Fill options
-   * @returns {Promise<Object>} Fill result
-   */
-  async fill(templatePath, jsonData, options = {}) {
-    const result = await this.bridge.fillTemplate(templatePath, jsonData, options);
-    return this.bridge.formatFillReport(result);
-  }
-}
-
-export { XLSXBridge, XLSXProcessor };
+export { XLSXBridge };
 

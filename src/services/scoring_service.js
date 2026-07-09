@@ -216,7 +216,8 @@ const DEFAULT_SCORECARD_CONFIG = {
       name: 'Submarket Delivered % of Inventory',
       weight: 0.10, // 10%
       dataPath: 'submarket.delivered_pct_of_inventory',
-      lowerIsBetter: false, // Higher delivery indicates strong market
+      // Lower delivery = less oversupply risk (parallel to construction %)
+      lowerIsBetter: true,
       thresholds: {
         10: 0.025, // 2.5%
         9: 0.030,  // 3.0%
@@ -314,13 +315,6 @@ class ScoringService {
     const thresholds = factorConfig.thresholds;
     const lowerIsBetter = factorConfig.lowerIsBetter || false;
     
-    // #region agent log
-    // DEBUG: Log factor scoring details for delivered % investigation
-    if (factorConfig.name && factorConfig.name.includes('Delivered')) {
-      fetch('http://127.0.0.1:7243/ingest/989934bd-196c-4f27-8680-9983681d066e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'scoring_service.js:_calculateFactorScore',message:'Delivered % factor scoring',data:{factorName:factorConfig.name,rawValue:value,lowerIsBetter:lowerIsBetter,thresholds:thresholds},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A,B,C'})}).catch(()=>{});
-    }
-    // #endregion
-    
     // Check scores from 10 down to 1
     for (let score = 10; score >= 1; score--) {
       const threshold = thresholds[score];
@@ -329,11 +323,6 @@ class ScoringService {
       if (lowerIsBetter) {
         // Lower is better: value must be <= threshold to get this score
         if (value <= threshold) {
-          // #region agent log
-          if (factorConfig.name && factorConfig.name.includes('Delivered')) {
-            fetch('http://127.0.0.1:7243/ingest/989934bd-196c-4f27-8680-9983681d066e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'scoring_service.js:lowerIsBetter-match',message:'Score matched (lower is better)',data:{factorName:factorConfig.name,value:value,threshold:threshold,score:score,comparison:`${value} <= ${threshold}`},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A,D'})}).catch(()=>{});
-          }
-          // #endregion
           return {
             score,
             rawValue: value,
@@ -343,11 +332,6 @@ class ScoringService {
       } else {
         // Higher is better: value must be >= threshold to get this score
         if (value >= threshold) {
-          // #region agent log
-          if (factorConfig.name && factorConfig.name.includes('Delivered')) {
-            fetch('http://127.0.0.1:7243/ingest/989934bd-196c-4f27-8680-9983681d066e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'scoring_service.js:higherIsBetter-match',message:'Score matched (higher is better)',data:{factorName:factorConfig.name,value:value,threshold:threshold,score:score,comparison:`${value} >= ${threshold}`},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A,D'})}).catch(()=>{});
-          }
-          // #endregion
           return {
             score,
             rawValue: value,

@@ -756,12 +756,15 @@
             this.recalculating = true;
             
             try {
-              // Get all properties and recalculate
-              const response = await fetch('/api/scoring/properties');
+              // Persist recalculation for all DB properties with current config
+              const response = await fetch('/api/scoring/rescore', { method: 'POST' });
               const data = await response.json();
               
               if (data.success) {
-                alert(`Recalculated ${data.count} properties`);
+                const errPart = data.errors ? ` (${data.errors} errors)` : '';
+                alert(`Rescored ${data.rescored} properties${errPart}`);
+              } else {
+                alert(data.error || 'Failed to rescore properties');
               }
             } catch (error) {
               console.error('Recalculate error:', error);

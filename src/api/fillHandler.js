@@ -13,21 +13,27 @@ import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import { db } from '../config/database.js';
 import fs from 'fs/promises';
-import { XLSXBridge, XLSXProcessor } from '../services/processors/xlsx_bridge.js';
+import { XLSXBridge } from '../services/processors/xlsx_bridge.js';
+import { PropertyService } from '../services/property_service.js';
+import {
+  assembleFillPayload,
+  assembleFillPayloadFromBaseName,
+} from '../services/property_extract_adapter.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const router = express.Router();
 
-// Initialize XLSX processor
-const xlsxProcessor = new XLSXProcessor();
+// Deep XLSXBridge — no shallow XLSXProcessor pass-through
+const xlsxBridge = new XLSXBridge();
+const propertyService = new PropertyService();
 
 // Paths
 const PROJECT_ROOT = path.resolve(__dirname, '../..');
 const TEMPLATES_DIR = path.join(PROJECT_ROOT, '..'); // Root directory for templates
-const CONFIG_DIR = path.join(PROJECT_ROOT, 'config');
-const UPLOADS_DIR = path.join(PROJECT_ROOT, '..', 'uploads');
+const CONFIG_DIR = path.join(PROJECT_ROOT, 'src', 'config');
+const UPLOADS_DIR = path.join(process.cwd(), 'uploads');
 const FILLED_DIR = path.join(UPLOADS_DIR, 'filled');
 const EXTRACTED_DIR = path.join(UPLOADS_DIR, 'extracted');
 
@@ -69,7 +75,7 @@ router.post('/analyze', async (req, res) => {
     }
     
     // Analyze the template
-    const schema = await xlsxProcessor.analyze(resolvedPath);
+    const schema = await xlsxBridge.analyzeTemplate(resolvedPath);
     
     // Save schema if output path provided
     if (outputPath) {
@@ -103,119 +109,221 @@ router.post('/analyze', async (req, res) => {
 
 /**
  * Fill an XLSX template with data from a JSON extract.
- * 
+ *
  * POST /fill/template
- * 
+ *
  * Body Parameters:
  * - templatePath: Path to the XLSX template
- * - jsonPath: Path to the JSON extract file OR
- * - jsonData: JSON data object directly
- * - fileId: (optional) Database file ID to get JSON extract from
+ * - jsonPath | jsonData | fileId | baseName | propertyId: data source
+ * - propertyId: (optional) when set, links filled XLSX via PropertyService.linkGeneratedFile
+ * - baseName: (optional) docling_full extraction prefix (e.g. e_123-abc) → PropertyExtract adapter
  * - outputPath: (optional) Custom output path for filled template
  */
 router.post('/template', async (req, res) => {
   try {
-    const { templatePath, jsonPath, jsonData, fileId, outputPath } = req.body;
-    
+    const {
+      templatePath,
+      jsonPath,
+      jsonData,
+      fileId,
+      baseName,
+      propertyId,
+      outputPath,
+    } = req.body;
+
     if (!templatePath) {
       return res.status(400).json({
         success: false,
-        error: 'templatePath is required'
+        error: 'templatePath is required',
       });
     }
-    
-    if (!jsonPath && !jsonData && !fileId) {
+
+    if (!jsonPath && !jsonData && !fileId && !baseName && !propertyId) {
       return res.status(400).json({
         success: false,
-        error: 'Either jsonPath, jsonData, or fileId is required'
+        error: 'Either jsonPath, jsonData, fileId, baseName, or propertyId is required',
       });
     }
-    
+
     console.log('[FillHandler] Filling template:', templatePath);
-    
-    // Resolve template path
+
     const resolvedTemplatePath = path.isAbsolute(templatePath)
       ? templatePath
       : path.resolve(TEMPLATES_DIR, templatePath);
-    
-    // Check if template exists
+
     try {
       await fs.access(resolvedTemplatePath);
     } catch (error) {
       return res.status(404).json({
         success: false,
-        error: `Template not found: ${templatePath}`
+        error: `Template not found: ${templatePath}`,
       });
     }
-    
-    // Get JSON data
+
     let dataToUse;
-    
+    let dataSource = 'unknown';
+    let resolvedPropertyId = propertyId ? parseInt(propertyId, 10) : null;
+    if (resolvedPropertyId && isNaN(resolvedPropertyId)) {
+      resolvedPropertyId = null;
+    }
+
     if (jsonData) {
-      // Direct JSON data provided
       dataToUse = jsonData;
+      dataSource = 'jsonData';
+    } else if (baseName) {
+      dataToUse = await assembleFillPayloadFromBaseName(EXTRACTED_DIR, baseName);
+      dataSource = 'docling_full_sections';
+    } else if (propertyId && resolvedPropertyId) {
+      const efResult = await db.query(
+        `SELECT storage_path, section_type FROM extracted_files
+         WHERE property_id = $1 AND deleted_at IS NULL`,
+        [resolvedPropertyId]
+      );
+      if (efResult.rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          error: `No extracted sections for propertyId ${resolvedPropertyId}`,
+        });
+      }
+      const sections = {};
+      for (const row of efResult.rows) {
+        const filePath = path.join(process.cwd(), 'uploads', row.storage_path);
+        try {
+          sections[row.section_type] = JSON.parse(await fs.readFile(filePath, 'utf-8'));
+        } catch (e) {
+          console.warn(`[FillHandler] Could not load ${row.storage_path}: ${e.message}`);
+        }
+      }
+      dataToUse = await assembleFillPayload(sections);
+      dataSource = 'property_sections';
     } else if (jsonPath) {
-      // JSON file path provided
       const resolvedJsonPath = path.isAbsolute(jsonPath)
         ? jsonPath
         : path.resolve(EXTRACTED_DIR, jsonPath);
-      
+
       try {
         const jsonContent = await fs.readFile(resolvedJsonPath, 'utf-8');
         dataToUse = JSON.parse(jsonContent);
+        dataSource = 'jsonPath';
+        // If caller pointed at a section file without structured_data, try baseName assembly
+        if (!dataToUse.structured_data && jsonPath.includes('_subject_property.json')) {
+          const bn = path.basename(jsonPath).replace('_subject_property.json', '');
+          dataToUse = await assembleFillPayloadFromBaseName(EXTRACTED_DIR, bn);
+          dataSource = 'docling_full_sections';
+        }
       } catch (error) {
         return res.status(404).json({
           success: false,
-          error: `JSON file not found or invalid: ${jsonPath}`
+          error: `JSON file not found or invalid: ${jsonPath}`,
         });
       }
     } else if (fileId) {
-      // Get JSON from database file reference
       const fileQuery = await db.query(
         'SELECT original_filename FROM files WHERE id = $1',
         [fileId]
       );
-      
+
       if (fileQuery.rows.length === 0) {
         return res.status(404).json({
           success: false,
-          error: `File not found in database: ${fileId}`
+          error: `File not found in database: ${fileId}`,
         });
       }
-      
+
       const { original_filename } = fileQuery.rows[0];
       const extractedFileName = `e_${path.basename(original_filename, path.extname(original_filename))}.json`;
       const extractedPath = path.join(EXTRACTED_DIR, extractedFileName);
-      
+
       try {
         const jsonContent = await fs.readFile(extractedPath, 'utf-8');
         dataToUse = JSON.parse(jsonContent);
-      } catch (error) {
-        return res.status(404).json({
+        dataSource = 'fileId_combined';
+      } catch {
+        // Prefer docling_full section set: find baseName from extracted files for this upload
+        const files = await fs.readdir(EXTRACTED_DIR).catch(() => []);
+        const subject = files.find(
+          (f) => f.endsWith('_subject_property.json') && f.includes(String(fileId))
+        );
+        // Also match by original basename prefix
+        const stem = path.basename(original_filename, path.extname(original_filename));
+        const subjectByName =
+          subject ||
+          files.find((f) => f.endsWith('_subject_property.json') && f.includes(stem));
+
+        if (!subjectByName) {
+          return res.status(404).json({
+            success: false,
+            error: `Extracted JSON not found for file: ${original_filename}. Run docling_full extraction first.`,
+          });
+        }
+
+        const bn = subjectByName.replace('_subject_property.json', '');
+        dataToUse = await assembleFillPayloadFromBaseName(EXTRACTED_DIR, bn);
+        dataSource = 'docling_full_sections';
+      }
+
+      // Resolve property from documents/files when not provided
+      if (!resolvedPropertyId) {
+        const propLink = await db.query(
+          `SELECT d.property_id FROM documents d
+           JOIN files f ON f.storage_path = d.storage_path
+           WHERE f.id = $1 AND d.deleted_at IS NULL
+           LIMIT 1`,
+          [fileId]
+        );
+        if (propLink.rows.length > 0) {
+          resolvedPropertyId = propLink.rows[0].property_id;
+        }
+      }
+    }
+
+    if (!dataToUse?.structured_data?.[0] && dataSource !== 'jsonData') {
+      // Allow raw jsonData that already has structured_data; otherwise require adapter shape
+      if (!dataToUse?.structured_data) {
+        return res.status(400).json({
           success: false,
-          error: `Extracted JSON not found for file: ${original_filename}. Run extraction first.`
+          error:
+            'Fill data missing structured_data[0]. Use baseName/propertyId for docling_full sections, or a combined extract JSON.',
         });
       }
     }
-    
-    // Ensure filled directory exists
+
     await fs.mkdir(FILLED_DIR, { recursive: true });
-    
-    // Fill the template
-    const result = await xlsxProcessor.fill(resolvedTemplatePath, dataToUse, {
-      outputPath: outputPath ? path.resolve(FILLED_DIR, outputPath) : undefined
+
+    const fillResult = await xlsxBridge.fillTemplate(resolvedTemplatePath, dataToUse, {
+      outputPath: outputPath ? path.resolve(FILLED_DIR, outputPath) : undefined,
     });
-    
+    const result = xlsxBridge.formatFillReport(fillResult);
+
     if (!result.success) {
       return res.status(500).json({
         success: false,
-        error: result.error || 'Failed to fill template'
+        error: result.error || 'Failed to fill template',
       });
     }
-    
-    // Get relative output path for response
+
     const relativeOutputPath = path.relative(UPLOADS_DIR, result.outputPath);
-    
+
+    let generatedFile = null;
+    if (resolvedPropertyId) {
+      try {
+        generatedFile = await propertyService.linkGeneratedFile(resolvedPropertyId, {
+          fileType: 'xlsx',
+          fileName: path.basename(result.outputPath),
+          storagePath: relativeOutputPath.startsWith('filled/')
+            ? relativeOutputPath
+            : `filled/${path.basename(result.outputPath)}`,
+          templateUsed: path.basename(resolvedTemplatePath),
+        });
+        console.log(
+          `[FillHandler] Linked generated file to property ${resolvedPropertyId}:`,
+          generatedFile.id
+        );
+      } catch (linkError) {
+        console.error('[FillHandler] linkGeneratedFile failed:', linkError.message);
+      }
+    }
+
     res.json({
       success: true,
       message: result.message,
@@ -223,14 +331,18 @@ router.post('/template', async (req, res) => {
       absolutePath: result.outputPath,
       summary: result.summary,
       externalFields: result.externalFields,
-      filledFields: result.filledFields?.length || 0
+      filledFields: result.filledFields?.length || 0,
+      dataSource,
+      propertyId: resolvedPropertyId,
+      generatedFile: generatedFile
+        ? { id: generatedFile.id, storagePath: generatedFile.storage_path }
+        : null,
     });
-    
   } catch (error) {
     console.error('[FillHandler] Fill error:', error);
     res.status(500).json({
       success: false,
-      error: error.message
+      error: error.message,
     });
   }
 });
