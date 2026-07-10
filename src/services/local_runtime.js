@@ -41,7 +41,7 @@ async function executableVersion(command, args = ['--version']) {
 export async function inspectLocalRuntime() {
   const checks = [];
   const nodeMajor = Number(process.versions.node.split('.')[0]);
-  checks.push(check('node', nodeMajor === 24, `Node ${process.versions.node}; Serafina requires Node 24 LTS`));
+  checks.push(check('node', nodeMajor === 26, `Node ${process.versions.node}; Serafina requires Node 26 Current`));
 
   try {
     assertLocalStatePath(DATA_DIR, 'SERAFINA_DATA_DIR');

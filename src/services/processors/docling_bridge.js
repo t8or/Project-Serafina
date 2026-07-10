@@ -44,7 +44,10 @@ class DoclingBridge {
   async checkAvailability() {
     try {
       const artifacts = await verifyDoclingArtifacts(this.artifactsPath);
-      const version = await this._execute(['-c', 'import docling; print(docling.__version__)'], 30_000);
+      const version = await this._execute([
+        '-c',
+        'from importlib.metadata import version; print(version("docling"))',
+      ], 30_000);
       return { available: true, version: version.trim(), artifactsPath: this.artifactsPath, ...artifacts };
     } catch (error) {
       return { available: false, error: error.message, artifactsPath: this.artifactsPath };

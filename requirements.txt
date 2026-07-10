@@ -1,5 +1,6 @@
 # OCR and PDF Processing
-tesseract-ocr==5.3.3
+# Tesseract is a system executable, not a Python package. On macOS install it
+# with `brew install tesseract`; pytesseract below is the Python adapter.
 pytesseract==0.3.10
 pdfminer.six==20221105
 
@@ -8,6 +9,7 @@ docling==2.66.0
 docling-core==2.57.0
 docling-ibm-models==3.10.3
 docling-parse==4.7.2
+easyocr==1.7.2
 
 # Data Processing
 pandas==2.1.4

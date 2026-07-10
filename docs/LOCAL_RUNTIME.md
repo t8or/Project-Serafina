@@ -30,8 +30,9 @@ database and related files that must remain on one local filesystem.
 
 ## Destination-machine provisioning
 
-1. Use Node 24 LTS and create a Python environment at `SERAFINA_PYTHON`.
-2. Install the pinned Python package versions from `requirements.txt`.
+1. Use Node 26 Current and create a Python environment at `SERAFINA_PYTHON`.
+2. Install Tesseract as a system package (`brew install tesseract` on macOS),
+   then install the pinned Python package versions from `requirements.txt`.
 3. Download Docling artifacts to `SERAFINA_DOCLING_ARTIFACTS_PATH`. The required
    pipeline families are listed in `config/local-runtime-models.json`. Create a
    `serafina-artifacts.manifest.json` in that directory and checksum every file:
