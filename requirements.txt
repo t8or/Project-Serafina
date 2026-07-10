@@ -10,6 +10,7 @@ docling-core==2.57.0
 docling-ibm-models==3.10.3
 docling-parse==4.7.2
 easyocr==1.7.2
+pypdfium2==4.30.0
 
 # Data Processing
 pandas==2.1.4

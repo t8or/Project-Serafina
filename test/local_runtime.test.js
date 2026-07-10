@@ -12,7 +12,9 @@ const { db, initDb } = await import('../src/config/database.js');
 const { LocalReferenceData } = await import('../src/services/local_reference_data.js');
 const { PropertyService } = await import('../src/services/property_service.js');
 const { FileProcessor } = await import('../src/services/file_processor.js');
+const { assemblePropertyData } = await import('../src/services/property_data_assembler.js');
 const { verifyDoclingArtifacts } = await import('../src/services/local_artifacts.js');
+const { resolveMaxPdfPages } = await import('../src/services/processors/docling_bridge.js');
 const {
   assertLocalStatePath,
   assertLoopbackHost,
@@ -97,6 +99,18 @@ test('reference data comes only from an imported local snapshot and retains prov
   );
 });
 
+test('reference snapshots can supply scoring metrics omitted from bounded PDF extraction', () => {
+  const assembled = assemblePropertyData({}, { street: '123 Main St' }, {
+    demographics: { population_3mile: 54_321 },
+    submarket: { vacancy_rate: 0.074 },
+    crime: { violent_crime_index: 12 },
+  });
+
+  assert.deepEqual(assembled.demographics, { population_3mile: 54_321 });
+  assert.deepEqual(assembled.submarket, { vacancy_rate: 0.074 });
+  assert.deepEqual(assembled.external.crime, { violent_crime_index: 12 });
+});
+
 test('runtime path guard rejects remote and traversal paths', () => {
   assert.equal(isLoopbackUrl('http://127.0.0.1:11434'), true);
   assert.equal(isLoopbackUrl('https://ollama.com'), false);
@@ -125,6 +139,15 @@ test('Docling artifacts require a complete local checksum manifest', async () =>
 
   await fs.writeFile(artifactPath, 'tampered');
   await assert.rejects(() => verifyDoclingArtifacts(artifactsDir), /checksum mismatch/);
+});
+
+test('Docling page limit defaults to ten and rejects full-report ranges', () => {
+  assert.equal(resolveMaxPdfPages(undefined), 10);
+  assert.equal(resolveMaxPdfPages('4'), 4);
+  assert.equal(resolveMaxPdfPages(10), 10);
+  assert.throws(() => resolveMaxPdfPages('3'), /integer from 4 to 10/);
+  assert.throws(() => resolveMaxPdfPages('11'), /integer from 4 to 10/);
+  assert.throws(() => resolveMaxPdfPages('all'), /integer from 4 to 10/);
 });
 
 test('file processing invokes only the injected Docling-full adapter', async () => {

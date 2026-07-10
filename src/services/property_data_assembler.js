@@ -67,11 +67,12 @@ export function ensureScoringConfigLoaded() {
  * @returns {{ address, demographics, property, submarket, external }}
  */
 export function assemblePropertyData(sections = {}, address = {}, external) {
-  const demographics = extractDemographicsFromDocling(
+  const referenceData = (external !== undefined ? external : sections.external) || {};
+  const documentDemographics = extractDemographicsFromDocling(
     sections.demographics,
     sections.submarket_report
   );
-  const submarket = extractSubmarketFromDocling(
+  const documentSubmarket = extractSubmarketFromDocling(
     sections.submarket_report,
     sections.construction,
     sections.demographics
@@ -80,9 +81,15 @@ export function assemblePropertyData(sections = {}, address = {}, external) {
 
   return {
     address,
-    demographics: demographics || {},
+    demographics: {
+      ...(referenceData.demographics || {}),
+      ...(documentDemographics || {}),
+    },
     property: property || {},
-    submarket: submarket || {},
-    external: external !== undefined ? external : (sections.external || {}),
+    submarket: {
+      ...(referenceData.submarket || {}),
+      ...(documentSubmarket || {}),
+    },
+    external: referenceData,
   };
 }

@@ -49,6 +49,20 @@ database and related files that must remain on one local filesystem.
 4. Pull the exact local Ollama model named by `SERAFINA_OLLAMA_MODEL`.
 5. Run `npm run local:doctor` until every check passes.
 
+## PDF processing boundary
+
+Normal extraction processes only the first 10 pages of an uploaded PDF. CoStar
+property identity, ownership, unit mix, rents, vacancy, and amenities are in
+this leading summary; the much larger comparable and market-report appendices
+are not sent through Docling. A native-text preflight selects four pages when
+it recognizes the complete CoStar property summary on page 4, otherwise the
+configured safety ceiling is used. Set `SERAFINA_MAX_PDF_PAGES` to an integer
+from 4 through 10.
+
+Demographic and submarket scoring inputs should be imported as local reference
+data. When they are unavailable, scoring preserves that absence instead of
+running the entire PDF or inventing replacement values.
+
 <!-- TODO(local-runtime): When preparing the distributable installer, replace
 this manual procedure with a signed offline wheelhouse and model/artifact bundle
 that carries checksums. Keep the application runtime download-free. -->
@@ -73,7 +87,19 @@ Live web scraping was intentionally removed. Import a JSON snapshot through
         },
         "crime": { "violent_crime_index": 12 },
         "schools": { "average_rating": 8 },
-        "walkScore": { "walk_score": 72, "transit_score": 48 }
+        "walkScore": { "walk_score": 72, "transit_score": 48 },
+        "demographics": {
+          "population_3mile": 54321,
+          "population_growth_3mile": 0.012,
+          "median_hh_income_3mile": 65000,
+          "median_home_value_3mile": 280000,
+          "renter_households_pct_3mile": 0.38
+        },
+        "submarket": {
+          "vacancy_rate": 0.074,
+          "delivered_pct_of_inventory": 0.018,
+          "construction_pct_of_inventory": 0.026
+        }
       }
     ]
   }

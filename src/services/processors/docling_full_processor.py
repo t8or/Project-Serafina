@@ -1,8 +1,8 @@
 """
-Docling Full PDF Processor - Processes ALL pages of a CoStar report with section detection.
+Docling PDF Processor - Processes the bounded property-summary portion of a CoStar report.
 
 This processor:
-- Processes all pages (no page limit)
+- Processes at most the first 10 pages (configurable down to 4)
 - Detects CoStar section headers via OCR/text extraction
 - Groups pages, tables, and content by detected section
 - Outputs separate JSON files per section
@@ -15,6 +15,7 @@ import sys
 import logging
 import re
 import os
+import pypdfium2 as pdfium
 from pathlib import Path
 from typing import Dict, Any, List, Optional, Tuple
 from datetime import datetime
@@ -105,10 +106,10 @@ class DoclingFullProcessor:
     """
     Full PDF processor using Docling for ML-based document understanding.
     
-    Processes ALL pages and groups content by detected CoStar sections.
+    Processes a bounded leading page range and groups content by detected sections.
     
     Features:
-    - No page limit - processes entire document
+    - Hard page ceiling keeps long report appendices out of the ML pipeline
     - Section detection via OCR text analysis
     - Per-section JSON output files
     - Page-level provenance tracking
@@ -121,7 +122,8 @@ class DoclingFullProcessor:
         table_mode: str = "accurate",
         num_threads: int = 4,
         ocr_languages: List[str] = None,
-        ocr_confidence_threshold: float = 0.5
+        ocr_confidence_threshold: float = 0.5,
+        max_pages: int = 10,
     ):
         """
         Initialize the Docling full processor with configurable options.
@@ -132,15 +134,50 @@ class DoclingFullProcessor:
             num_threads: Number of threads for processing
             ocr_languages: List of language codes for OCR (default: ["en"])
             ocr_confidence_threshold: Minimum confidence for OCR results
+            max_pages: Maximum leading PDF pages to process (4-10)
         """
+        if not isinstance(max_pages, int) or not 4 <= max_pages <= 10:
+            raise ValueError(f"max_pages must be an integer from 4 to 10; received {max_pages}")
+
         self.do_ocr = do_ocr
         self.table_mode = TableFormerMode.ACCURATE if table_mode == "accurate" else TableFormerMode.FAST
         self.num_threads = num_threads
         self.ocr_languages = ocr_languages or ["en"]
         self.ocr_confidence_threshold = ocr_confidence_threshold
+        self.max_pages = max_pages
         
         # Initialize the converter with configured options
         self.converter = self._create_converter()
+
+    def _select_page_limit(self, file_path: str) -> int:
+        """Select four pages for known CoStar summaries, else use the ceiling."""
+        try:
+            pdf = pdfium.PdfDocument(file_path)
+            page_count = len(pdf)
+            if page_count <= 4 or self.max_pages == 4:
+                pdf.close()
+                return min(page_count, self.max_pages)
+
+            page = pdf[3]
+            text_page = page.get_textpage()
+            page_four_text = re.sub(r"\s+", " ", text_page.get_text_bounded()).upper()
+            text_page.close()
+            page.close()
+            pdf.close()
+
+            summary_markers = (
+                "NO. OF UNITS",
+                "AVG. UNIT SIZE",
+                "PROPERTY MANAGER",
+                "OWNER",
+            )
+            if all(marker in page_four_text for marker in summary_markers):
+                logger.info("Detected CoStar property summary on page 4; using four-page profile")
+                return 4
+            return min(page_count, self.max_pages)
+        except Exception as error:
+            logger.warning(f"PDF page preflight failed; using {self.max_pages}-page ceiling: {error}")
+            return self.max_pages
         
     def _create_converter(self) -> DocumentConverter:
         """Create and configure the DocumentConverter with pipeline options."""
@@ -256,8 +293,12 @@ class DoclingFullProcessor:
             output_path = Path(output_dir)
             output_path.mkdir(parents=True, exist_ok=True)
             
-            # Convert the document (no page limit)
-            result = self.converter.convert(file_path)
+            selected_page_limit = self._select_page_limit(file_path)
+
+            # CoStar property fields live in the leading summary pages. Later
+            # comparison and market-report appendices are intentionally excluded
+            # from the expensive layout/OCR/table pipeline.
+            result = self.converter.convert(file_path, page_range=(1, selected_page_limit))
             
             # Check conversion status
             if result.status == ConversionStatus.FAILURE:
@@ -270,7 +311,7 @@ class DoclingFullProcessor:
             doc = result.document
             
             # Extract base metadata
-            metadata = self._extract_metadata(result, file_path)
+            metadata = self._extract_metadata(result, file_path, selected_page_limit)
             
             # Extract pages with content
             pages = self._extract_pages(doc)
@@ -343,6 +384,7 @@ class DoclingFullProcessor:
                 "processing_status": "success" if result.status == ConversionStatus.SUCCESS else "partial_success",
                 "metadata": {
                     **metadata,
+                    "processed_page_count": len(pages),
                     "total_sections": len(section_files),
                     "output_directory": str(output_path)
                 },
@@ -353,7 +395,10 @@ class DoclingFullProcessor:
             if result.status == ConversionStatus.PARTIAL_SUCCESS:
                 output["warnings"] = [str(e) for e in result.errors] if result.errors else []
             
-            logger.info(f"Successfully processed PDF: {metadata.get('page_count', 'unknown')} pages, {len(section_files)} sections")
+            logger.info(
+                f"Successfully processed PDF: {len(pages)} of "
+                f"{metadata.get('page_count', 'unknown')} pages, {len(section_files)} sections"
+            )
             return output
             
         except Exception as e:
@@ -365,7 +410,7 @@ class DoclingFullProcessor:
                 "error_message": str(e)
             }
     
-    def _extract_metadata(self, result, file_path: str) -> Dict[str, Any]:
+    def _extract_metadata(self, result, file_path: str, selected_page_limit: int) -> Dict[str, Any]:
         """Extract document metadata."""
         return {
             "file_name": Path(file_path).name,
@@ -375,7 +420,9 @@ class DoclingFullProcessor:
             "format": str(result.input.format) if hasattr(result.input, 'format') else "PDF",
             "processor": "docling_full",
             "ocr_enabled": self.do_ocr,
-            "table_mode": "accurate" if self.table_mode == TableFormerMode.ACCURATE else "fast"
+            "table_mode": "accurate" if self.table_mode == TableFormerMode.ACCURATE else "fast",
+            "page_limit": selected_page_limit,
+            "page_ceiling": self.max_pages,
         }
     
     def _extract_pages(self, doc) -> Dict[int, Dict[str, Any]]:
@@ -622,7 +669,7 @@ def main():
     if len(sys.argv) < 3:
         print(json.dumps({
             "processing_status": "error",
-            "error_message": "Usage: python docling_full_processor.py <pdf_path> <output_dir>"
+            "error_message": "Usage: python docling_full_processor.py <pdf_path> <output_dir> [max_pages]"
         }))
         sys.exit(1)
     
@@ -637,8 +684,9 @@ def main():
         }))
         sys.exit(1)
     
-    # Process the PDF
-    processor = DoclingFullProcessor()
+    # Process the bounded leading page range.
+    max_pages = int(sys.argv[3]) if len(sys.argv) > 3 else 10
+    processor = DoclingFullProcessor(max_pages=max_pages)
     result = processor.process(pdf_path, output_dir)
     
     # Output JSON to stdout

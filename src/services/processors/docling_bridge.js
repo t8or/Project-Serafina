@@ -20,12 +20,24 @@ import { verifyDoclingArtifacts } from '../local_artifacts.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const FULL_PROCESSOR_PATH = path.join(__dirname, 'docling_full_processor.py');
+const DEFAULT_MAX_PDF_PAGES = 10;
+
+export function resolveMaxPdfPages(value) {
+  const maxPages = value === undefined || value === '' ? DEFAULT_MAX_PDF_PAGES : Number(value);
+  if (!Number.isInteger(maxPages) || maxPages < 4 || maxPages > 10) {
+    throw new Error(`SERAFINA_MAX_PDF_PAGES must be an integer from 4 to 10; received ${value}`);
+  }
+  return maxPages;
+}
 
 class DoclingBridge {
   constructor(options = {}) {
     this.pythonPath = options.pythonPath || LOCAL_PYTHON_PATH;
     this.artifactsPath = options.artifactsPath || DOCLING_ARTIFACTS_PATH;
     this.timeout = options.timeout || 900_000;
+    this.maxPages = resolveMaxPdfPages(
+      options.maxPages ?? process.env.SERAFINA_MAX_PDF_PAGES
+    );
   }
 
   async processFull(filePath, outputDir) {
@@ -34,7 +46,10 @@ class DoclingBridge {
     await fs.mkdir(outputDir, { recursive: true });
 
     try {
-      const rawResult = await this._execute([FULL_PROCESSOR_PATH, filePath, outputDir], this.timeout);
+      const rawResult = await this._execute(
+        [FULL_PROCESSOR_PATH, filePath, outputDir, String(this.maxPages)],
+        this.timeout
+      );
       return JSON.parse(rawResult);
     } catch (error) {
       return { processing_status: 'error', error_message: error.message };
