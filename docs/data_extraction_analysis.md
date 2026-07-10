@@ -1,5 +1,12 @@
 # CoStar Data Extraction Analysis Report
 
+> **Historical investigation, not the current runtime contract.** This report
+> records what a full 127-page extraction could find. Production property
+> extraction now stops when the leading subject-property data is complete;
+> demographics and submarket data are separate local reference inputs. See
+> `docs/costar_coverage_checklist.md` and `docs/LOCAL_RUNTIME.md` for the current
+> field and processing boundaries.
+
 ## Executive Summary
 
 This document analyzes the data extraction capabilities of the full Docling processor and identifies gaps that require external data sources.
@@ -223,4 +230,3 @@ The full Docling processor successfully extracts **most** of the required data d
 - ❌ **School Ratings** - Requires GreatSchools API
 
 **Estimated Data Coverage:** 80-85% from CoStar PDF alone
-

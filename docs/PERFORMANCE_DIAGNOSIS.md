@@ -17,6 +17,11 @@ construction, sales, demographics, submarket, and market appendices. The
 bounded job still initializes OCR, layout, and table models for each subprocess;
 that fixed cost is much smaller than processing the additional 117 pages.
 
+The first optimization used page 4 as a fixed recognized-report cutoff. That
+was incomplete: both checked-in reports put the final subject-property details
+on page 5, and every uploaded report must be treated as a new layout rather than
+matched to a known report identity.
+
 ## Field audit
 
 For the observed CoStar report:
@@ -24,9 +29,10 @@ For the observed CoStar report:
 - Pages 1-3 are primarily the table of contents.
 - Page 4 contains the mapped property, ownership, management, unit-mix, rent,
   and vacancy data.
-- Page 5 adds amenities, fees, and pet policy.
-- Pages 6-8 contain secondary property detail and provenance.
-- Page 9 begins rent-comparable appendices.
+- Page 5 adds unit amenities, expenses/fees, and pet policy used by the
+  extraction schema.
+- Later pages contain property photos and the rent-comparable and market
+  appendices; they are not inputs to the subject-property extraction.
 
 The workbook mapping consumes property/owner/manager fields and the subject
 unit-mix table. Its demographic cells are explicitly external inputs. Normal
@@ -41,23 +47,40 @@ Running the original 127-page source through the bounded processor produced:
 | --- | ---: | ---: | --- |
 | Original full report | ~824 seconds | 127 | Present, but comparable rows polluted subject data |
 | Portable safety default | ~32 seconds | 10 | Present |
-| Validated CoStar profile | 14.6 seconds | 4 | Present |
+| Content-complete subject profile | 14.35 seconds | 5 | Present, including page-5 details |
 
-The four-page result retained units, average unit size, stories, year built,
-manager, owner, purchase price/date, and all eight subject unit-mix rows. The
-runtime keeps a 10-page safety ceiling and automatically selects four when a
-native-text preflight recognizes the complete CoStar property summary on page
-4. Unrecognized and scanned layouts use the safety ceiling.
+The current selector performs a native-text pass over no more than 10 pages and
+accumulates the complete documented auto-fill field set. It requires property
+identity/location, management, ownership and purchase history, asking and
+effective rents, vacancy/absorption, a value-bearing completed unit-mix table,
+and the final amenity, one-time-expense, and pet-policy groups. Both
+`Serafina CoStart Report.pdf` and
+`Hawks Landing CoStar.pdf` select page 5. A regression fixture with those final
+details moved later selects page 7. Unrecognized and scanned layouts use the
+10-page safety ceiling rather than processing the full report.
 
-The four-page run also logged a non-blocking warning while exporting a table
-with duplicate column names; the required property and unit-mix tables were
-still present. That table-normalization issue is separate from the performance
-fix and should be addressed before relying on generic `otherTables` output.
+The native-text preflight for both checked-in reports completes in about 0.05
+seconds combined. The end-to-end Hawks validation retained all five selected
+pages from the 127-page source and took 14.35 seconds. Its maximum resident set
+was about 1.14 GB; macOS reported a 4.89 GB peak memory footprint while the
+Docling models used the MPS accelerator.
+
+## Validation notes
+
+- The first post-change command-line replay failed before PDF processing
+  because the selector import resolved only in package mode. The processor now
+  supports both package import and the app's direct-script launch; both paths
+  are covered by the final validation.
+- The five-page run logged a non-blocking warning while exporting a table with
+  duplicate column names. The required property and unit-mix tables were still
+  present. That normalization issue is separate from the performance fix and
+  should be addressed before relying on generic `otherTables` output.
+- The web build succeeds on Node 26.5.0 with non-blocking warnings for stale
+  Browserslist data and Node's deprecated `module.register()` API in a build
+  dependency.
 
 ## Follow-up opportunities
 
-- Default to four or five pages for a report profile once multiple sample
-  formats confirm that their required fields appear that early.
 - Skip OCR for digitally generated PDFs after a native-text preflight.
 - Use TableFormer's fast mode or invoke table reconstruction only on detected
   property-table pages after validating field-level accuracy.

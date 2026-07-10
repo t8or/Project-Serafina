@@ -13,7 +13,6 @@ Section detection is based on common CoStar report headers that appear at the to
 import json
 import sys
 import logging
-import re
 import os
 import pypdfium2 as pdfium
 from pathlib import Path
@@ -29,6 +28,11 @@ from docling.datamodel.pipeline_options import (
 )
 from docling.datamodel.accelerator_options import AcceleratorDevice, AcceleratorOptions
 from docling_core.types.doc import DocItemLabel, TextItem, TableItem
+
+if __package__:
+    from src.services.processors.costar_page_selector import select_property_summary_end
+else:
+    from costar_page_selector import select_property_summary_end
 
 # Configure logging to stderr so stdout is clean for JSON output
 logging.basicConfig(
@@ -150,31 +154,33 @@ class DoclingFullProcessor:
         self.converter = self._create_converter()
 
     def _select_page_limit(self, file_path: str) -> int:
-        """Select four pages for known CoStar summaries, else use the ceiling."""
+        """Select through documented subject-property coverage, else use the ceiling."""
         try:
             pdf = pdfium.PdfDocument(file_path)
-            page_count = len(pdf)
-            if page_count <= 4 or self.max_pages == 4:
+            try:
+                page_count = len(pdf)
+                page_texts = []
+                for page_index in range(min(page_count, self.max_pages)):
+                    page = pdf[page_index]
+                    text_page = page.get_textpage()
+                    try:
+                        page_texts.append(text_page.get_text_bounded())
+                    finally:
+                        text_page.close()
+                        page.close()
+            finally:
                 pdf.close()
-                return min(page_count, self.max_pages)
 
-            page = pdf[3]
-            text_page = page.get_textpage()
-            page_four_text = re.sub(r"\s+", " ", text_page.get_text_bounded()).upper()
-            text_page.close()
-            page.close()
-            pdf.close()
-
-            summary_markers = (
-                "NO. OF UNITS",
-                "AVG. UNIT SIZE",
-                "PROPERTY MANAGER",
-                "OWNER",
+            selected_page_limit = select_property_summary_end(
+                page_texts,
+                ceiling=self.max_pages,
             )
-            if all(marker in page_four_text for marker in summary_markers):
-                logger.info("Detected CoStar property summary on page 4; using four-page profile")
-                return 4
-            return min(page_count, self.max_pages)
+            if selected_page_limit < min(page_count, self.max_pages):
+                logger.info(
+                    "Detected complete CoStar subject-property coverage through "
+                    f"page {selected_page_limit}"
+                )
+            return selected_page_limit
         except Exception as error:
             logger.warning(f"PDF page preflight failed; using {self.max_pages}-page ceiling: {error}")
             return self.max_pages

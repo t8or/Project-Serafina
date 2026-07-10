@@ -54,10 +54,18 @@ database and related files that must remain on one local filesystem.
 Normal extraction processes only the first 10 pages of an uploaded PDF. CoStar
 property identity, ownership, unit mix, rents, vacancy, and amenities are in
 this leading summary; the much larger comparable and market-report appendices
-are not sent through Docling. A native-text preflight selects four pages when
-it recognizes the complete CoStar property summary on page 4, otherwise the
-configured safety ceiling is used. Set `SERAFINA_MAX_PDF_PAGES` to an integer
-from 4 through 10.
+are not sent through Docling. Before the expensive document models run, a cheap
+native-text pass examines up to 10 pages and stops on the page where the full
+subject-property field set is complete: property identity and location,
+management, ownership and purchase history, unit mix, asking and effective
+rents, vacancy, absorption, site and unit amenities, one-time expenses, and pet
+policy. Value-bearing identity, sale-price, and unit-mix rows are required in
+addition to their headings. The current Serafina and Hawks Landing samples both
+select pages 1-5;
+a report that moves the final details to page 7 selects pages 1-7. If native
+text cannot prove completeness, as with an unfamiliar or scanned layout, the
+configured 10-page safety ceiling is used. Set `SERAFINA_MAX_PDF_PAGES` to an
+integer from 4 through 10.
 
 Demographic and submarket scoring inputs should be imported as local reference
 data. When they are unavailable, scoring preserves that absence instead of

@@ -7,8 +7,23 @@ CoStar/property report processing pipeline and expected output format.
 
 import re
 import logging
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Sequence
 from datetime import datetime
+
+if __package__:
+    from src.services.processors.costar_page_selector import (
+        ONE_TIME_EXPENSE_HEADINGS,
+        PET_POLICY_HEADINGS,
+        RECURRING_EXPENSE_HEADINGS,
+        UNIT_AMENITY_HEADINGS,
+    )
+else:
+    from costar_page_selector import (
+        ONE_TIME_EXPENSE_HEADINGS,
+        PET_POLICY_HEADINGS,
+        RECURRING_EXPENSE_HEADINGS,
+        UNIT_AMENITY_HEADINGS,
+    )
 
 # Configure logging
 logging.basicConfig(
@@ -866,12 +881,13 @@ class DoclingTransformer:
                     result["unit"].append(cleaned)
         
         # Also parse from raw_text
-        unit_amenities_match = re.search(
-            r'## UNIT AMENITIES\s*\n([\s\S]*?)(?=\n## |\n<!-- |$)',
-            raw_text
+        unit_amenities_match = self._extract_heading_block(
+            raw_text,
+            UNIT_AMENITY_HEADINGS,
+            (*RECURRING_EXPENSE_HEADINGS, *ONE_TIME_EXPENSE_HEADINGS, *PET_POLICY_HEADINGS),
         )
         if unit_amenities_match:
-            unit_text = unit_amenities_match.group(1)
+            unit_text = unit_amenities_match
             for line in unit_text.split('\n'):
                 cleaned = line.strip()
                 if cleaned and len(cleaned) > 2 and not cleaned.startswith('#') and cleaned not in result["unit"]:
@@ -905,6 +921,30 @@ class DoclingTransformer:
                         amenities.append(line)
         
         return amenities
+
+    def _extract_heading_block(
+        self,
+        raw_text: str,
+        headings: Sequence[str],
+        following_headings: Sequence[str],
+    ) -> Optional[str]:
+        """Extract a Docling heading block in Markdown or plain-text form."""
+        heading_pattern = "|".join(
+            re.escape(value).replace(r'\ ', r'\s+')
+            for value in headings
+        )
+        following_pattern = "|".join(
+            re.escape(value).replace(r'\ ', r'\s+')
+            for value in following_headings
+        )
+        match = re.search(
+            rf'(?:^|\n)(?:##\s*)?(?:{heading_pattern})\s*\n'
+            rf'([\s\S]*?)'
+            rf'(?=\n(?:##\s*)?(?:{following_pattern})\s*(?:\n|$)|\n<!--|\Z)',
+            raw_text,
+            re.IGNORECASE,
+        )
+        return match.group(1).strip() if match else None
     
     def _extract_recurring_expenses(self, sections: List[Dict], raw_text: str) -> Dict[str, Any]:
         """
@@ -924,13 +964,13 @@ class DoclingTransformer:
                 self._parse_recurring_expense(content, expenses)
         
         # Search in raw_text
-        recurring_match = re.search(
-            r'## RECURRING EXPENSES\s*\n([\s\S]*?)(?=\n## |$)',
-            raw_text
+        recurring_match = self._extract_heading_block(
+            raw_text,
+            RECURRING_EXPENSE_HEADINGS,
+            (*ONE_TIME_EXPENSE_HEADINGS, *PET_POLICY_HEADINGS),
         )
         if recurring_match:
-            expense_text = recurring_match.group(1).strip()
-            self._parse_recurring_expense(expense_text, expenses)
+            self._parse_recurring_expense(recurring_match, expenses)
         
         return expenses
     
@@ -971,13 +1011,13 @@ class DoclingTransformer:
                 self._parse_expense_item(content, expenses)
         
         # Search in raw_text
-        expense_match = re.search(
-            r'## ONE TIME EXPENSES\s*\n([\s\S]*?)(?=\n## |\nPET POLICY|$)',
-            raw_text
+        expense_match = self._extract_heading_block(
+            raw_text,
+            ONE_TIME_EXPENSE_HEADINGS,
+            PET_POLICY_HEADINGS,
         )
         if expense_match:
-            expense_text = expense_match.group(1)
-            for line in expense_text.split('\n'):
+            for line in expense_match.split('\n'):
                 self._parse_expense_item(line, expenses)
         
         return expenses
@@ -1188,4 +1228,3 @@ if __name__ == "__main__":
         
         result = transform_docling_output(docling_output)
         print(json.dumps(result, indent=2, default=str))
-

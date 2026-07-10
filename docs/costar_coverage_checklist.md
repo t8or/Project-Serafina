@@ -8,6 +8,11 @@
 
 These fields are automatically populated when you run the Docling extraction on a CoStar property report.
 
+The runtime preflights each new report independently and sends only the leading
+pages needed to complete the subject-property section. The two checked-in
+sample reports complete on page 5; shifted layouts can continue through page
+10 without processing the report appendices.
+
 ### Property Summary Sheet
 
 | Cell | Field | JSON Path | Status |
@@ -214,5 +219,4 @@ All loan terms, treasury rates, and equity structure are deal-specific.
 5. **Develop business plan** - CapEx budget, growth assumptions
 6. **Input deal terms** - Loan structure, equity split, exit assumptions
 7. **Review calculated outputs** - Verify formulas are working correctly
-
 
