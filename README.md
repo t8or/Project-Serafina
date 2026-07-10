@@ -2,7 +2,9 @@
 
 Serafina runs as one loopback-only local application. Document processing uses
 local Docling artifacts, persistence uses SQLite in the machine's application
-data directory, and reference metrics come only from explicitly imported local
+data directory, and a native-text preflight collects scorecard values already
+present in each CoStar PDF without sending the full report through document ML.
+Additional reference metrics come only from explicitly imported local
 snapshots. The runtime never scrapes public websites or calls cloud services.
 
 ```sh

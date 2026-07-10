@@ -111,6 +111,31 @@ test('reference snapshots can supply scoring metrics omitted from bounded PDF ex
   assert.deepEqual(assembled.external.crime, { violent_crime_index: 12 });
 });
 
+test('native PDF scoring metrics survive bounded property extraction', () => {
+  const assembled = assemblePropertyData({
+    demographics: {
+      scoring_metrics: {
+        population_3mile: 41_435,
+        population_growth_3mile: 0.024,
+        median_hh_income_3mile: 53_216,
+        median_home_value_3mile: 191_157,
+      },
+    },
+    submarket_report: {
+      scoring_metrics: {
+        vacancy_rate: 0.079,
+        delivered_pct_of_inventory: 9 / 5_001,
+        construction_pct_of_inventory: 153 / 5_001,
+      },
+    },
+  });
+
+  assert.equal(assembled.demographics.population_3mile, 41_435);
+  assert.equal(assembled.demographics.population_growth_3mile, 0.024);
+  assert.equal(assembled.submarket.vacancy_rate, 0.079);
+  assert.equal(assembled.submarket.construction_pct_of_inventory, 153 / 5_001);
+});
+
 test('runtime path guard rejects remote and traversal paths', () => {
   assert.equal(isLoopbackUrl('http://127.0.0.1:11434'), true);
   assert.equal(isLoopbackUrl('https://ollama.com'), false);

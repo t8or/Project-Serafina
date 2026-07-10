@@ -51,25 +51,29 @@ database and related files that must remain on one local filesystem.
 
 ## PDF processing boundary
 
-Normal extraction processes only the first 10 pages of an uploaded PDF. CoStar
-property identity, ownership, unit mix, rents, vacancy, and amenities are in
-this leading summary; the much larger comparable and market-report appendices
-are not sent through Docling. Before the expensive document models run, a cheap
-native-text pass examines up to 10 pages and stops on the page where the full
-subject-property field set is complete: property identity and location,
+The runtime has two extraction tiers. A cheap native-text pass scans the PDF
+for subject coverage and scorecard values; this took less than one second for
+both checked-in reports combined. Only the leading subject-property pages are
+sent through Docling's expensive layout/OCR/table models. Comparable and market
+appendices are never sent through document ML.
+
+The subject selector stops on the page where the full field set is complete:
+property identity and location,
 management, ownership and purchase history, unit mix, asking and effective
 rents, vacancy, absorption, site and unit amenities, one-time expenses, and pet
 policy. Value-bearing identity, sale-price, and unit-mix rows are required in
 addition to their headings. The current Serafina and Hawks Landing samples both
-select pages 1-5;
-a report that moves the final details to page 7 selects pages 1-7. If native
-text cannot prove completeness, as with an unfamiliar or scanned layout, the
-configured 10-page safety ceiling is used. Set `SERAFINA_MAX_PDF_PAGES` to an
-integer from 4 through 10.
+select pages 1-5; a report that moves the final details to page 7 selects pages
+1-7. If native text cannot prove completeness, as with an unfamiliar or scanned
+layout, the configured 10-page safety ceiling is used. Set
+`SERAFINA_MAX_PDF_PAGES` to an integer from 4 through 10.
 
-Demographic and submarket scoring inputs should be imported as local reference
-data. When they are unavailable, scoring preserves that absence instead of
-running the entire PDF or inventing replacement values.
+Separately, the native pass locates the demographic-summary and submarket
+overview pages anywhere in the report and reads only the scorecard values:
+3-mile population, growth, median household income, median home value,
+submarket vacancy, deliveries, and construction. Renter share, crime, schools,
+walk, and transit are not present in the checked-in PDFs and remain local
+reference inputs. Missing values remain missing rather than being invented.
 
 <!-- TODO(local-runtime): When preparing the distributable installer, replace
 this manual procedure with a signed offline wheelhouse and model/artifact bundle
@@ -77,7 +81,7 @@ that carries checksums. Keep the application runtime download-free. -->
 
 ## Local reference data
 
-Live web scraping was intentionally removed. Import a JSON snapshot through
+Live web scraping was intentionally removed. Import supplemental values through
 `POST /api/reference-data/import` with this shape:
 
 ```json

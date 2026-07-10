@@ -16,7 +16,7 @@ import logging
 import os
 import pypdfium2 as pdfium
 from pathlib import Path
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any, List, Optional
 from datetime import datetime
 
 from docling.document_converter import DocumentConverter, PdfFormatOption
@@ -31,8 +31,10 @@ from docling_core.types.doc import DocItemLabel, TextItem, TableItem
 
 if __package__:
     from src.services.processors.costar_page_selector import select_property_summary_end
+    from src.services.processors.costar_scoring_preflight import extract_scoring_metrics
 else:
     from costar_page_selector import select_property_summary_end
+    from costar_scoring_preflight import extract_scoring_metrics
 
 # Configure logging to stderr so stdout is clean for JSON output
 logging.basicConfig(
@@ -153,14 +155,14 @@ class DoclingFullProcessor:
         # Initialize the converter with configured options
         self.converter = self._create_converter()
 
-    def _select_page_limit(self, file_path: str) -> int:
-        """Select through documented subject-property coverage, else use the ceiling."""
+    def _native_preflight(self, file_path: str) -> tuple[int, Dict[str, Any]]:
+        """Select subject pages and collect score inputs without document ML."""
         try:
             pdf = pdfium.PdfDocument(file_path)
             try:
                 page_count = len(pdf)
                 page_texts = []
-                for page_index in range(min(page_count, self.max_pages)):
+                for page_index in range(page_count):
                     page = pdf[page_index]
                     text_page = page.get_textpage()
                     try:
@@ -172,18 +174,95 @@ class DoclingFullProcessor:
                 pdf.close()
 
             selected_page_limit = select_property_summary_end(
-                page_texts,
+                page_texts[:self.max_pages],
                 ceiling=self.max_pages,
             )
+            scoring_metrics = extract_scoring_metrics(page_texts)
             if selected_page_limit < min(page_count, self.max_pages):
                 logger.info(
                     "Detected complete CoStar subject-property coverage through "
                     f"page {selected_page_limit}"
                 )
-            return selected_page_limit
+            if scoring_metrics.get("demographics") or scoring_metrics.get("submarket"):
+                logger.info(
+                    "Found native scoring inputs on pages "
+                    f"{scoring_metrics.get('demographics_page')} and "
+                    f"{scoring_metrics.get('submarket_page')}"
+                )
+            return selected_page_limit, scoring_metrics
         except Exception as error:
             logger.warning(f"PDF page preflight failed; using {self.max_pages}-page ceiling: {error}")
-            return self.max_pages
+            return self.max_pages, {
+                "demographics": {},
+                "submarket": {},
+                "demographics_page": None,
+                "submarket_page": None,
+            }
+
+    def _select_page_limit(self, file_path: str) -> int:
+        """Compatibility seam for page-selection tests and callers."""
+        return self._native_preflight(file_path)[0]
+
+    def _write_native_scoring_sections(
+        self,
+        output_path: Path,
+        base_filename: str,
+        source_file: str,
+        scoring_metrics: Dict[str, Any],
+    ) -> tuple[List[str], List[Dict[str, Any]]]:
+        """Persist small, provenance-bearing scoring sections for the JS pipeline."""
+        section_files = []
+        section_summary = []
+        section_specs = (
+            ("demographics", "demographics_page"),
+            ("submarket_report", "submarket_page"),
+        )
+
+        for section_slug, page_key in section_specs:
+            metrics = scoring_metrics.get(
+                "submarket" if section_slug == "submarket_report" else section_slug,
+                {},
+            )
+            source_page = scoring_metrics.get(page_key)
+            if not metrics or not source_page:
+                continue
+
+            section_output = {
+                "section": section_slug,
+                "section_name": SECTION_NAMES[section_slug],
+                "page_range": {"start": source_page, "end": source_page},
+                "pages": [],
+                "tables": [],
+                "raw_text": "",
+                "scoring_metrics": metrics,
+                "metadata": {
+                    "source_file": Path(source_file).name,
+                    "source_page": source_page,
+                    "extraction_date": datetime.now().isoformat(),
+                    "processor": "native_text_scoring_preflight",
+                },
+            }
+            section_filename = f"e_{base_filename}_{section_slug}.json"
+            section_filepath = output_path / section_filename
+            with open(section_filepath, 'w', encoding='utf-8') as output_file:
+                json.dump(section_output, output_file, indent=2, default=str)
+
+            section_files.append(str(section_filepath))
+            section_summary.append({
+                "section": section_slug,
+                "section_name": SECTION_NAMES[section_slug],
+                "file_path": str(section_filepath),
+                "page_count": 1,
+                "table_count": 0,
+                "page_range": {"start": source_page, "end": source_page},
+                "processor": "native_text_scoring_preflight",
+            })
+            logger.info(
+                f"Wrote native scoring section: {section_filename} "
+                f"(source page {source_page})"
+            )
+
+        return section_files, section_summary
         
     def _create_converter(self) -> DocumentConverter:
         """Create and configure the DocumentConverter with pipeline options."""
@@ -299,7 +378,7 @@ class DoclingFullProcessor:
             output_path = Path(output_dir)
             output_path.mkdir(parents=True, exist_ok=True)
             
-            selected_page_limit = self._select_page_limit(file_path)
+            selected_page_limit, scoring_metrics = self._native_preflight(file_path)
 
             # CoStar property fields live in the leading summary pages. Later
             # comparison and market-report appendices are intentionally excluded
@@ -384,6 +463,15 @@ class DoclingFullProcessor:
                 })
                 
                 logger.info(f"Wrote section file: {section_filename} ({len(section_content['pages'])} pages)")
+
+            scoring_files, scoring_summary = self._write_native_scoring_sections(
+                output_path,
+                base_filename,
+                file_path,
+                scoring_metrics,
+            )
+            section_files.extend(scoring_files)
+            section_summary.extend(scoring_summary)
             
             # Build summary result
             output = {
@@ -392,6 +480,10 @@ class DoclingFullProcessor:
                     **metadata,
                     "processed_page_count": len(pages),
                     "total_sections": len(section_files),
+                    "scoring_preflight_pages": {
+                        "demographics": scoring_metrics.get("demographics_page"),
+                        "submarket": scoring_metrics.get("submarket_page"),
+                    },
                     "output_directory": str(output_path)
                 },
                 "sections": section_summary,

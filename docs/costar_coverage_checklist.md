@@ -13,6 +13,20 @@ pages needed to complete the subject-property section. The two checked-in
 sample reports complete on page 5; shifted layouts can continue through page
 10 without processing the report appendices.
 
+### Scorecard Inputs
+
+The lightweight native-text pass also auto-fills these score factors from their
+demographic-summary and submarket-overview pages without sending those pages
+through Docling:
+
+- 3-mile population, population growth, median household income, and median
+  home value
+- Submarket vacancy, delivered units as a percentage of inventory, and units
+  under construction as a percentage of inventory
+
+Renter-household share, crime, schools, walk, and transit are not present in the
+checked-in reports and remain reference/manual inputs.
+
 ### Property Summary Sheet
 
 | Cell | Field | JSON Path | Status |
@@ -82,7 +96,11 @@ These fields are NOT available in CoStar property reports and must be entered ma
 | O12 | Market High Rent | Comp Analysis |
 | O13 | Renovated Rent Target | Pro Forma |
 
-### Demos Sheet - ALL MANUAL ENTRY
+### Demos Sheet - WORKBOOK ENTRY REMAINS MANUAL
+
+The scorecard values listed above are automatically extracted for scoring. The
+current workbook template does not map them into the Demos sheet, so those
+spreadsheet cells remain manual.
 
 | Cell | Field | Data Source |
 |------|-------|-------------|
@@ -161,12 +179,13 @@ All loan terms, treasury rates, and equity structure are deal-specific.
 - [ ] Unit Mix Details (all unit types)
 - [ ] Asking Rents by Unit Type
 - [ ] Effective Rents by Unit Type
+- [ ] Scorecard: 3-mile population, growth, median income, and home value
+- [ ] Scorecard: submarket vacancy, deliveries %, and construction %
 
-### From CoStar Analytics (Separate Export)
-- [ ] Demographics (1/3/5 mile)
-- [ ] Submarket Vacancy
+### From CoStar Analytics (Separate Export / Workbook)
+- [ ] Full demographics (1/3/5 mile) for the Demos sheet
 - [ ] Submarket Rents
-- [ ] Construction Pipeline
+- [ ] Full construction pipeline detail
 
 ### From Offering Memorandum (OM)
 - [ ] T12 Revenue Detail
@@ -219,4 +238,3 @@ All loan terms, treasury rates, and equity structure are deal-specific.
 5. **Develop business plan** - CapEx budget, growth assumptions
 6. **Input deal terms** - Loan structure, equity split, exit assumptions
 7. **Review calculated outputs** - Verify formulas are working correctly
-

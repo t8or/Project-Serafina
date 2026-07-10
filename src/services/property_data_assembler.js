@@ -77,17 +77,21 @@ export function assemblePropertyData(sections = {}, address = {}, external) {
     sections.construction,
     sections.demographics
   );
+  const nativeDemographics = sections.demographics?.scoring_metrics || {};
+  const nativeSubmarket = sections.submarket_report?.scoring_metrics || {};
   const property = extractPropertyMetricsFromDocling(sections.subject_property);
 
   return {
     address,
     demographics: {
       ...(referenceData.demographics || {}),
+      ...nativeDemographics,
       ...(documentDemographics || {}),
     },
     property: property || {},
     submarket: {
       ...(referenceData.submarket || {}),
+      ...nativeSubmarket,
       ...(documentSubmarket || {}),
     },
     external: referenceData,

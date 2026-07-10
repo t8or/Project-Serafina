@@ -22,6 +22,12 @@ was incomplete: both checked-in reports put the final subject-property details
 on page 5, and every uploaded report must be treated as a new layout rather than
 matched to a known report identity.
 
+The next five-page implementation preserved the property data but produced a
+zero score with all 13 factors missing. The scorecard consumes demographic,
+submarket, crime, school, and walk/transit inputs—not the property/unit fields.
+Removing the later PDF sections without replacing their score inputs was the
+scoring regression.
+
 ## Field audit
 
 For the observed CoStar report:
@@ -35,19 +41,20 @@ For the observed CoStar report:
   appendices; they are not inputs to the subject-property extraction.
 
 The workbook mapping consumes property/owner/manager fields and the subject
-unit-mix table. Its demographic cells are explicitly external inputs. Normal
-extraction is therefore capped at 10 pages, while local reference data remains
-the intended source for demographic and submarket enrichment.
+unit-mix table. The scorecard additionally consumes demographic and submarket
+values present later in the report. A native-text pass extracts those few
+values directly; renter share and third-party metrics remain reference inputs.
 
 ## Verified improvement
 
 Running the original 127-page source through the bounded processor produced:
 
-| Profile | Wall time | Processed pages | Required mapped fields |
+| Profile | Wall time | ML-processed pages | Property and scoring data |
 | --- | ---: | ---: | --- |
 | Original full report | ~824 seconds | 127 | Present, but comparable rows polluted subject data |
 | Portable safety default | ~32 seconds | 10 | Present |
-| Content-complete subject profile | 14.35 seconds | 5 | Present, including page-5 details |
+| Property-only profile (regression) | 14.35 seconds | 5 | Property present; score inputs missing |
+| Two-tier property + score profile | 15.17 seconds | 5 | Property present; 7 PDF score factors populated |
 
 The current selector performs a native-text pass over no more than 10 pages and
 accumulates the complete documented auto-fill field set. It requires property
@@ -59,11 +66,12 @@ and the final amenity, one-time-expense, and pet-policy groups. Both
 details moved later selects page 7. Unrecognized and scanned layouts use the
 10-page safety ceiling rather than processing the full report.
 
-The native-text preflight for both checked-in reports completes in about 0.05
-seconds combined. The end-to-end Hawks validation retained all five selected
-pages from the 127-page source and took 14.35 seconds. Its maximum resident set
-was about 1.14 GB; macOS reported a 4.89 GB peak memory footprint while the
-Docling models used the MPS accelerator.
+The full native-text scan of both checked-in reports (279 pages total) completes
+in about 0.8 seconds combined. The end-to-end Hawks validation sent five pages
+through Docling, sourced scoring values from pages 79 and 83, and took 15.17
+seconds. It produced a 4.52 score with 7 populated PDF factors and 6 genuinely
+unavailable factors, compared with the regressed 0 score and 13 missing factors.
+Its maximum resident set was about 1.09 GB while Docling used MPS.
 
 ## Validation notes
 
