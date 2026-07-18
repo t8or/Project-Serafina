@@ -28,9 +28,19 @@ const processNestedHtml = (content, loaderContext, dir = null) =>
         );
       });
 
-// HTML generation
+const APP_HTML_FILES = new Set([
+  'index.html',
+  'dashboard.html',
+  'file-upload.html',
+  'scorecard-config.html',
+  'content.html',
+  '404.html',
+]);
+
+// Only ship the Serafina product surfaces. The remaining source pages are
+// TailAdmin references and should not be reachable in the local application.
 const generateHTMLPlugins = () =>
-  globSync('./src/*.html').map((dir) => {
+  globSync('./src/*.html').filter((dir) => APP_HTML_FILES.has(path.basename(dir))).map((dir) => {
     const filename = path.basename(dir);
     return new HtmlWebpackPlugin({
       filename,
@@ -40,7 +50,7 @@ const generateHTMLPlugins = () =>
   });
 
 export default {
-  mode: "development",
+  mode: process.env.NODE_ENV === 'development' ? 'development' : 'production',
   target: "web",
   entry: "./src/js/index.js",
   devServer: {
@@ -62,6 +72,13 @@ export default {
     reasons: true,
     moduleTrace: true,
     errorDetails: true
+  },
+  performance: {
+    hints: process.env.NODE_ENV === 'production' ? 'warning' : false,
+    // ApexCharts is intentionally lazy-loaded as a separate dashboard-only
+    // chunk; keep the initial entrypoint budget strict while allowing it.
+    maxAssetSize: 600_000,
+    maxEntrypointSize: 300_000,
   },
   module: {
     rules: [

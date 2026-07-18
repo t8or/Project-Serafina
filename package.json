@@ -8,8 +8,8 @@
     "node": ">=26 <27"
   },
   "scripts": {
-    "dev": "webpack serve --open --config webpack.config.js",
-    "build": "webpack --config webpack.config.js",
+    "dev": "NODE_ENV=development webpack serve --open --config webpack.config.js",
+    "build": "NODE_ENV=production webpack --config webpack.config.js",
     "local:setup": "node scripts/local-setup.js",
     "local:doctor": "node scripts/local-doctor.js",
     "local:start": "npm run build && node server.js",

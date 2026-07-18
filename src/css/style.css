@@ -9,10 +9,18 @@
 
 @custom-variant dark (&:is(.dark *));
 
+:root {
+  --motion-fast: 140ms;
+  --motion-standard: 200ms;
+  --ease-out-ui: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out-ui: cubic-bezier(0.77, 0, 0.175, 1);
+}
+
 @theme {
   --font-*: initial;
   /* Local system font stack: no runtime font request is permitted. */
-  --font-outfit: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-outfit: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
 
   --breakpoint-*: initial;
   --breakpoint-2xsm: 375px;
@@ -85,11 +93,11 @@
   --color-gray-900: #101828;
   --color-gray-950: #0c111d;
   --color-gray-dark: #1a2231;
-  
+
   /* TailAdmin dark mode colors */
-  --color-boxdark: #24303F;
-  --color-boxdark-2: #1A222C;
-  --color-strokedark: #2E3A47;
+  --color-boxdark: #24303f;
+  --color-boxdark-2: #1a222c;
+  --color-strokedark: #2e3a47;
 
   --color-orange-25: #fffaf5;
   --color-orange-50: #fff6ed;
@@ -198,7 +206,7 @@
 }
 
 @utility menu-item {
-  @apply relative flex items-center gap-3 px-3 py-2 font-medium rounded-lg text-theme-sm;
+  @apply text-theme-sm relative flex items-center gap-3 rounded-lg px-3 py-2 font-medium;
 }
 
 @utility menu-item-active {
@@ -222,7 +230,7 @@
 }
 
 @utility menu-item-arrow-active {
-  @apply rotate-180 stroke-brand-500 dark:stroke-brand-400;
+  @apply stroke-brand-500 dark:stroke-brand-400 rotate-180;
 }
 
 @utility menu-item-arrow-inactive {
@@ -272,7 +280,7 @@
   }
 
   &::-webkit-scrollbar-thumb {
-    @apply bg-gray-200 rounded-full;
+    @apply rounded-full bg-gray-200;
   }
 }
 
@@ -281,8 +289,95 @@
 }
 
 @layer base {
+  html {
+    text-rendering: optimizeLegibility;
+  }
+
   body {
-    @apply relative text-base font-normal font-outfit z-1 bg-gray-50;
+    @apply font-outfit relative z-1 bg-gray-50 text-base font-normal;
+    font-optical-sizing: auto;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    transition-property: color, background-color, border-color, box-shadow,
+      opacity, scale;
+    transition-duration: var(--motion-fast);
+    transition-timing-function: var(--ease-out-ui);
+  }
+
+  button:not(:disabled):active,
+  [role="button"]:not([aria-disabled="true"]):active {
+    scale: 0.97;
+  }
+
+  :where(button, a, input, select, textarea, [role="button"]):focus-visible {
+    outline: 2px solid var(--color-brand-500);
+    outline-offset: 2px;
+  }
+}
+
+.app-header {
+  background: rgb(255 255 255 / 78%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  backdrop-filter: blur(18px) saturate(160%);
+  border-bottom: 1px solid rgb(228 231 236 / 72%);
+}
+
+.dark .app-header {
+  background: rgb(16 24 40 / 78%);
+  border-bottom-color: rgb(52 64 84 / 72%);
+}
+
+.app-sidebar {
+  transition-property: transform, width;
+  transition-duration: 240ms;
+  transition-timing-function: var(--ease-out-ui);
+}
+
+.app-sidebar-backdrop {
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .app-header {
+    background: white;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  .dark .app-header {
+    background: var(--color-gray-900);
+  }
+
+  .app-sidebar-backdrop {
+    background: rgb(3 7 18 / 88%);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .app-header,
+  .app-sidebar {
+    border-color: currentColor;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 80ms !important;
+  }
+
+  button:not(:disabled):active,
+  [role="button"]:not([aria-disabled="true"]):active {
+    scale: 1;
   }
 }
 
@@ -440,7 +535,7 @@
 }
 
 .flatpickr-weekdays {
-  @apply h-auto mt-6 mb-4;
+  @apply mt-6 mb-4 h-auto;
 }
 
 .flatpickr-weekday {
@@ -539,7 +634,7 @@ span.flatpickr-weekday,
 }
 
 .fc .fc-view-harness {
-  @apply max-w-full overflow-x-auto custom-scrollbar;
+  @apply custom-scrollbar max-w-full overflow-x-auto;
 }
 .fc-dayGridMonth-view.fc-view.fc-daygrid {
   @apply min-w-[718px];
@@ -562,11 +657,11 @@ span.flatpickr-weekday,
 }
 
 .fc-button-group .fc-button.fc-prev-button:before {
-  @apply inline-block mt-1;
+  @apply mt-1 inline-block;
   content: url("data:image/svg+xml,%3Csvg width='25' height='24' viewBox='0 0 25 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M16.0068 6L9.75684 12.25L16.0068 18.5' stroke='%23344054' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E%0A");
 }
 .fc-button-group .fc-button.fc-next-button:before {
-  @apply inline-block mt-1;
+  @apply mt-1 inline-block;
   content: url("data:image/svg+xml,%3Csvg width='25' height='24' viewBox='0 0 25 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M9.50684 19L15.7568 12.75L9.50684 6.5' stroke='%23344054' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E%0A");
 }
 .dark .fc-button-group .fc-button.fc-prev-button:before {
@@ -593,7 +688,7 @@ span.flatpickr-weekday,
 .fc-header-toolbar.fc-toolbar
   .fc-toolbar-chunk:last-child
   .fc-button.fc-button-active {
-  @apply text-gray-900 bg-white dark:bg-gray-800 dark:text-white;
+  @apply bg-white text-gray-900 dark:bg-gray-800 dark:text-white;
 }
 .fc-theme-standard th {
   @apply border-x-0! border-t border-gray-200! bg-gray-50 text-left! dark:border-gray-800! dark:bg-gray-900;
@@ -633,7 +728,7 @@ span.flatpickr-weekday,
   @apply p-0 text-sm font-normal text-gray-700;
 }
 .fc-daygrid-event-dot {
-  @apply w-1 h-5 ml-0 mr-3 border-none rounded-sm;
+  @apply mr-3 ml-0 h-5 w-1 rounded-sm border-none;
 }
 .fc-event {
   @apply focus:shadow-none;

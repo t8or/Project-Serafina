@@ -1,5 +1,9 @@
-<div
+<button
+  type="button"
+  class="app-sidebar-backdrop fixed inset-0 z-40 bg-gray-950/40 lg:hidden"
+  :class="sidebarToggle ? 'block' : 'hidden'"
+  :tabindex="sidebarToggle ? 0 : -1"
+  aria-label="Close navigation"
+  aria-controls="app-sidebar"
   @click="sidebarToggle = false"
-  :class="sidebarToggle ? 'block lg:hidden' : 'hidden'"
-  class="fixed w-full h-screen z-9 bg-gray-900/50"
-></div>
+></button>

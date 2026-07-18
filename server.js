@@ -26,7 +26,11 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // The browser UI and API share one loopback origin, so CORS is intentionally absent.
 app.use('/uploads', express.static(UPLOADS_DIR));
-app.use(express.static(buildDir));
+
+// Keep the product root explicit. Express' static index handling would otherwise
+// serve the template's legacy index page before this redirect can run.
+app.get(['/', '/index.html'], (_req, res) => res.redirect(302, '/dashboard.html'));
+app.use(express.static(buildDir, { index: false }));
 
 app.use('/api', uploadRouter);
 app.use('/api', extractRouter);
@@ -35,8 +39,6 @@ app.use('/api/fill', fillRouter);
 app.use('/api/reference-data', referenceDataRouter);
 app.use('/api/scoring', scoringRouter);
 app.use('/api/properties', propertyRouter);
-
-app.get('/', (_req, res) => res.sendFile(path.join(buildDir, 'index.html')));
 
 app.use((err, _req, res, _next) => {
   console.error('Server error:', err);

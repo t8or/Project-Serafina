@@ -2,10 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0"
-    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
     <title>Property Dashboard | Serafina</title>
     <!-- ApexCharts is loaded via webpack bundle (window.ApexCharts) -->
@@ -35,31 +32,56 @@
       <!-- ===== Sidebar End ===== -->
 
       <!-- ===== Content Area Start ===== -->
-      <div class="relative flex flex-1 flex-col overflow-y-auto overflow-x-hidden">
+      <div
+        class="relative flex flex-1 flex-col overflow-x-hidden overflow-y-auto"
+      >
+        <include src="./partials/overlay.html" />
+
         <!-- ===== Header Start ===== -->
         <include src="./partials/header.html"></include>
         <!-- ===== Header End ===== -->
 
         <!-- ===== Main Content Start ===== -->
         <main>
-          <div class="mx-auto max-w-screen-2xl p-4 md:p-6 2xl:p-10" x-data="propertyDashboard" x-init="init()">
+          <div
+            class="mx-auto max-w-screen-2xl p-4 md:p-6 2xl:p-10"
+            x-data="propertyDashboard"
+            x-init="init()"
+          >
             <!-- Page Header -->
-            <div class="mb-6 flex items-center justify-between">
+            <div class="mb-6 flex items-start justify-between gap-4">
               <div>
-                <h2 class="text-title-md2 font-semibold text-black dark:text-white">
+                <h1
+                  class="text-title-md2 font-semibold text-black dark:text-white"
+                >
                   Property Dashboard
-                </h2>
+                </h1>
                 <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
                   Overview of analyzed properties and their scores
                 </p>
               </div>
-              <div class="flex gap-3">
+              <div
+                x-cloak
+                x-show="!loading && !loadError && (filteredProperties.length > 0 || aggregateGroups.length > 0)"
+                class="flex shrink-0 gap-3"
+              >
                 <a
                   href="file-upload.html"
-                  class="flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600"
+                  role="button"
+                  class="bg-brand-500 hover:bg-brand-600 flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white"
                 >
-                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                  <svg
+                    class="h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M12 4v16m8-8H4"
+                    />
                   </svg>
                   <span>Upload Files</span>
                 </a>
@@ -67,58 +89,180 @@
             </div>
 
             <!-- Loading State -->
-            <div x-show="loading" class="flex items-center justify-center py-12">
-              <svg class="h-8 w-8 animate-spin text-brand-500" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            <div
+              x-show="noticeMessage"
+              x-cloak
+              class="mb-5 rounded-xl border px-4 py-3 text-sm"
+              :class="noticeType === 'error' ? 'border-red-200 bg-red-50 text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300' : 'border-green-200 bg-green-50 text-green-700 dark:border-green-500/30 dark:bg-green-500/10 dark:text-green-300'"
+              role="status"
+              aria-live="polite"
+            >
+              <div class="flex items-start justify-between gap-3">
+                <span x-text="noticeMessage"></span>
+                <button
+                  type="button"
+                  class="shrink-0 rounded p-1"
+                  aria-label="Dismiss notification"
+                  @click="noticeMessage = ''"
+                >
+                  <svg
+                    class="h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-width="2"
+                      d="M6 18 18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div
+              x-show="loading"
+              class="flex items-center justify-center gap-3 py-12 text-sm text-gray-500 dark:text-gray-400"
+              role="status"
+              aria-live="polite"
+            >
+              <svg
+                class="text-brand-500 h-8 w-8 animate-spin"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  class="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  stroke-width="4"
+                ></circle>
+                <path
+                  class="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
               </svg>
+              <span>Loading property analysis…</span>
+            </div>
+
+            <div
+              x-show="!loading && loadError"
+              x-cloak
+              class="rounded-2xl border border-red-200 bg-red-50 px-6 py-10 text-center dark:border-red-500/30 dark:bg-red-500/10"
+              role="alert"
+            >
+              <h2 class="text-lg font-semibold text-red-900 dark:text-red-200">
+                Property data could not be loaded
+              </h2>
+              <p
+                class="mx-auto mt-2 max-w-md text-sm text-red-700 dark:text-red-300"
+                x-text="loadError"
+              ></p>
+              <button
+                type="button"
+                @click="loadData()"
+                class="mt-5 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+              >
+                Try Again
+              </button>
             </div>
 
             <!-- Empty State (only show when no properties exist at all) -->
-            <div x-show="!loading && filteredProperties.length === 0 && aggregateGroups.length === 0" style="display: none;" class="py-12 text-center">
-              <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+            <div
+              x-show="!loading && !loadError && filteredProperties.length === 0 && aggregateGroups.length === 0"
+              style="display: none"
+              class="py-12 text-center"
+            >
+              <svg
+                class="mx-auto h-16 w-16 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.5"
+                  d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                />
               </svg>
-              <h3 class="mt-4 text-lg font-semibold text-gray-900 dark:text-white">No Properties Analyzed</h3>
+              <h3
+                class="mt-4 text-lg font-semibold text-gray-900 dark:text-white"
+              >
+                No Properties Analyzed
+              </h3>
               <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
                 Upload and process CoStar reports to see property scores here.
               </p>
               <a
                 href="file-upload.html"
-                class="mt-4 inline-flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600"
+                class="bg-brand-500 hover:bg-brand-600 mt-4 inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white"
               >
-                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                <svg
+                  class="h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M12 4v16m8-8H4"
+                  />
                 </svg>
                 Upload Files
               </a>
             </div>
 
             <!-- Dashboard Content -->
-            <div x-cloak x-show="!loading && (filteredProperties.length > 0 || aggregateGroups.length > 0)">
-              
+            <div
+              x-cloak
+              x-show="!loading && !loadError && (filteredProperties.length > 0 || aggregateGroups.length > 0)"
+            >
               <!-- Breadcrumb Navigation -->
               <div class="mb-4 flex items-center gap-2">
                 <!-- Back Button -->
                 <button
+                  type="button"
                   x-show="drillLevel > 0"
                   @click="navigateBack()"
                   class="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 hover:text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
                   title="Go back"
                 >
-                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                  <svg
+                    class="h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M15 19l-7-7 7-7"
+                    />
                   </svg>
                 </button>
-                
+
                 <!-- Breadcrumb Trail -->
                 <nav class="flex items-center gap-1 text-sm">
                   <template x-for="(crumb, index) in breadcrumb" :key="index">
                     <div class="flex items-center gap-1">
                       <!-- Separator -->
-                      <span x-show="index > 0" class="text-gray-400 dark:text-gray-500">/</span>
+                      <span
+                        x-show="index > 0"
+                        class="text-gray-400 dark:text-gray-500"
+                        >/</span
+                      >
                       <!-- Crumb Link/Text -->
                       <button
+                        type="button"
                         @click="navigateToCrumb(index)"
                         class="transition-colors"
                         :class="index === breadcrumb.length - 1 
@@ -131,15 +275,17 @@
                   </template>
                 </nav>
               </div>
-              
+
               <!-- Decision Filter Indicator (shows when filter is active) -->
-              <div 
-                x-show="decisionFilter" 
+              <div
+                x-show="decisionFilter"
                 x-cloak
                 class="mb-4 flex items-center gap-2"
               >
-                <span class="text-sm text-gray-500 dark:text-gray-400">Showing:</span>
-                <span 
+                <span class="text-sm text-gray-500 dark:text-gray-400"
+                  >Showing:</span
+                >
+                <span
                   class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium"
                   :class="{
                     'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400': decisionFilter === 'green',
@@ -148,109 +294,211 @@
                   }"
                 >
                   <span x-text="getDecisionFilterLabel()"></span>
-                  <button 
+                  <button
+                    type="button"
                     @click="clearDecisionFilter()"
                     class="ml-1 rounded-full p-0.5 hover:bg-black/10 dark:hover:bg-white/10"
                     title="Clear filter"
                   >
-                    <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    <svg
+                      class="h-3.5 w-3.5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M6 18L18 6M6 6l12 12"
+                      />
                     </svg>
                   </button>
                 </span>
-                <span class="text-sm text-gray-500 dark:text-gray-400" x-text="'(' + displayProperties.length + ' properties)'"></span>
+                <span
+                  class="text-sm text-gray-500 dark:text-gray-400"
+                  x-text="'(' + displayProperties.length + ' properties)'"
+                ></span>
               </div>
-              
+
               <!-- Summary Cards (filtered by current selection) -->
-              <div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              <div
+                class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
+              >
                 <!-- Total Properties -->
-                <div 
-                  class="rounded-lg border bg-white p-5 dark:bg-gray-900 transition-all cursor-pointer"
+                <button
+                  type="button"
+                  class="w-full cursor-pointer rounded-lg border bg-white p-5 text-left transition-[border-color,box-shadow,scale] dark:bg-gray-900"
                   :class="decisionFilter === null ? 'border-blue-400 ring-2 ring-blue-200 dark:ring-blue-800' : 'border-gray-200 dark:border-gray-700 hover:border-blue-300'"
+                  :aria-pressed="decisionFilter === null"
                   @click="clearDecisionFilter()"
                 >
                   <div class="flex items-center gap-4">
-                    <div class="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-500/20">
-                      <svg class="h-6 w-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                    <div
+                      class="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-500/20"
+                    >
+                      <svg
+                        class="h-6 w-6 text-blue-600 dark:text-blue-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                        />
                       </svg>
                     </div>
                     <div>
-                      <p class="text-sm text-gray-500 dark:text-gray-400">Total Properties</p>
-                      <p class="text-2xl font-bold text-gray-900 dark:text-white" x-text="filteredSummary.total"></p>
+                      <p class="text-sm text-gray-500 dark:text-gray-400">
+                        Total Properties
+                      </p>
+                      <p
+                        class="text-2xl font-bold text-gray-900 dark:text-white"
+                        x-text="filteredSummary.total"
+                      ></p>
                     </div>
                   </div>
-                </div>
+                </button>
 
                 <!-- Move Forward -->
-                <div 
-                  class="rounded-lg border bg-white p-5 dark:bg-gray-900 transition-all cursor-pointer"
+                <button
+                  type="button"
+                  class="w-full cursor-pointer rounded-lg border bg-white p-5 text-left transition-[border-color,box-shadow,scale] dark:bg-gray-900"
                   :class="decisionFilter === 'green' ? 'border-green-400 ring-2 ring-green-200 dark:ring-green-800' : 'border-gray-200 dark:border-gray-700 hover:border-green-300'"
+                  :aria-pressed="decisionFilter === 'green'"
                   @click="toggleDecisionFilter('green')"
                 >
                   <div class="flex items-center gap-4">
-                    <div class="flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-500/20">
-                      <svg class="h-6 w-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    <div
+                      class="flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-500/20"
+                    >
+                      <svg
+                        class="h-6 w-6 text-green-600 dark:text-green-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
                       </svg>
                     </div>
                     <div>
-                      <p class="text-sm text-gray-500 dark:text-gray-400">Move Forward</p>
-                      <p class="text-2xl font-bold text-green-600 dark:text-green-400" x-text="filteredSummary.moveForward"></p>
+                      <p class="text-sm text-gray-500 dark:text-gray-400">
+                        Move Forward
+                      </p>
+                      <p
+                        class="text-2xl font-bold text-green-600 dark:text-green-400"
+                        x-text="filteredSummary.moveForward"
+                      ></p>
                     </div>
                   </div>
-                </div>
+                </button>
 
                 <!-- Needs Review -->
-                <div 
-                  class="rounded-lg border bg-white p-5 dark:bg-gray-900 transition-all cursor-pointer"
+                <button
+                  type="button"
+                  class="w-full cursor-pointer rounded-lg border bg-white p-5 text-left transition-[border-color,box-shadow,scale] dark:bg-gray-900"
                   :class="decisionFilter === 'yellow' ? 'border-yellow-400 ring-2 ring-yellow-200 dark:ring-yellow-800' : 'border-gray-200 dark:border-gray-700 hover:border-yellow-300'"
+                  :aria-pressed="decisionFilter === 'yellow'"
                   @click="toggleDecisionFilter('yellow')"
                 >
                   <div class="flex items-center gap-4">
-                    <div class="flex h-12 w-12 items-center justify-center rounded-full bg-yellow-100 dark:bg-yellow-500/20">
-                      <svg class="h-6 w-6 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    <div
+                      class="flex h-12 w-12 items-center justify-center rounded-full bg-yellow-100 dark:bg-yellow-500/20"
+                    >
+                      <svg
+                        class="h-6 w-6 text-yellow-600 dark:text-yellow-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                        />
                       </svg>
                     </div>
                     <div>
-                      <p class="text-sm text-gray-500 dark:text-gray-400">Needs Review</p>
-                      <p class="text-2xl font-bold text-yellow-600 dark:text-yellow-400" x-text="filteredSummary.needsReview"></p>
+                      <p class="text-sm text-gray-500 dark:text-gray-400">
+                        Needs Review
+                      </p>
+                      <p
+                        class="text-2xl font-bold text-yellow-600 dark:text-yellow-400"
+                        x-text="filteredSummary.needsReview"
+                      ></p>
                     </div>
                   </div>
-                </div>
+                </button>
 
                 <!-- Rejected -->
-                <div 
-                  class="rounded-lg border bg-white p-5 dark:bg-gray-900 transition-all cursor-pointer"
+                <button
+                  type="button"
+                  class="w-full cursor-pointer rounded-lg border bg-white p-5 text-left transition-[border-color,box-shadow,scale] dark:bg-gray-900"
                   :class="decisionFilter === 'red' ? 'border-red-400 ring-2 ring-red-200 dark:ring-red-800' : 'border-gray-200 dark:border-gray-700 hover:border-red-300'"
+                  :aria-pressed="decisionFilter === 'red'"
                   @click="toggleDecisionFilter('red')"
                 >
                   <div class="flex items-center gap-4">
-                    <div class="flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-500/20">
-                      <svg class="h-6 w-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    <div
+                      class="flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-500/20"
+                    >
+                      <svg
+                        class="h-6 w-6 text-red-600 dark:text-red-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
                       </svg>
                     </div>
                     <div>
-                      <p class="text-sm text-gray-500 dark:text-gray-400">Rejected</p>
-                      <p class="text-2xl font-bold text-red-600 dark:text-red-400" x-text="filteredSummary.rejected"></p>
+                      <p class="text-sm text-gray-500 dark:text-gray-400">
+                        Rejected
+                      </p>
+                      <p
+                        class="text-2xl font-bold text-red-600 dark:text-red-400"
+                        x-text="filteredSummary.rejected"
+                      ></p>
                     </div>
                   </div>
-                </div>
+                </button>
               </div>
 
               <!-- Charts Row -->
               <div class="mb-6 grid grid-cols-12 gap-6">
                 <!-- Score Distribution Donut Chart (filtered) - Click to filter by decision -->
                 <div class="col-span-12 xl:col-span-5">
-                  <div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-900">
+                  <div
+                    class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-900"
+                  >
                     <div class="mb-4 flex items-center justify-between">
-                      <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                      <h3
+                        class="text-lg font-semibold text-gray-900 dark:text-white"
+                      >
                         Score Distribution
-                        <span x-show="drillLevel > 0" class="text-sm font-normal text-gray-500 dark:text-gray-400" x-text="'(' + getFilterLabel() + ')'"></span>
+                        <span
+                          x-show="drillLevel > 0"
+                          class="text-sm font-normal text-gray-500 dark:text-gray-400"
+                          x-text="'(' + getFilterLabel() + ')'"
+                        ></span>
                       </h3>
-                      <span class="text-xs text-gray-400 dark:text-gray-500">Click to filter</span>
+                      <span class="text-xs text-gray-400 dark:text-gray-500"
+                        >Click to filter</span
+                      >
                     </div>
                     <div id="distributionChart" class="h-[300px]"></div>
                   </div>
@@ -258,8 +506,12 @@
 
                 <!-- Geographic Drill-Down Bar Chart -->
                 <div class="col-span-12 xl:col-span-7">
-                  <div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-900">
-                    <h3 class="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
+                  <div
+                    class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-900"
+                  >
+                    <h3
+                      class="mb-4 text-lg font-semibold text-gray-900 dark:text-white"
+                    >
                       <span x-text="getChartTitle()"></span>
                     </h3>
                     <div id="drilldownChart" class="h-[300px]"></div>
@@ -268,66 +520,145 @@
               </div>
 
               <!-- Properties Table (filtered) -->
-              <div class="rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">
-                <div class="flex items-center justify-between border-b border-gray-200 px-6 py-4 dark:border-gray-700">
-                  <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+              <div
+                class="rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900"
+              >
+                <div
+                  class="flex items-center justify-between border-b border-gray-200 px-6 py-4 dark:border-gray-700"
+                >
+                  <h3
+                    class="text-lg font-semibold text-gray-900 dark:text-white"
+                  >
                     <span x-show="!showingDeleted">Properties</span>
                     <span x-show="showingDeleted">Deleted Properties</span>
-                    <span x-show="drillLevel > 0 && !showingDeleted" class="text-sm font-normal text-gray-500 dark:text-gray-400" x-text="'in ' + getFilterLabel()"></span>
+                    <span
+                      x-show="drillLevel > 0 && !showingDeleted"
+                      class="text-sm font-normal text-gray-500 dark:text-gray-400"
+                      x-text="'in ' + getFilterLabel()"
+                    ></span>
                   </h3>
                   <div class="flex items-center gap-2">
                     <!-- Toggle deleted properties -->
-                    <button 
+                    <button
+                      type="button"
                       @click="toggleDeletedView()"
                       class="inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors"
                       :class="showingDeleted 
                         ? 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300' 
                         : 'text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700'"
                     >
-                      <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                      <svg
+                        class="h-4 w-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                        />
                       </svg>
-                      <span x-text="showingDeleted ? 'View Active' : 'View Deleted (' + deletedCount + ')'"></span>
+                      <span
+                        x-text="showingDeleted ? 'View Active' : 'View Deleted (' + deletedCount + ')'"
+                      ></span>
                     </button>
                   </div>
                 </div>
-                <div class="overflow-x-auto">
-                  <table class="w-full table-auto">
+                <p
+                  id="properties-table-scroll-hint"
+                  class="px-6 pt-3 text-xs text-gray-500 sm:hidden dark:text-gray-400"
+                >
+                  Swipe horizontally to review every property field and action.
+                </p>
+                <div
+                  class="focus:ring-brand-500 overflow-x-auto focus:ring-2 focus:outline-none"
+                  role="region"
+                  aria-label="Properties table"
+                  aria-describedby="properties-table-scroll-hint"
+                  tabindex="0"
+                >
+                  <table class="w-full min-w-[860px] table-auto">
                     <thead>
                       <tr class="bg-gray-50 dark:bg-gray-800">
-                        <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">Property</th>
-                        <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">City</th>
-                        <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">State</th>
-                        <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">Score</th>
-                        <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">Status</th>
-                        <th class="px-6 py-3 text-center text-sm font-semibold text-gray-700 dark:text-gray-300">Actions</th>
+                        <th
+                          class="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300"
+                        >
+                          Property
+                        </th>
+                        <th
+                          class="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300"
+                        >
+                          City
+                        </th>
+                        <th
+                          class="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300"
+                        >
+                          State
+                        </th>
+                        <th
+                          class="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300"
+                        >
+                          Score
+                        </th>
+                        <th
+                          class="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300"
+                        >
+                          Status
+                        </th>
+                        <th
+                          class="px-6 py-3 text-center text-sm font-semibold text-gray-700 dark:text-gray-300"
+                        >
+                          Actions
+                        </th>
                       </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-                      <template x-for="property in displayProperties" :key="property.id">
+                    <tbody
+                      class="divide-y divide-gray-200 dark:divide-gray-700"
+                    >
+                      <template
+                        x-for="property in displayProperties"
+                        :key="property.id"
+                      >
                         <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                          <td class="px-6 py-4 max-w-[200px]">
+                          <td class="max-w-[200px] px-6 py-4">
                             <div class="min-w-0">
-                              <p 
+                              <p
                                 class="font-medium text-gray-900 dark:text-white"
-                                style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;"
+                                style="
+                                  display: -webkit-box;
+                                  -webkit-line-clamp: 2;
+                                  -webkit-box-orient: vertical;
+                                  overflow: hidden;
+                                "
                                 x-text="property.propertyName"
                                 :title="property.propertyName"
                               ></p>
-                              <p 
+                              <p
                                 class="text-xs text-gray-500 dark:text-gray-400"
-                                style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
+                                style="
+                                  white-space: nowrap;
+                                  overflow: hidden;
+                                  text-overflow: ellipsis;
+                                "
                                 x-text="property.address?.street || 'No address'"
                                 :title="property.address?.street || 'No address'"
                               ></p>
                             </div>
                           </td>
-                          <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-300" x-text="property.address?.city || '-'"></td>
-                          <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-300" x-text="property.address?.stateAbbr || '-'"></td>
+                          <td
+                            class="px-6 py-4 text-sm text-gray-600 dark:text-gray-300"
+                            x-text="property.address?.city || '-'"
+                          ></td>
+                          <td
+                            class="px-6 py-4 text-sm text-gray-600 dark:text-gray-300"
+                            x-text="property.address?.stateAbbr || '-'"
+                          ></td>
                           <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="flex items-center gap-2 flex-nowrap">
-                              <span 
-                                class="inline-flex items-center justify-center rounded-full px-3 py-1 text-sm font-semibold flex-shrink-0"
+                            <div class="flex flex-nowrap items-center gap-2">
+                              <span
+                                class="inline-flex flex-shrink-0 items-center justify-center rounded-full px-3 py-1 text-sm font-semibold"
                                 :class="{
                                   'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400': property.decisionColor === 'green',
                                   'bg-yellow-100 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-400': property.decisionColor === 'yellow',
@@ -336,9 +667,9 @@
                                 x-text="property.score?.toFixed(1) || '0.0'"
                               ></span>
                               <!-- Missing items indicator -->
-                              <span 
+                              <span
                                 x-show="getMissingCount(property) > 0"
-                                class="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap flex-shrink-0"
+                                class="flex-shrink-0 text-xs whitespace-nowrap text-gray-400 dark:text-gray-500"
                                 x-text="getMissingCount(property) + ' missing'"
                               ></span>
                             </div>
@@ -346,65 +677,143 @@
                           <td class="px-6 py-4">
                             <div class="flex items-center gap-2">
                               <!-- Status Icon -->
-                              <template x-if="property.decisionColor === 'green'">
-                                <span class="flex items-center gap-1 text-green-600 dark:text-green-400">
-                                  <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                              <template
+                                x-if="property.decisionColor === 'green'"
+                              >
+                                <span
+                                  class="flex items-center gap-1 text-green-600 dark:text-green-400"
+                                >
+                                  <svg
+                                    class="h-5 w-5"
+                                    fill="currentColor"
+                                    viewBox="0 0 20 20"
+                                  >
+                                    <path
+                                      fill-rule="evenodd"
+                                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                      clip-rule="evenodd"
+                                    />
                                   </svg>
-                                  <span class="text-xs font-medium">Move Forward</span>
+                                  <span class="text-xs font-medium"
+                                    >Move Forward</span
+                                  >
                                 </span>
                               </template>
-                              <template x-if="property.decisionColor === 'yellow'">
-                                <span class="flex items-center gap-1 text-yellow-600 dark:text-yellow-400">
-                                  <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                              <template
+                                x-if="property.decisionColor === 'yellow'"
+                              >
+                                <span
+                                  class="flex items-center gap-1 text-yellow-600 dark:text-yellow-400"
+                                >
+                                  <svg
+                                    class="h-5 w-5"
+                                    fill="currentColor"
+                                    viewBox="0 0 20 20"
+                                  >
+                                    <path
+                                      fill-rule="evenodd"
+                                      d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                                      clip-rule="evenodd"
+                                    />
                                   </svg>
-                                  <span class="text-xs font-medium">Needs Review</span>
+                                  <span class="text-xs font-medium"
+                                    >Needs Review</span
+                                  >
                                 </span>
                               </template>
                               <template x-if="property.decisionColor === 'red'">
-                                <span class="flex items-center gap-1 text-red-600 dark:text-red-400">
-                                  <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                                <span
+                                  class="flex items-center gap-1 text-red-600 dark:text-red-400"
+                                >
+                                  <svg
+                                    class="h-5 w-5"
+                                    fill="currentColor"
+                                    viewBox="0 0 20 20"
+                                  >
+                                    <path
+                                      fill-rule="evenodd"
+                                      d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                      clip-rule="evenodd"
+                                    />
                                   </svg>
-                                  <span class="text-xs font-medium">Rejected</span>
+                                  <span class="text-xs font-medium"
+                                    >Rejected</span
+                                  >
                                 </span>
                               </template>
                             </div>
                           </td>
                           <td class="px-6 py-4 text-center">
                             <div class="flex items-center justify-center gap-2">
-                              <button 
+                              <button
+                                type="button"
                                 @click="showPropertyDetails(property)"
-                                class="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium text-brand-500 hover:bg-brand-50 dark:hover:bg-brand-500/10"
+                                class="text-brand-500 hover:bg-brand-50 dark:hover:bg-brand-500/10 inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium"
                               >
-                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                <svg
+                                  class="h-4 w-4"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                                  />
+                                  <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                                  />
                                 </svg>
                                 Details
                               </button>
                               <!-- Delete button (only for active properties) -->
                               <template x-if="!showingDeleted">
-                                <button 
+                                <button
+                                  type="button"
                                   @click="confirmDelete(property)"
                                   class="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10"
                                   title="Delete property"
                                 >
-                                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                  <svg
+                                    class="h-4 w-4"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      stroke-linecap="round"
+                                      stroke-linejoin="round"
+                                      stroke-width="2"
+                                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                    />
                                   </svg>
                                 </button>
                               </template>
                               <!-- Restore button (only for deleted properties) -->
                               <template x-if="showingDeleted">
-                                <button 
+                                <button
+                                  type="button"
                                   @click="restoreProperty(property)"
                                   class="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium text-green-500 hover:bg-green-50 dark:hover:bg-green-500/10"
                                   title="Restore property"
                                 >
-                                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                  <svg
+                                    class="h-4 w-4"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      stroke-linecap="round"
+                                      stroke-linejoin="round"
+                                      stroke-width="2"
+                                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                                    />
                                   </svg>
                                   Restore
                                 </button>
@@ -420,36 +829,63 @@
             </div>
 
             <!-- Property Details Modal -->
-            <div 
+            <div
               x-show="selectedProperty !== null"
-              x-transition:enter="transition ease-out duration-300"
+              x-transition:enter="transition-opacity ease-out duration-300"
               x-transition:enter-start="opacity-0"
               x-transition:enter-end="opacity-100"
-              x-transition:leave="transition ease-in duration-200"
+              x-transition:leave="transition-opacity ease-out duration-150"
               x-transition:leave-start="opacity-100"
               x-transition:leave-end="opacity-0"
               class="fixed inset-0 z-99999 flex items-center justify-center bg-black/50 p-4"
-              @click.self="selectedProperty = null"
-              @keydown.escape.window="selectedProperty = null"
+              @click.self="closePropertyDetails()"
+              @keydown.escape.window="closePropertyDetails()"
             >
-              <div 
+              <div
+                x-ref="propertyDialog"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="property-dialog-title"
+                tabindex="-1"
+                @keydown.tab="trapFocus($event, $el)"
                 class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-white p-6 shadow-xl dark:bg-gray-900"
-                x-transition:enter="transition ease-out duration-300"
+                x-transition:enter="transition-[opacity,transform] ease-out duration-300"
                 x-transition:enter-start="opacity-0 transform scale-95"
                 x-transition:enter-end="opacity-100 transform scale-100"
               >
                 <!-- Modal Header -->
-                <div class="mb-6 flex items-center justify-between border-b border-gray-200 pb-4 dark:border-gray-700">
+                <div
+                  class="mb-6 flex items-center justify-between border-b border-gray-200 pb-4 dark:border-gray-700"
+                >
                   <div>
-                    <h3 class="text-xl font-semibold text-gray-900 dark:text-white" x-text="selectedProperty?.propertyName"></h3>
-                    <p class="text-sm text-gray-500 dark:text-gray-400" x-text="selectedProperty?.address?.fullAddress || 'No address available'"></p>
+                    <h3
+                      id="property-dialog-title"
+                      class="text-xl font-semibold text-gray-900 dark:text-white"
+                      x-text="selectedProperty?.propertyName"
+                    ></h3>
+                    <p
+                      class="text-sm text-gray-500 dark:text-gray-400"
+                      x-text="selectedProperty?.address?.fullAddress || 'No address available'"
+                    ></p>
                   </div>
-                  <button 
-                    @click="selectedProperty = null"
+                  <button
+                    type="button"
+                    @click="closePropertyDetails()"
+                    aria-label="Close property details"
                     class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
                   >
-                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    <svg
+                      class="h-6 w-6"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M6 18L18 6M6 6l12 12"
+                      />
                     </svg>
                   </button>
                 </div>
@@ -458,8 +894,11 @@
                 <div class="mb-6 rounded-lg bg-gray-50 p-4 dark:bg-gray-800">
                   <div class="flex items-center justify-between">
                     <div>
-                      <p class="text-sm text-gray-500 dark:text-gray-400">Overall Score</p>
-                      <p class="text-3xl font-bold" 
+                      <p class="text-sm text-gray-500 dark:text-gray-400">
+                        Overall Score
+                      </p>
+                      <p
+                        class="text-3xl font-bold"
                         :class="{
                           'text-green-600 dark:text-green-400': selectedProperty?.decisionColor === 'green',
                           'text-yellow-600 dark:text-yellow-400': selectedProperty?.decisionColor === 'yellow',
@@ -468,7 +907,7 @@
                         x-text="selectedProperty?.score?.toFixed(1) + ' / 10'"
                       ></p>
                     </div>
-                    <div 
+                    <div
                       class="rounded-full px-4 py-2 text-sm font-semibold"
                       :class="{
                         'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400': selectedProperty?.decisionColor === 'green',
@@ -482,28 +921,51 @@
 
                 <!-- Score Breakdown -->
                 <div>
-                  <h4 class="mb-4 text-lg font-semibold text-gray-900 dark:text-white">Score Breakdown</h4>
+                  <h4
+                    class="mb-4 text-lg font-semibold text-gray-900 dark:text-white"
+                  >
+                    Score Breakdown
+                  </h4>
                   <!-- Table for proper column alignment -->
                   <table class="w-full">
                     <thead>
-                      <tr class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
+                      <tr
+                        class="border-b border-gray-200 text-xs font-medium tracking-wide text-gray-500 uppercase dark:border-gray-700 dark:text-gray-400"
+                      >
                         <th class="py-2 text-left">Factor</th>
-                        <th class="py-2 text-right pr-4">Figure</th>
-                        <th class="py-2 text-right w-14">Score</th>
-                        <th class="py-2 text-right w-16">Weight</th>
+                        <th class="py-2 pr-4 text-right">Figure</th>
+                        <th class="w-14 py-2 text-right">Score</th>
+                        <th class="w-16 py-2 text-right">Weight</th>
                       </tr>
                     </thead>
                     <tbody>
-                      <template x-for="factor in getOrderedBreakdown()" :key="factor.key">
-                        <tr class="border-b border-gray-200 dark:border-gray-700">
+                      <template
+                        x-for="factor in getOrderedBreakdown()"
+                        :key="factor.key"
+                      >
+                        <tr
+                          class="border-b border-gray-200 dark:border-gray-700"
+                        >
                           <!-- Factor Name -->
-                          <td class="py-2 text-sm text-gray-700 dark:text-gray-300" x-text="factor.name"></td>
+                          <td
+                            class="py-2 text-sm text-gray-700 dark:text-gray-300"
+                            x-text="factor.name"
+                          ></td>
                           <!-- Figure Value (auto width, right-aligned) -->
-                          <td class="py-2 text-right pr-4 text-sm tabular-nums text-gray-600 dark:text-gray-300" x-text="formatFigure(factor.rawValue, factor.key)"></td>
+                          <td
+                            class="py-2 pr-4 text-right text-sm text-gray-600 tabular-nums dark:text-gray-300"
+                            x-text="formatFigure(factor.rawValue, factor.key)"
+                          ></td>
                           <!-- Score (fixed width, right-aligned) -->
-                          <td class="py-2 text-right w-14 text-sm font-semibold tabular-nums text-gray-900 dark:text-white" x-text="factor.score?.toFixed(0)"></td>
+                          <td
+                            class="w-14 py-2 text-right text-sm font-semibold text-gray-900 tabular-nums dark:text-white"
+                            x-text="factor.score?.toFixed(0)"
+                          ></td>
                           <!-- Weight (fixed width, right-aligned) -->
-                          <td class="py-2 text-right w-16 text-sm tabular-nums text-gray-500 dark:text-gray-400" x-text="(factor.weight * 100).toFixed(1) + '%'"></td>
+                          <td
+                            class="w-16 py-2 text-right text-sm text-gray-500 tabular-nums dark:text-gray-400"
+                            x-text="(factor.weight * 100).toFixed(1) + '%'"
+                          ></td>
                         </tr>
                       </template>
                     </tbody>
@@ -511,17 +973,28 @@
                 </div>
 
                 <!-- Debug Info (collapsible) -->
-                <div 
+                <div
                   x-show="showDebug && selectedProperty?.extractionId"
-                  x-transition
+                  x-transition:enter="transition-[opacity,transform] ease-out duration-200"
+                  x-transition:enter-start="opacity-0 -translate-y-1"
+                  x-transition:enter-end="opacity-100 translate-y-0"
+                  x-transition:leave="transition-[opacity,transform] ease-out duration-120"
+                  x-transition:leave-start="opacity-100 translate-y-0"
+                  x-transition:leave-end="opacity-0 -translate-y-1"
                   class="mt-4 rounded-lg bg-gray-100 p-3 dark:bg-gray-800"
                 >
                   <div class="flex items-center justify-between">
                     <div class="min-w-0 flex-1">
-                      <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Extraction ID</p>
-                      <code class="text-xs font-mono text-gray-700 dark:text-gray-300" x-text="selectedProperty?.extractionId"></code>
+                      <p class="mb-1 text-xs text-gray-500 dark:text-gray-400">
+                        Extraction ID
+                      </p>
+                      <code
+                        class="font-mono text-xs text-gray-700 dark:text-gray-300"
+                        x-text="selectedProperty?.extractionId"
+                      ></code>
                     </div>
                     <button
+                      type="button"
                       @click="copyExtractionId()"
                       class="ml-3 flex-shrink-0 rounded px-2 py-1 text-xs font-medium transition-colors"
                       :class="copySuccess ? 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400' : 'bg-gray-200 text-gray-600 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'"
@@ -530,26 +1003,30 @@
                     </button>
                   </div>
                 </div>
-                <p 
-                  x-show="showDebug && !selectedProperty?.extractionId" 
-                  class="mt-4 text-xs text-gray-400 dark:text-gray-500 italic"
+                <p
+                  x-show="showDebug && !selectedProperty?.extractionId"
+                  class="mt-4 text-xs text-gray-400 italic dark:text-gray-500"
                 >
                   No extraction ID found for this property
                 </p>
 
                 <!-- Modal Actions -->
-                <div class="mt-6 flex justify-between border-t border-gray-200 pt-4 dark:border-gray-700">
+                <div
+                  class="mt-6 flex justify-between border-t border-gray-200 pt-4 dark:border-gray-700"
+                >
                   <div class="flex items-center gap-2">
                     <button
+                      type="button"
                       x-show="!showingDeleted && selectedProperty?.id"
-                      @click="confirmDelete(selectedProperty); selectedProperty = null"
+                      @click="confirmDelete(selectedProperty)"
                       class="rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:border-red-600 dark:bg-gray-700 dark:text-red-400 dark:hover:bg-red-900/20"
                     >
                       Delete Property
                     </button>
                     <button
+                      type="button"
                       x-show="showingDeleted && selectedProperty?.id"
-                      @click="restoreProperty(selectedProperty); selectedProperty = null"
+                      @click="restoreProperty(selectedProperty); closePropertyDetails()"
                       class="rounded-lg border border-green-300 bg-white px-4 py-2 text-sm font-medium text-green-600 hover:bg-green-50 dark:border-green-600 dark:bg-gray-700 dark:text-green-400 dark:hover:bg-green-900/20"
                     >
                       Restore Property
@@ -558,17 +1035,29 @@
                   <div class="flex items-center gap-2">
                     <!-- Debug Toggle -->
                     <button
+                      type="button"
                       @click="showDebug = !showDebug"
                       class="rounded-lg p-2 transition-colors"
                       :class="showDebug ? 'bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-200' : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300'"
                       title="Toggle debug info"
                     >
-                      <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
+                      <svg
+                        class="h-5 w-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
+                        />
                       </svg>
                     </button>
                     <button
-                      @click="selectedProperty = null; showDebug = false"
+                      type="button"
+                      @click="closePropertyDetails()"
                       class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
                     >
                       Close
@@ -579,42 +1068,70 @@
             </div>
 
             <!-- Delete Confirmation Modal -->
-            <div 
+            <div
               x-show="deleteConfirmProperty !== null"
-              x-transition:enter="transition ease-out duration-200"
+              x-transition:enter="transition-opacity ease-out duration-200"
               x-transition:enter-start="opacity-0"
               x-transition:enter-end="opacity-100"
-              x-transition:leave="transition ease-in duration-150"
+              x-transition:leave="transition-opacity ease-out duration-120"
               x-transition:leave-start="opacity-100"
               x-transition:leave-end="opacity-0"
               class="fixed inset-0 z-999999 flex items-center justify-center bg-black/50 p-4"
-              @click.self="deleteConfirmProperty = null"
-              @keydown.escape.window="deleteConfirmProperty = null"
+              @click.self="closeDeleteDialog()"
+              @keydown.escape.window="closeDeleteDialog()"
             >
-              <div 
+              <div
+                x-ref="deleteDialog"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="delete-dialog-title"
+                tabindex="-1"
+                @keydown.tab="trapFocus($event, $el)"
                 class="w-full max-w-md overflow-visible rounded-lg bg-white p-6 shadow-xl dark:bg-gray-900"
-                x-transition:enter="transition ease-out duration-200"
+                x-transition:enter="transition-[opacity,transform] ease-out duration-200"
                 x-transition:enter-start="opacity-0 transform scale-95"
                 x-transition:enter-end="opacity-100 transform scale-100"
               >
                 <div class="mb-4 flex items-center gap-3">
-                  <div class="flex h-10 w-10 items-center justify-center rounded-full bg-red-100 dark:bg-red-500/20">
-                    <svg class="h-6 w-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                  <div
+                    class="flex h-10 w-10 items-center justify-center rounded-full bg-red-100 dark:bg-red-500/20"
+                  >
+                    <svg
+                      class="h-6 w-6 text-red-600 dark:text-red-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                      />
                     </svg>
                   </div>
-                  <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Delete Property</h3>
+                  <h3
+                    id="delete-dialog-title"
+                    class="text-lg font-semibold text-gray-900 dark:text-white"
+                  >
+                    Delete Property
+                  </h3>
                 </div>
                 <p class="mb-2 text-sm text-gray-600 dark:text-gray-300">
-                  Are you sure you want to delete <strong x-text="deleteConfirmProperty?.propertyName || deleteConfirmProperty?.name"></strong>?
+                  Are you sure you want to delete
+                  <strong
+                    x-text="deleteConfirmProperty?.propertyName || deleteConfirmProperty?.name"
+                  ></strong
+                  >?
                 </p>
                 <p class="mb-6 text-sm text-gray-500 dark:text-gray-400">
-                  This property and all related data will be moved to trash. You can restore it within 30 days.
+                  This property and all related data will be moved to trash. You
+                  can restore it within 30 days.
                 </p>
                 <div class="mt-6 grid grid-cols-2 gap-3">
                   <button
                     type="button"
-                    @click="deleteConfirmProperty = null"
+                    @click="closeDeleteDialog()"
                     class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
                   >
                     Cancel
@@ -639,99 +1156,132 @@
 
     <!-- Dashboard Script -->
     <script>
-      document.addEventListener('alpine:init', () => {
-        Alpine.data('propertyDashboard', () => ({
+      document.addEventListener("alpine:init", () => {
+        Alpine.data("propertyDashboard", () => ({
           // Core state
           loading: true,
-          allProperties: [],        // All properties from API
-          filteredProperties: [],   // Properties filtered by current drill-down
-          aggregateGroups: [],      // Aggregated data for bar chart
-          
+          loadError: "",
+          noticeMessage: "",
+          noticeType: "success",
+          noticeTimer: null,
+          allProperties: [], // All properties from API
+          filteredProperties: [], // Properties filtered by current drill-down
+          aggregateGroups: [], // Aggregated data for bar chart
+
           // Drill-down navigation state
-          drillLevel: 0,            // 0=regions, 1=states, 2=cities, 3=properties
-          currentRegion: null,      // e.g., "west"
-          currentState: null,       // e.g., "CA"
-          currentCity: null,        // e.g., "Los Angeles"
-          breadcrumb: [{ level: 0, label: 'All Regions', key: null }],
-          
+          drillLevel: 0, // 0=regions, 1=states, 2=cities, 3=properties
+          currentRegion: null, // e.g., "west"
+          currentState: null, // e.g., "CA"
+          currentCity: null, // e.g., "Los Angeles"
+          breadcrumb: [{ level: 0, label: "All Regions", key: null }],
+
           // Summary stats (filtered)
           filteredSummary: {
             total: 0,
             moveForward: 0,
             needsReview: 0,
-            rejected: 0
+            rejected: 0,
           },
-          
+
           // Modal and UI state
           selectedProperty: null,
           distributionChart: null,
           drilldownChart: null,
-          
+
           // Factor display order
           factorOrder: [
-            'population', 'populationGrowth', 'medianHHIncome', 'medianHomeValue',
-            'renterHouseholdsPercent', 'violentCrimeRate', 'propertyCrimeRate',
-            'schoolRatings', 'walkScore', 'transitScore', 'submarketVacancy',
-            'submarketDeliveredPercent', 'submarketConstructionPercent'
+            "population",
+            "populationGrowth",
+            "medianHHIncome",
+            "medianHomeValue",
+            "renterHouseholdsPercent",
+            "violentCrimeRate",
+            "propertyCrimeRate",
+            "schoolRatings",
+            "walkScore",
+            "transitScore",
+            "submarketVacancy",
+            "submarketDeliveredPercent",
+            "submarketConstructionPercent",
           ],
-          
+
           // Delete/Restore state
           showingDeleted: false,
           deletedCount: 0,
           deleteConfirmProperty: null,
           deleting: false,
-          
+
           // Debug state
           showDebug: false,
           copySuccess: false,
-          
+          lastFocusedElement: null,
+
           // Decision filter (null = all, 'green' = Move Forward, 'yellow' = Needs Review, 'red' = Rejected)
           decisionFilter: null,
-          
+
           // ========== Computed/Filtered Data ==========
-          
+
           // Get properties filtered by decision type
           get displayProperties() {
             if (!this.decisionFilter) return this.filteredProperties;
-            return this.filteredProperties.filter(p => p.decisionColor === this.decisionFilter);
+            return this.filteredProperties.filter(
+              (p) => p.decisionColor === this.decisionFilter,
+            );
           },
-          
+
           // Get aggregate groups filtered by decision type
           get displayAggregateGroups() {
             if (!this.decisionFilter) return this.aggregateGroups;
             // Filter aggregate data to show only the selected decision count
-            return this.aggregateGroups.map(g => {
-              if (this.decisionFilter === 'green') {
-                return { ...g, needsReview: 0, rejected: 0, total: g.moveForward };
-              } else if (this.decisionFilter === 'yellow') {
-                return { ...g, moveForward: 0, rejected: 0, total: g.needsReview };
-              } else if (this.decisionFilter === 'red') {
-                return { ...g, moveForward: 0, needsReview: 0, total: g.rejected };
-              }
-              return g;
-            }).filter(g => g.total > 0);
+            return this.aggregateGroups
+              .map((g) => {
+                if (this.decisionFilter === "green") {
+                  return {
+                    ...g,
+                    needsReview: 0,
+                    rejected: 0,
+                    total: g.moveForward,
+                  };
+                } else if (this.decisionFilter === "yellow") {
+                  return {
+                    ...g,
+                    moveForward: 0,
+                    rejected: 0,
+                    total: g.needsReview,
+                  };
+                } else if (this.decisionFilter === "red") {
+                  return {
+                    ...g,
+                    moveForward: 0,
+                    needsReview: 0,
+                    total: g.rejected,
+                  };
+                }
+                return g;
+              })
+              .filter((g) => g.total > 0);
           },
-          
+
           // Get display summary for current filter
           get displaySummary() {
             if (!this.decisionFilter) return this.filteredSummary;
             const count = this.displayProperties.length;
             return {
               total: count,
-              moveForward: this.decisionFilter === 'green' ? count : 0,
-              needsReview: this.decisionFilter === 'yellow' ? count : 0,
-              rejected: this.decisionFilter === 'red' ? count : 0
+              moveForward: this.decisionFilter === "green" ? count : 0,
+              needsReview: this.decisionFilter === "yellow" ? count : 0,
+              rejected: this.decisionFilter === "red" ? count : 0,
             };
           },
-          
+
           // Get decision filter label for display
           getDecisionFilterLabel() {
-            if (this.decisionFilter === 'green') return 'Move Forward';
-            if (this.decisionFilter === 'yellow') return 'Needs Review';
-            if (this.decisionFilter === 'red') return 'Rejected';
+            if (this.decisionFilter === "green") return "Move Forward";
+            if (this.decisionFilter === "yellow") return "Needs Review";
+            if (this.decisionFilter === "red") return "Rejected";
             return null;
           },
-          
+
           // Toggle decision filter (click same to clear)
           toggleDecisionFilter(color) {
             if (this.decisionFilter === color) {
@@ -744,7 +1294,7 @@
               this.initDrilldownChart();
             });
           },
-          
+
           // Clear decision filter
           clearDecisionFilter() {
             this.decisionFilter = null;
@@ -752,28 +1302,28 @@
               this.initDrilldownChart();
             });
           },
-          
+
           // ========== Initialization ==========
-          
+
           async init() {
             // Parse URL params and restore state
             this.restoreFromUrl();
-            
+
             // Listen for browser back/forward
-            window.addEventListener('popstate', () => this.restoreFromUrl());
-            
+            window.addEventListener("popstate", () => this.restoreFromUrl());
+
             // Load initial data
             await this.loadData();
           },
-          
+
           // ========== URL State Management ==========
-          
+
           restoreFromUrl() {
             const params = new URLSearchParams(window.location.search);
-            this.currentRegion = params.get('region');
-            this.currentState = params.get('state');
-            this.currentCity = params.get('city');
-            
+            this.currentRegion = params.get("region");
+            this.currentState = params.get("state");
+            this.currentCity = params.get("city");
+
             // Calculate drill level
             if (this.currentCity) {
               this.drillLevel = 3;
@@ -784,103 +1334,144 @@
             } else {
               this.drillLevel = 0;
             }
-            
+
             // Update breadcrumb
             this.updateBreadcrumb();
           },
-          
+
           updateUrl() {
             const params = new URLSearchParams();
-            if (this.currentRegion) params.set('region', this.currentRegion);
-            if (this.currentState) params.set('state', this.currentState);
-            if (this.currentCity) params.set('city', this.currentCity);
-            
-            const newUrl = params.toString() 
+            if (this.currentRegion) params.set("region", this.currentRegion);
+            if (this.currentState) params.set("state", this.currentState);
+            if (this.currentCity) params.set("city", this.currentCity);
+
+            const newUrl = params.toString()
               ? `${window.location.pathname}?${params.toString()}`
               : window.location.pathname;
-            
-            history.pushState({
-              region: this.currentRegion,
-              state: this.currentState,
-              city: this.currentCity
-            }, '', newUrl);
+
+            history.pushState(
+              {
+                region: this.currentRegion,
+                state: this.currentState,
+                city: this.currentCity,
+              },
+              "",
+              newUrl,
+            );
           },
-          
+
           updateBreadcrumb() {
-            this.breadcrumb = [{ level: 0, label: 'All Regions', key: null }];
-            
+            this.breadcrumb = [{ level: 0, label: "All Regions", key: null }];
+
             if (this.currentRegion) {
               const regionName = this.getRegionDisplayName(this.currentRegion);
-              this.breadcrumb.push({ level: 1, label: regionName, key: this.currentRegion });
+              this.breadcrumb.push({
+                level: 1,
+                label: regionName,
+                key: this.currentRegion,
+              });
             }
             if (this.currentState) {
               const stateName = this.getStateDisplayName(this.currentState);
-              this.breadcrumb.push({ level: 2, label: stateName, key: this.currentState });
+              this.breadcrumb.push({
+                level: 2,
+                label: stateName,
+                key: this.currentState,
+              });
             }
             if (this.currentCity) {
-              this.breadcrumb.push({ level: 3, label: this.currentCity, key: this.currentCity });
+              this.breadcrumb.push({
+                level: 3,
+                label: this.currentCity,
+                key: this.currentCity,
+              });
             }
           },
-          
+
           // ========== Data Loading ==========
-          
+
           async loadData() {
             this.loading = true;
-            
+            this.loadError = "";
+
             // Reset decision filter when navigating to new data
             this.decisionFilter = null;
-            
+
             try {
               // Determine groupBy level
-              let groupBy = 'region';
+              let groupBy = "region";
               if (this.currentCity) {
-                groupBy = 'property';
+                groupBy = "property";
               } else if (this.currentState) {
-                groupBy = 'city';
+                groupBy = "city";
               } else if (this.currentRegion) {
-                groupBy = 'state';
+                groupBy = "state";
               }
-              
+
               // Build query params
               const params = new URLSearchParams({ groupBy });
-              if (this.currentRegion) params.set('region', this.currentRegion);
-              if (this.currentState) params.set('state', this.currentState);
-              if (this.currentCity) params.set('city', this.currentCity);
-              
+              if (this.currentRegion) params.set("region", this.currentRegion);
+              if (this.currentState) params.set("state", this.currentState);
+              if (this.currentCity) params.set("city", this.currentCity);
+
               const response = await fetch(`/api/scoring/aggregate?${params}`);
+              if (!response.ok)
+                throw new Error("The local analysis service did not respond.");
               const data = await response.json();
-              
+
               if (data.success) {
                 this.aggregateGroups = data.groups || [];
                 this.filteredProperties = data.filteredProperties || [];
                 this.allProperties = data.filteredProperties || [];
                 this.filteredSummary = data.summary || this.filteredSummary;
                 this.deletedCount = data.summary?.deletedCount || 0;
-                
+
+                const hasDashboardData =
+                  this.aggregateGroups.length > 0 ||
+                  this.filteredProperties.length > 0;
+
+                if (!hasDashboardData) {
+                  this.distributionChart?.destroy();
+                  this.drilldownChart?.destroy();
+                  this.distributionChart = null;
+                  this.drilldownChart = null;
+                  return;
+                }
+
+                await window.loadApexCharts();
+
                 // Initialize charts
                 this.$nextTick(() => {
                   this.initCharts();
                 });
+              } else {
+                throw new Error(data.error || "Property data is unavailable.");
               }
             } catch (error) {
-              console.error('Failed to load data:', error);
+              console.error("Failed to load data:", error);
+              this.aggregateGroups = [];
+              this.filteredProperties = [];
+              this.loadError =
+                error.message || "Check the local runtime and try again.";
             } finally {
               this.loading = false;
             }
           },
-          
+
           // ========== Navigation ==========
-          
+
           drillDown(groupKey, groupName) {
             // At property level (drillLevel 3), show property details instead
             if (this.drillLevel === 3) {
-              const property = this.filteredProperties.find(p => String(p.id) === groupKey);
+              const property = this.filteredProperties.find(
+                (p) => String(p.id) === groupKey,
+              );
               if (property) {
                 this.showPropertyDetails(property);
               }
               return;
             }
-            
+
             // Navigate deeper
             if (this.drillLevel === 0) {
               this.currentRegion = groupKey;
@@ -889,15 +1480,15 @@
               this.currentState = groupKey;
               this.drillLevel = 2;
             } else if (this.drillLevel === 2) {
-              this.currentCity = groupName;  // Use name for city (key is normalized)
+              this.currentCity = groupName; // Use name for city (key is normalized)
               this.drillLevel = 3;
             }
-            
+
             this.updateBreadcrumb();
             this.updateUrl();
             this.loadData();
           },
-          
+
           navigateBack() {
             if (this.drillLevel === 3) {
               this.currentCity = null;
@@ -909,15 +1500,15 @@
               this.currentRegion = null;
               this.drillLevel = 0;
             }
-            
+
             this.updateBreadcrumb();
             this.updateUrl();
             this.loadData();
           },
-          
+
           navigateToCrumb(index) {
             const targetLevel = this.breadcrumb[index].level;
-            
+
             if (targetLevel === 0) {
               this.currentRegion = null;
               this.currentState = null;
@@ -932,451 +1523,590 @@
               this.drillLevel = 2;
             }
             // Level 3 is current, no action needed
-            
+
             this.updateBreadcrumb();
             this.updateUrl();
             this.loadData();
           },
-          
+
           // ========== Display Helpers ==========
-          
+
           getChartTitle() {
-            if (this.drillLevel === 0) return 'Properties by Region';
-            if (this.drillLevel === 1) return 'Properties by State';
-            if (this.drillLevel === 2) return 'Properties by City';
-            return 'Property Scores';
+            if (this.drillLevel === 0) return "Properties by Region";
+            if (this.drillLevel === 1) return "Properties by State";
+            if (this.drillLevel === 2) return "Properties by City";
+            return "Property Scores";
           },
-          
+
           getFilterLabel() {
             const parts = [];
-            if (this.currentRegion) parts.push(this.getRegionDisplayName(this.currentRegion));
-            if (this.currentState) parts.push(this.getStateDisplayName(this.currentState));
+            if (this.currentRegion)
+              parts.push(this.getRegionDisplayName(this.currentRegion));
+            if (this.currentState)
+              parts.push(this.getStateDisplayName(this.currentState));
             if (this.currentCity) parts.push(this.currentCity);
-            return parts.join(' / ') || 'All';
+            return parts.join(" / ") || "All";
           },
-          
+
           // Region and state name lookups (mirror backend census_regions.js)
           getRegionDisplayName(key) {
-            const names = { northeast: 'Northeast', midwest: 'Midwest', south: 'South', west: 'West' };
+            const names = {
+              northeast: "Northeast",
+              midwest: "Midwest",
+              south: "South",
+              west: "West",
+            };
             return names[key?.toLowerCase()] || key;
           },
-          
+
           getStateDisplayName(abbr) {
             const names = {
-              AL: 'Alabama', AK: 'Alaska', AZ: 'Arizona', AR: 'Arkansas', CA: 'California',
-              CO: 'Colorado', CT: 'Connecticut', DE: 'Delaware', DC: 'D.C.', FL: 'Florida',
-              GA: 'Georgia', HI: 'Hawaii', ID: 'Idaho', IL: 'Illinois', IN: 'Indiana',
-              IA: 'Iowa', KS: 'Kansas', KY: 'Kentucky', LA: 'Louisiana', ME: 'Maine',
-              MD: 'Maryland', MA: 'Massachusetts', MI: 'Michigan', MN: 'Minnesota', MS: 'Mississippi',
-              MO: 'Missouri', MT: 'Montana', NE: 'Nebraska', NV: 'Nevada', NH: 'New Hampshire',
-              NJ: 'New Jersey', NM: 'New Mexico', NY: 'New York', NC: 'North Carolina', ND: 'North Dakota',
-              OH: 'Ohio', OK: 'Oklahoma', OR: 'Oregon', PA: 'Pennsylvania', RI: 'Rhode Island',
-              SC: 'South Carolina', SD: 'South Dakota', TN: 'Tennessee', TX: 'Texas', UT: 'Utah',
-              VT: 'Vermont', VA: 'Virginia', WA: 'Washington', WV: 'West Virginia', WI: 'Wisconsin', WY: 'Wyoming'
+              AL: "Alabama",
+              AK: "Alaska",
+              AZ: "Arizona",
+              AR: "Arkansas",
+              CA: "California",
+              CO: "Colorado",
+              CT: "Connecticut",
+              DE: "Delaware",
+              DC: "D.C.",
+              FL: "Florida",
+              GA: "Georgia",
+              HI: "Hawaii",
+              ID: "Idaho",
+              IL: "Illinois",
+              IN: "Indiana",
+              IA: "Iowa",
+              KS: "Kansas",
+              KY: "Kentucky",
+              LA: "Louisiana",
+              ME: "Maine",
+              MD: "Maryland",
+              MA: "Massachusetts",
+              MI: "Michigan",
+              MN: "Minnesota",
+              MS: "Mississippi",
+              MO: "Missouri",
+              MT: "Montana",
+              NE: "Nebraska",
+              NV: "Nevada",
+              NH: "New Hampshire",
+              NJ: "New Jersey",
+              NM: "New Mexico",
+              NY: "New York",
+              NC: "North Carolina",
+              ND: "North Dakota",
+              OH: "Ohio",
+              OK: "Oklahoma",
+              OR: "Oregon",
+              PA: "Pennsylvania",
+              RI: "Rhode Island",
+              SC: "South Carolina",
+              SD: "South Dakota",
+              TN: "Tennessee",
+              TX: "Texas",
+              UT: "Utah",
+              VT: "Vermont",
+              VA: "Virginia",
+              WA: "Washington",
+              WV: "West Virginia",
+              WI: "Wisconsin",
+              WY: "Wyoming",
             };
             return names[abbr?.toUpperCase()] || abbr;
           },
-          
+
           // ========== Chart Initialization ==========
-          
+
           initCharts() {
             this.initDistributionChart();
             this.initDrilldownChart();
           },
-          
+
           initDistributionChart() {
-            const chartEl = document.getElementById('distributionChart');
+            const chartEl = document.getElementById("distributionChart");
             if (!chartEl) return;
-            
+
             if (this.distributionChart) {
               this.distributionChart.destroy();
             }
-            
+
             const self = this;
-            const decisionColors = ['green', 'yellow', 'red'];
-            
-            const isDark = document.body.classList.contains('dark');
-            
+            const decisionColors = ["green", "yellow", "red"];
+
+            const isDark = document.body.classList.contains("dark");
+
             const options = {
               series: [
-                this.filteredSummary.moveForward, 
-                this.filteredSummary.needsReview, 
-                this.filteredSummary.rejected
+                this.filteredSummary.moveForward,
+                this.filteredSummary.needsReview,
+                this.filteredSummary.rejected,
               ],
               chart: {
-                type: 'donut',
+                type: "donut",
                 height: 300,
-                background: 'transparent',
+                background: "transparent",
                 events: {
                   // Click on pie segment to filter
-                  dataPointSelection: function(event, chartContext, config) {
+                  dataPointSelection: function (event, chartContext, config) {
                     const selectedColor = decisionColors[config.dataPointIndex];
                     self.toggleDecisionFilter(selectedColor);
-                  }
-                }
+                  },
+                },
               },
               theme: {
-                mode: isDark ? 'dark' : 'light'
+                mode: isDark ? "dark" : "light",
               },
-              labels: ['Move Forward', 'Needs Review', 'Rejected'],
-              colors: ['#22c55e', '#eab308', '#ef4444'],
+              labels: ["Move Forward", "Needs Review", "Rejected"],
+              colors: ["#22c55e", "#eab308", "#ef4444"],
               legend: {
-                position: 'bottom',
+                position: "bottom",
                 labels: {
-                  colors: isDark ? '#fff' : '#333',
+                  colors: isDark ? "#fff" : "#333",
                 },
                 // Click legend to filter
                 onItemClick: {
-                  toggleDataSeries: false
-                }
+                  toggleDataSeries: false,
+                },
               },
               plotOptions: {
                 pie: {
                   donut: {
-                    size: '65%',
+                    size: "65%",
                     labels: {
                       show: true,
                       total: {
                         show: true,
-                        label: this.decisionFilter ? this.getDecisionFilterLabel() : 'Total',
-                        formatter: () => this.decisionFilter ? this.displayProperties.length : this.filteredSummary.total,
-                        color: isDark ? '#fff' : '#333',
-                      }
-                    }
+                        label: this.decisionFilter
+                          ? this.getDecisionFilterLabel()
+                          : "Total",
+                        formatter: () =>
+                          this.decisionFilter
+                            ? this.displayProperties.length
+                            : this.filteredSummary.total,
+                        color: isDark ? "#fff" : "#333",
+                      },
+                    },
                   },
-                  expandOnClick: true
-                }
+                  expandOnClick: true,
+                },
               },
               states: {
-                hover: { filter: { type: 'darken', value: 0.85 } },
-                active: { filter: { type: 'none' } }
+                hover: { filter: { type: "darken", value: 0.85 } },
+                active: { filter: { type: "none" } },
               },
               dataLabels: { enabled: false },
-              responsive: [{
-                breakpoint: 480,
-                options: { chart: { width: 200 }, legend: { position: 'bottom' } }
-              }]
+              responsive: [
+                {
+                  breakpoint: 480,
+                  options: {
+                    chart: { width: 200 },
+                    legend: { position: "bottom" },
+                  },
+                },
+              ],
             };
-            
+
             this.distributionChart = new ApexCharts(chartEl, options);
             this.distributionChart.render();
           },
-          
+
           initDrilldownChart() {
-            const chartEl = document.getElementById('drilldownChart');
+            const chartEl = document.getElementById("drilldownChart");
             if (!chartEl) return;
-            
+
             if (this.drilldownChart) {
               this.drilldownChart.destroy();
             }
-            
+
             // At property level, show individual scores
             if (this.drillLevel === 3) {
               this.initPropertyScoresChart(chartEl);
               return;
             }
-            
+
             // For aggregate levels, show stacked bars (use filtered data if decision filter active)
             const displayGroups = this.displayAggregateGroups;
-            const categories = displayGroups.map(g => g.name);
-            const moveForwardData = displayGroups.map(g => g.moveForward);
-            const needsReviewData = displayGroups.map(g => g.needsReview);
-            const rejectedData = displayGroups.map(g => g.rejected);
-            
+            const categories = displayGroups.map((g) => g.name);
+            const moveForwardData = displayGroups.map((g) => g.moveForward);
+            const needsReviewData = displayGroups.map((g) => g.needsReview);
+            const rejectedData = displayGroups.map((g) => g.rejected);
+
             const self = this;
-            const isDark = document.body.classList.contains('dark');
-            
+            const isDark = document.body.classList.contains("dark");
+
             const options = {
               series: [
-                { name: 'Move Forward', data: moveForwardData },
-                { name: 'Needs Review', data: needsReviewData },
-                { name: 'Rejected', data: rejectedData }
+                { name: "Move Forward", data: moveForwardData },
+                { name: "Needs Review", data: needsReviewData },
+                { name: "Rejected", data: rejectedData },
               ],
               chart: {
-                type: 'bar',
+                type: "bar",
                 height: 300,
                 stacked: true,
-                background: 'transparent',
+                background: "transparent",
                 toolbar: { show: false },
                 events: {
-                  dataPointSelection: function(event, chartContext, config) {
+                  dataPointSelection: function (event, chartContext, config) {
                     const groupIndex = config.dataPointIndex;
                     const group = displayGroups[groupIndex];
                     if (group) {
                       self.drillDown(group.key, group.name);
                     }
-                  }
-                }
+                  },
+                },
               },
               theme: {
-                mode: isDark ? 'dark' : 'light'
+                mode: isDark ? "dark" : "light",
               },
               plotOptions: {
                 bar: {
                   horizontal: true,
-                  barHeight: '70%',
+                  barHeight: "70%",
                   borderRadius: 4,
-                }
+                },
               },
-              colors: ['#22c55e', '#eab308', '#ef4444'],
+              colors: ["#22c55e", "#eab308", "#ef4444"],
               dataLabels: {
                 enabled: true,
-                formatter: (val) => val > 0 ? val : '',
-                style: { fontSize: '11px', colors: ['#fff'] }
+                formatter: (val) => (val > 0 ? val : ""),
+                style: { fontSize: "11px", colors: ["#fff"] },
               },
               xaxis: {
                 categories: categories,
                 labels: {
-                  style: { colors: isDark ? '#9ca3af' : '#4b5563' }
-                }
+                  style: { colors: isDark ? "#9ca3af" : "#4b5563" },
+                },
               },
               yaxis: {
                 labels: {
-                  style: { colors: isDark ? '#9ca3af' : '#4b5563' }
-                }
+                  style: { colors: isDark ? "#9ca3af" : "#4b5563" },
+                },
               },
               legend: {
-                position: 'top',
-                labels: { colors: isDark ? '#fff' : '#333' }
+                position: "top",
+                labels: { colors: isDark ? "#fff" : "#333" },
               },
               grid: {
-                borderColor: isDark ? '#374151' : '#e5e7eb',
+                borderColor: isDark ? "#374151" : "#e5e7eb",
               },
               tooltip: {
-                theme: isDark ? 'dark' : 'light',
-                y: { formatter: (val) => val + ' properties' }
+                theme: isDark ? "dark" : "light",
+                y: { formatter: (val) => val + " properties" },
               },
               states: {
-                hover: { filter: { type: 'darken', value: 0.85 } }
-              }
+                hover: { filter: { type: "darken", value: 0.85 } },
+              },
             };
-            
+
             this.drilldownChart = new ApexCharts(chartEl, options);
             this.drilldownChart.render();
           },
-          
+
           initPropertyScoresChart(chartEl) {
             // Individual property scores at deepest level (use filtered data if decision filter active)
-            const sortedProperties = [...this.displayProperties].sort((a, b) => (b.score || 0) - (a.score || 0));
-            const categories = sortedProperties.map(p => p.propertyName || 'Unknown');
-            const scores = sortedProperties.map(p => p.score || 0);
-            const colors = sortedProperties.map(p => {
-              if (p.decisionColor === 'green') return '#22c55e';
-              if (p.decisionColor === 'yellow') return '#eab308';
-              return '#ef4444';
+            const sortedProperties = [...this.displayProperties].sort(
+              (a, b) => (b.score || 0) - (a.score || 0),
+            );
+            const categories = sortedProperties.map(
+              (p) => p.propertyName || "Unknown",
+            );
+            const scores = sortedProperties.map((p) => p.score || 0);
+            const colors = sortedProperties.map((p) => {
+              if (p.decisionColor === "green") return "#22c55e";
+              if (p.decisionColor === "yellow") return "#eab308";
+              return "#ef4444";
             });
-            
+
             const self = this;
-            const isDark = document.body.classList.contains('dark');
-            
+            const isDark = document.body.classList.contains("dark");
+
             const options = {
-              series: [{ name: 'Score', data: scores }],
+              series: [{ name: "Score", data: scores }],
               chart: {
-                type: 'bar',
+                type: "bar",
                 height: 300,
-                background: 'transparent',
+                background: "transparent",
                 toolbar: { show: false },
                 events: {
-                  dataPointSelection: function(event, chartContext, config) {
+                  dataPointSelection: function (event, chartContext, config) {
                     const property = sortedProperties[config.dataPointIndex];
                     if (property) {
                       self.showPropertyDetails(property);
                     }
-                  }
-                }
+                  },
+                },
               },
               theme: {
-                mode: isDark ? 'dark' : 'light'
+                mode: isDark ? "dark" : "light",
               },
               plotOptions: {
                 bar: {
                   horizontal: true,
                   distributed: true,
-                  barHeight: '70%',
+                  barHeight: "70%",
                   borderRadius: 4,
-                }
+                },
               },
               colors: colors,
               dataLabels: {
                 enabled: true,
                 formatter: (val) => val.toFixed(1),
-                style: { fontSize: '12px', colors: ['#fff'] }
+                style: { fontSize: "12px", colors: ["#fff"] },
               },
               xaxis: {
                 categories: categories,
                 max: 10,
                 labels: {
-                  style: { colors: isDark ? '#9ca3af' : '#4b5563' }
-                }
+                  style: { colors: isDark ? "#9ca3af" : "#4b5563" },
+                },
               },
               yaxis: {
                 labels: {
-                  style: { colors: isDark ? '#9ca3af' : '#4b5563' }
-                }
+                  style: { colors: isDark ? "#9ca3af" : "#4b5563" },
+                },
               },
               legend: { show: false },
               grid: {
-                borderColor: isDark ? '#374151' : '#e5e7eb',
+                borderColor: isDark ? "#374151" : "#e5e7eb",
               },
               tooltip: {
-                theme: isDark ? 'dark' : 'light',
-                y: { formatter: (val) => val.toFixed(2) + ' / 10' }
-              }
+                theme: isDark ? "dark" : "light",
+                y: { formatter: (val) => val.toFixed(2) + " / 10" },
+              },
             };
-            
+
             this.drilldownChart = new ApexCharts(chartEl, options);
             this.drilldownChart.render();
           },
-          
+
           // ========== Property Details ==========
-          
+
           getOrderedBreakdown() {
             if (!this.selectedProperty?.breakdown) return [];
             return this.factorOrder
-              .filter(key => this.selectedProperty.breakdown[key])
-              .map(key => ({ key, ...this.selectedProperty.breakdown[key] }));
+              .filter((key) => this.selectedProperty.breakdown[key])
+              .map((key) => ({ key, ...this.selectedProperty.breakdown[key] }));
           },
-          
+
           getMissingCount(property) {
             if (!property?.breakdown) return 0;
-            return Object.values(property.breakdown).filter(f => f.rawValue === null || f.rawValue === undefined).length;
+            return Object.values(property.breakdown).filter(
+              (f) => f.rawValue === null || f.rawValue === undefined,
+            ).length;
           },
-          
+
           showPropertyDetails(property) {
+            this.lastFocusedElement = document.activeElement;
             this.selectedProperty = property;
+            this.$nextTick(() => this.$refs.propertyDialog?.focus());
           },
-          
+
+          closePropertyDetails() {
+            this.selectedProperty = null;
+            this.showDebug = false;
+            this.$nextTick(() => this.restoreFocus());
+          },
+
+          restoreFocus() {
+            window.dialogFocus.restore(this.lastFocusedElement);
+          },
+
+          trapFocus(event, container) {
+            window.dialogFocus.trap(event, container);
+          },
+
+          showNotice(message, type = "success") {
+            clearTimeout(this.noticeTimer);
+            this.noticeMessage = message;
+            this.noticeType = type;
+            this.noticeTimer = setTimeout(() => {
+              this.noticeMessage = "";
+            }, 5000);
+          },
+
           formatFigure(value, key) {
-            if (value === null || value === undefined) return '—';
-            
-            const percentageFactors = ['populationGrowth', 'renterHouseholdsPercent', 
-              'submarketVacancy', 'submarketDeliveredPercent', 'submarketConstructionPercent'];
+            if (value === null || value === undefined) return "—";
+
+            const percentageFactors = [
+              "populationGrowth",
+              "renterHouseholdsPercent",
+              "submarketVacancy",
+              "submarketDeliveredPercent",
+              "submarketConstructionPercent",
+            ];
             if (percentageFactors.includes(key)) {
-              return (value * 100).toFixed(2) + '%';
+              return (value * 100).toFixed(2) + "%";
             }
-            
-            const currencyFactors = ['medianHHIncome', 'medianHomeValue'];
+
+            const currencyFactors = ["medianHHIncome", "medianHomeValue"];
             if (currencyFactors.includes(key)) {
-              return '$' + value.toLocaleString();
+              return "$" + value.toLocaleString();
             }
-            
-            if (key === 'population' && value > 1000) {
+
+            if (key === "population" && value > 1000) {
               return value.toLocaleString();
             }
-            
-            const crimeFactors = ['violentCrimeRate', 'propertyCrimeRate'];
+
+            const crimeFactors = ["violentCrimeRate", "propertyCrimeRate"];
             if (crimeFactors.includes(key)) {
               return value.toFixed(1);
             }
-            
-            const scoreFactors = ['walkScore', 'transitScore', 'schoolRatings'];
+
+            const scoreFactors = ["walkScore", "transitScore", "schoolRatings"];
             if (scoreFactors.includes(key)) {
               return Math.round(value).toString();
             }
-            
+
             if (Number.isInteger(value)) return value.toString();
             return value.toFixed(2);
           },
-          
+
           // ========== Delete/Restore ==========
-          
+
           async toggleDeletedView() {
             this.showingDeleted = !this.showingDeleted;
-            
+
             if (this.showingDeleted) {
               await this.loadDeletedProperties();
             } else {
               await this.loadData();
             }
           },
-          
+
           async loadDeletedProperties() {
             this.loading = true;
-            
+            this.loadError = "";
+
             try {
-              const response = await fetch('/api/properties/deleted');
+              const response = await fetch("/api/properties/deleted");
+              if (!response.ok)
+                throw new Error("Deleted properties could not be loaded.");
               const data = await response.json();
-              
+
               if (data.success) {
-                this.filteredProperties = (data.properties || []).map(p => ({
+                this.filteredProperties = (data.properties || []).map((p) => ({
                   ...p,
                   propertyName: p.name,
-                  decisionColor: p.score >= 7 ? 'green' : p.score >= 5.5 ? 'yellow' : 'red'
+                  decisionColor:
+                    p.score >= 7 ? "green" : p.score >= 5.5 ? "yellow" : "red",
                 }));
+              } else {
+                throw new Error(
+                  data.error || "Deleted properties could not be loaded.",
+                );
               }
             } catch (error) {
-              console.error('Failed to load deleted properties:', error);
+              console.error("Failed to load deleted properties:", error);
+              this.loadError = error.message;
             } finally {
               this.loading = false;
             }
           },
-          
+
           confirmDelete(property) {
+            if (!this.selectedProperty)
+              this.lastFocusedElement = document.activeElement;
+            this.selectedProperty = null;
+            this.showDebug = false;
             this.deleteConfirmProperty = property;
+            this.$nextTick(() => this.$refs.deleteDialog?.focus());
           },
-          
+
+          closeDeleteDialog() {
+            this.deleteConfirmProperty = null;
+            this.$nextTick(() => this.restoreFocus());
+          },
+
           async deleteProperty() {
             if (!this.deleteConfirmProperty) return;
-            
+
             this.deleting = true;
-            
+
             try {
-              const response = await fetch(`/api/properties/${this.deleteConfirmProperty.id}`, {
-                method: 'DELETE'
-              });
+              const response = await fetch(
+                `/api/properties/${this.deleteConfirmProperty.id}`,
+                {
+                  method: "DELETE",
+                },
+              );
               const data = await response.json();
-              
+
               if (data.success) {
                 this.deletedCount++;
                 await this.loadData();
+                this.showNotice(
+                  "Property moved to trash. It can be restored for 30 days.",
+                );
               } else {
-                alert('Failed to delete property: ' + (data.error || 'Unknown error'));
+                this.showNotice(
+                  "Failed to delete property: " +
+                    (data.error || "Unknown error"),
+                  "error",
+                );
               }
             } catch (error) {
-              console.error('Failed to delete property:', error);
-              alert('Failed to delete property');
+              console.error("Failed to delete property:", error);
+              this.showNotice("Failed to delete property. Try again.", "error");
             } finally {
               this.deleting = false;
-              this.deleteConfirmProperty = null;
+              this.closeDeleteDialog();
             }
           },
-          
+
           async restoreProperty(property) {
             try {
-              const response = await fetch(`/api/properties/${property.id}/restore`, {
-                method: 'POST'
-              });
+              const response = await fetch(
+                `/api/properties/${property.id}/restore`,
+                {
+                  method: "POST",
+                },
+              );
               const data = await response.json();
-              
+
               if (data.success) {
-                this.filteredProperties = this.filteredProperties.filter(p => p.id !== property.id);
+                this.filteredProperties = this.filteredProperties.filter(
+                  (p) => p.id !== property.id,
+                );
                 this.deletedCount--;
-                
+                this.showNotice("Property restored.");
+
                 if (this.filteredProperties.length === 0) {
                   this.showingDeleted = false;
                   await this.loadData();
                 }
               } else {
-                alert('Failed to restore property: ' + (data.error || 'Unknown error'));
+                this.showNotice(
+                  "Failed to restore property: " +
+                    (data.error || "Unknown error"),
+                  "error",
+                );
               }
             } catch (error) {
-              console.error('Failed to restore property:', error);
-              alert('Failed to restore property');
+              console.error("Failed to restore property:", error);
+              this.showNotice(
+                "Failed to restore property. Try again.",
+                "error",
+              );
             }
           },
-          
+
           async copyExtractionId() {
             const id = this.selectedProperty?.extractionId;
             if (!id) return;
-            
+
             try {
               await navigator.clipboard.writeText(id);
               this.copySuccess = true;
-              setTimeout(() => { this.copySuccess = false; }, 2000);
+              setTimeout(() => {
+                this.copySuccess = false;
+              }, 2000);
             } catch (err) {
-              console.error('Failed to copy:', err);
+              console.error("Failed to copy:", err);
+              this.showNotice("Extraction ID could not be copied.", "error");
             }
-          }
+          },
         }));
       });
     </script>

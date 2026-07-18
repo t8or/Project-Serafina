@@ -4,166 +4,13 @@
     <meta charset="UTF-8" />
     <meta
       name="viewport"
-      content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0"
+      content="width=device-width, initial-scale=1.0"
     />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
     <title>Content | Serafina</title>
   </head>
   <body
-    x-data="{ 
-      page: 'content',
-      'loaded': true, 
-      'darkMode': false, 
-      'stickyMenu': false, 
-      'sidebarToggle': false, 
-      'scrollTop': false,
-      files: [],
-      processingFiles: new Set(),
-      showToast: false,
-      toastMessage: '',
-      toastType: 'success',
-      getFileTypeDisplay(fileType) {
-        if (!fileType) return 'UNKNOWN';
-        
-        const type = fileType.toLowerCase();
-        
-        // Handle special cases
-        if (type.includes('spreadsheetml') || type.includes('excel')) {
-          return 'EXCEL';
-        }
-        if (type.includes('csv')) {
-          return 'CSV';
-        }
-        
-        // If it's a MIME type (contains '/')
-        if (type.includes('/')) {
-          return type.split('/')[1].toUpperCase();
-        }
-        
-        // If it's just an extension
-        return type.toUpperCase();
-      },
-      async showNotification(message, type = 'success') {
-        this.toastMessage = message;
-        this.toastType = type;
-        this.showToast = true;
-        setTimeout(() => {
-          this.showToast = false;
-        }, 3000);
-      },
-      async fetchFiles() {
-        try {
-          // First fetch the regular files
-          const filesResponse = await fetch('/api/files');
-          if (!filesResponse.ok) {
-            console.error('Failed to fetch files:', filesResponse.status);
-            this.files = [];
-            return;
-          }
-          
-          const filesData = await filesResponse.json();
-          console.log('Fetched files:', filesData); // Debug log
-          
-          // Set files with is_extracted flag set to false by default
-          const regularFiles = filesData.files.map(file => ({
-            ...file,
-            is_extracted: false
-          }));
-          
-          // Try to fetch extracted files
-          try {
-            const extractedResponse = await fetch('/api/files/extracted');
-            if (extractedResponse.ok) {
-              const extractedData = await extractedResponse.json();
-              // Add extracted files to the list
-              const extractedFiles = extractedData.files.map(file => ({
-                ...file,
-                is_extracted: true
-              }));
-              this.files = [...regularFiles, ...extractedFiles];
-            } else {
-              this.files = regularFiles;
-            }
-          } catch (extractError) {
-            console.warn('Extracted files endpoint not available:', extractError);
-            this.files = regularFiles;
-          }
-          
-          console.log('Final files array:', this.files); // Debug log
-        } catch (error) {
-          console.error('Error fetching files:', error);
-          this.files = [];
-          this.showNotification('Failed to fetch files', 'error');
-        }
-      },
-      async deleteFile(fileId) {
-        if (!confirm('Are you sure you want to delete this file?')) {
-          return;
-        }
-        
-        try {
-          const response = await fetch(`/api/files/${fileId}`, {
-            method: 'DELETE'
-          });
-          
-          if (!response.ok) {
-            throw new Error('Failed to delete file');
-          }
-          
-          // First update the local state to remove the file
-          this.files = this.files.filter(file => file.id !== fileId);
-          
-          // Then fetch the updated list
-          await this.fetchFiles();
-          
-          // Show success notification after the list is updated
-          this.showNotification('File deleted successfully');
-        } catch (error) {
-          console.error('Error deleting file:', error);
-          this.showNotification('Failed to delete file: ' + error.message, 'error');
-        }
-      },
-      async extractText(fileId, fileName, fileType) {
-        if (this.processingFiles.has(fileId)) return;
-        
-        try {
-          this.processingFiles.add(fileId);
-          this.showNotification('Starting local Docling extraction...', 'info');
-          
-          const response = await fetch(`/api/extract/${fileId}`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              fileName,
-              fileType
-            })
-          });
-          
-          if (!response.ok) throw new Error('Failed to extract text');
-          
-          const result = await response.json();
-          if (result.success) {
-            if (result.sections) {
-              const sectionCount = result.sections.length;
-              this.showNotification(`Local extraction complete! Generated ${sectionCount} section files.`);
-            } else {
-              this.showNotification('Text extracted successfully.');
-            }
-            // Refresh the file list
-            await this.fetchFiles();
-          } else {
-            throw new Error(result.error || 'Failed to extract text');
-          }
-        } catch (error) {
-          console.error('Error extracting text:', error);
-          this.showNotification('Failed to extract text: ' + error.message, 'error');
-        } finally {
-          this.processingFiles.delete(fileId);
-        }
-      }
-    }"
+    x-data="contentPage"
     x-init="
       darkMode = JSON.parse(localStorage.getItem('darkMode'));
       $watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(value)));
@@ -195,11 +42,14 @@
           <div class="mx-auto max-w-screen-2xl p-4 md:p-6 2xl:p-10 h-full">
             <!-- Toast Notification -->
             <div
+              x-cloak
               x-show="showToast"
-              x-transition:enter="transition ease-out duration-300"
+              :role="toastType === 'error' ? 'alert' : 'status'"
+              :aria-live="toastType === 'error' ? 'assertive' : 'polite'"
+              x-transition:enter="transition-[opacity,transform] ease-out duration-300"
               x-transition:enter-start="opacity-0 transform translate-y-2"
               x-transition:enter-end="opacity-100 transform translate-y-0"
-              x-transition:leave="transition ease-in duration-200"
+              x-transition:leave="transition-[opacity,transform] ease-out duration-150"
               x-transition:leave-start="opacity-100 transform translate-y-0"
               x-transition:leave-end="opacity-0 transform translate-y-2"
               :class="{
@@ -210,7 +60,7 @@
               class="fixed bottom-4 right-4 px-4 py-2 rounded-lg text-white shadow-lg z-50 flex items-center"
             >
               <span x-text="toastMessage"></span>
-              <button @click="showToast = false" class="ml-3 hover:text-gray-200">
+              <button type="button" aria-label="Dismiss notification" @click="showToast = false" class="ml-3 hover:text-gray-200">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -227,18 +77,18 @@
               class="overflow-hidden rounded-2xl border border-gray-200 bg-white px-4 pb-3 pt-4 dark:border-gray-800 dark:bg-white/[0.03] sm:px-6 h-full"
             >
               <div
-                class="flex flex-col gap-2 mb-4 sm:flex-row sm:items-center sm:justify-between"
+                class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
               >
                 <div>
-                  <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
+                  <h2 class="text-title-md2 font-semibold text-gray-800 dark:text-white/90">
                     Uploaded Content
-                  </h3>
+                  </h2>
                 </div>
 
-                <div class="flex items-center gap-3">
+                <div class="grid w-full gap-3 sm:flex sm:w-auto sm:items-center">
                   <a
                     href="dashboard.html"
-                    class="inline-flex items-center gap-2 rounded-lg border border-brand-300 bg-brand-50 px-4 py-2.5 text-theme-sm font-medium text-brand-700 shadow-theme-xs hover:bg-brand-100 dark:border-brand-700 dark:bg-brand-900/20 dark:text-brand-400 dark:hover:bg-brand-900/30"
+                    class="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-brand-300 bg-brand-50 px-4 py-2.5 text-theme-sm font-medium text-brand-700 shadow-theme-xs hover:bg-brand-100 active:scale-[0.98] sm:w-auto dark:border-brand-700 dark:bg-brand-900/20 dark:text-brand-400 dark:hover:bg-brand-900/30"
                   >
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
@@ -246,51 +96,108 @@
                     Manage Properties
                   </a>
                   <button
+                    type="button"
                     @click="fetchFiles()"
-                    class="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-theme-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200"
+                    :disabled="isLoading"
+                    class="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-theme-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 active:scale-[0.98] disabled:cursor-wait disabled:opacity-60 sm:w-auto dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200"
                   >
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     </svg>
-                    Refresh
+                    <span x-text="isLoading ? 'Refreshing...' : 'Refresh'"></span>
                   </button>
                 </div>
               </div>
 
-              <div class="w-full overflow-x-auto">
-                <table class="min-w-full">
+              <div
+                x-show="isLoading"
+                role="status"
+                aria-live="polite"
+                class="flex min-h-48 items-center justify-center rounded-xl border border-gray-200 bg-gray-50 px-6 text-center text-sm text-gray-600 dark:border-gray-800 dark:bg-gray-900/50 dark:text-gray-300"
+              >
+                Loading uploaded content…
+              </div>
+
+              <div
+                x-cloak
+                x-show="!isLoading && loadError"
+                role="alert"
+                class="rounded-xl border border-red-200 bg-red-50 p-5 dark:border-red-500/30 dark:bg-red-500/10"
+              >
+                <h2 class="font-semibold text-red-800 dark:text-red-200">Uploaded content couldn’t be loaded</h2>
+                <p class="mt-1 text-sm text-red-700 dark:text-red-300" x-text="loadError"></p>
+                <button
+                  type="button"
+                  @click="fetchFiles()"
+                  class="mt-4 inline-flex items-center justify-center rounded-lg bg-red-700 px-4 py-2 text-sm font-medium text-white hover:bg-red-800 active:scale-[0.98]"
+                >
+                  Try Again
+                </button>
+              </div>
+
+              <div
+                x-cloak
+                x-show="!isLoading && !loadError && loadWarning"
+                role="status"
+                aria-live="polite"
+                class="mb-4 rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800 dark:border-yellow-500/30 dark:bg-yellow-500/10 dark:text-yellow-200"
+                x-text="loadWarning"
+              ></div>
+
+              <div
+                x-cloak
+                x-show="!isLoading && !loadError && files.length === 0"
+                class="flex min-h-48 flex-col items-center justify-center rounded-xl border border-dashed border-gray-300 px-6 text-center dark:border-gray-700"
+              >
+                <h2 class="font-semibold text-gray-800 dark:text-white">No uploaded content yet</h2>
+                <p class="mt-1 max-w-md text-sm text-gray-500 dark:text-gray-400">Upload a property document to make it available for review and text extraction.</p>
+                <a href="file-upload.html" class="mt-4 inline-flex items-center justify-center rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 active:scale-[0.98]">Upload a File</a>
+              </div>
+
+              <div x-cloak x-show="!isLoading && !loadError && files.length > 0">
+                <p id="content-table-scroll-hint" class="mb-2 text-xs text-gray-500 sm:hidden dark:text-gray-400">
+                  Swipe horizontally to see file details and actions.
+                </p>
+                <div
+                  class="w-full overflow-x-auto rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  role="region"
+                  aria-label="Uploaded content table"
+                  aria-describedby="content-table-scroll-hint"
+                  tabindex="0"
+                >
+                <table class="min-w-[760px] w-full">
                   <!-- table header start -->
                   <thead>
                     <tr class="border-gray-100 border-y dark:border-gray-800">
-                      <th class="py-3">
+                      <th scope="col" class="px-3 py-3">
                         <div class="flex items-center">
                           <p class="font-medium text-gray-500 text-theme-xs dark:text-gray-400">
                             File Name
                           </p>
                         </div>
                       </th>
-                      <th class="py-3">
+                      <th scope="col" class="px-3 py-3">
                         <div class="flex items-center">
                           <p class="font-medium text-gray-500 text-theme-xs dark:text-gray-400">
                             Type
                           </p>
                         </div>
                       </th>
-                      <th class="py-3">
+                      <th scope="col" class="px-3 py-3">
                         <div class="flex items-center">
                           <p class="font-medium text-gray-500 text-theme-xs dark:text-gray-400">
                             Size
                           </p>
                         </div>
                       </th>
-                      <th class="py-3">
+                      <th scope="col" class="px-3 py-3">
                         <div class="flex items-center">
                           <p class="font-medium text-gray-500 text-theme-xs dark:text-gray-400">
                             Upload Date
                           </p>
                         </div>
                       </th>
-                      <th class="py-3">
+                      <th scope="col" class="px-3 py-3">
                         <div class="flex items-center">
                           <p class="font-medium text-gray-500 text-theme-xs dark:text-gray-400">
                             Actions
@@ -302,16 +209,9 @@
                   <!-- table header end -->
 
                   <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-                    <template x-if="files.length === 0">
-                      <tr>
-                        <td colspan="5" class="py-8 text-center text-gray-500 dark:text-gray-400">
-                          No files uploaded yet
-                        </td>
-                      </tr>
-                    </template>
                     <template x-for="file in files" :key="file.id">
                       <tr>
-                        <td class="py-3">
+                        <td class="px-3 py-3">
                           <div class="flex items-center">
                             <div class="flex items-center gap-3">
                               <div class="h-[50px] w-[50px] flex items-center justify-center bg-gray-100 rounded-md dark:bg-gray-800">
@@ -335,28 +235,29 @@
                             </div>
                           </div>
                         </td>
-                        <td class="py-3">
+                        <td class="px-3 py-3">
                           <div class="flex items-center">
                             <p class="text-gray-500 text-theme-sm dark:text-gray-400" x-text="getFileTypeDisplay(file.file_type)">
                             </p>
                           </div>
                         </td>
-                        <td class="py-3">
+                        <td class="px-3 py-3">
                           <div class="flex items-center">
                             <p class="text-gray-500 text-theme-sm dark:text-gray-400" x-text="(file.file_size / 1024 / 1024).toFixed(2) + ' MB'">
                             </p>
                           </div>
                         </td>
-                        <td class="py-3">
+                        <td class="px-3 py-3">
                           <div class="flex items-center">
                             <p class="text-gray-500 text-theme-sm dark:text-gray-400" x-text="new Date(file.upload_date).toLocaleDateString()">
                             </p>
                           </div>
                         </td>
-                        <td class="py-3">
+                        <td class="px-3 py-3">
                           <div class="flex items-center gap-2">
                             <a
                               :href="'/api/files/' + file.id + '/download'"
+                              :aria-label="'Download ' + file.original_filename"
                               class="inline-flex items-center justify-center w-8 h-8 text-gray-500 bg-gray-100 rounded-lg hover:text-gray-700 hover:bg-gray-200 dark:text-gray-400 dark:bg-gray-800 dark:hover:bg-gray-700 dark:hover:text-gray-200"
                             >
                               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -365,8 +266,10 @@
                             </a>
                             <!-- Local Docling extraction (all pages with section detection) -->
                             <button
+                              type="button"
                               @click="extractText(file.id, file.original_filename, file.file_type)"
                               :disabled="processingFiles.has(file.id)"
+                              :aria-label="(processingFiles.has(file.id) ? 'Extracting text from ' : 'Extract text from ') + file.original_filename"
                               :class="{
                                 'opacity-50 cursor-not-allowed': processingFiles.has(file.id)
                               }"
@@ -388,7 +291,9 @@
                               </template>
                             </button>
                             <button
-                              @click="deleteFile(file.id)"
+                              type="button"
+                              @click="openDeleteConfirmation(file, $event.currentTarget)"
+                              :aria-label="'Delete ' + file.original_filename"
                               class="inline-flex items-center justify-center w-8 h-8 text-red-500 bg-gray-100 rounded-lg hover:text-red-700 hover:bg-gray-200 dark:text-red-400 dark:bg-gray-800 dark:hover:bg-gray-700 dark:hover:text-red-200"
                             >
                               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -401,6 +306,63 @@
                     </template>
                   </tbody>
                 </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- Delete confirmation -->
+            <div
+              x-cloak
+              x-show="filePendingDeletion"
+              class="fixed inset-0 z-50 flex items-center justify-center p-4"
+              @keydown.escape.window="if (filePendingDeletion) closeDeleteConfirmation()"
+            >
+              <div class="absolute inset-0 bg-black/50" aria-hidden="true" @click="closeDeleteConfirmation()"></div>
+              <div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="delete-file-title"
+                aria-describedby="delete-file-description"
+                class="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl dark:bg-gray-900"
+                @click.stop
+                @keydown.tab="trapDialogFocus($event)"
+              >
+                <div class="flex items-start justify-between gap-4">
+                  <div>
+                    <h2 id="delete-file-title" class="text-lg font-semibold text-gray-900 dark:text-white">Delete this file?</h2>
+                    <p id="delete-file-description" class="mt-2 text-sm text-gray-600 dark:text-gray-300">
+                      <span class="font-medium" x-text="filePendingDeletion?.original_filename"></span>
+                      will be permanently removed.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    aria-label="Close delete confirmation"
+                    @click="closeDeleteConfirmation()"
+                    class="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-700 active:scale-[0.96] dark:hover:bg-gray-800 dark:hover:text-gray-200"
+                  >
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+                <div class="mt-6 grid gap-3 sm:grid-cols-2">
+                  <button
+                    x-ref="deleteCancel"
+                    type="button"
+                    @click="closeDeleteConfirmation()"
+                    class="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 active:scale-[0.98] dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    @click="deleteFile()"
+                    class="rounded-lg bg-red-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-red-700 active:scale-[0.98]"
+                  >
+                    Delete File
+                  </button>
+                </div>
               </div>
             </div>
           </div>
