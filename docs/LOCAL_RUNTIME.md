@@ -2,6 +2,8 @@
 
 Serafina is a loopback-only, local-first application. Its normal runtime makes
 no internet requests and has no cloud database or document-processing endpoint.
+Optional [online testing](HOSTING.md) adds Cloudflare Tunnel, Access verification,
+and a cloud ownership coordinator while keeping document processing local.
 
 ## Commands
 
@@ -51,29 +53,16 @@ database and related files that must remain on one local filesystem.
 
 ## PDF processing boundary
 
-The runtime has two extraction tiers. A cheap native-text pass scans the PDF
-for subject coverage and scorecard values; this took less than one second for
-both checked-in reports combined. Only the leading subject-property pages are
-sent through Docling's expensive layout/OCR/table models. Comparable and market
-appendices are never sent through document ML.
+Every page receives native-text inventory and Docling layout/OCR/table processing.
+`SERAFINA_DOCLING_BATCH_PAGES` controls resumable batch size (4–64, default 32),
+not a report page limit. Verified batches are reused after interruption or retry.
+`SERAFINA_OCR_ENGINE=easyocr` is the benchmarked default; `ocrmac` is available on
+macOS. Pipeline identity records the engine and package/OS versions. The legacy
+`SERAFINA_MAX_PDF_PAGES` variable remains a batch-size alias only.
 
-The subject selector stops on the page where the full field set is complete:
-property identity and location,
-management, ownership and purchase history, unit mix, asking and effective
-rents, vacancy, absorption, site and unit amenities, one-time expenses, and pet
-policy. Value-bearing identity, sale-price, and unit-mix rows are required in
-addition to their headings. The current Serafina and Hawks Landing samples both
-select pages 1-5; a report that moves the final details to page 7 selects pages
-1-7. If native text cannot prove completeness, as with an unfamiliar or scanned
-layout, the configured 10-page safety ceiling is used. Set
-`SERAFINA_MAX_PDF_PAGES` to an integer from 4 through 10.
-
-Separately, the native pass locates the demographic-summary and submarket
-overview pages anywhere in the report and reads only the scorecard values:
-3-mile population, growth, median household income, median home value,
-submarket vacancy, deliveries, and construction. Renter share, crime, schools,
-walk, and transit are not present in the checked-in PDFs and remain local
-reference inputs. Missing values remain missing rather than being invented.
+Scoring is a separate projection of retained evidence. Missing facts remain
+missing; CoStar does not supply every crime, school, transit, or financial input.
+See [the performance record](PERFORMANCE.md) and [evidence decision](adr/0001-retain-complete-report-evidence.md).
 
 <!-- TODO(local-runtime): When preparing the distributable installer, replace
 this manual procedure with a signed offline wheelhouse and model/artifact bundle

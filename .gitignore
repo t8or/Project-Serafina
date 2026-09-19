@@ -7,3 +7,9 @@ uploads/
 __pycache__/
 *.pyc
 .DS_Store
+
+# Private transfer archives, keys, and Cloudflare local state
+*.saf
+*.saf.key
+.wrangler/
+.dev.vars

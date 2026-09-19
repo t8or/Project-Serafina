@@ -16,7 +16,14 @@
     "start": "npm run local:start",
     "test": "node scripts/run-tests.js",
     "sort": "npx prettier --write src",
-    "test:js": "node --test"
+    "test:js": "node --test",
+    "host:start": "npm run build && node scripts/host.js start",
+    "host:stop": "node scripts/host.js stop",
+    "host:status": "node scripts/host.js status",
+    "host:doctor": "npm run local:doctor && node scripts/host.js doctor",
+    "workspace:export": "node scripts/workspace.js export",
+    "workspace:import": "node scripts/workspace.js import",
+    "host:deploy-coordinator": "wrangler deploy --config hosting/coordinator/wrangler.jsonc"
   },
   "keywords": [],
   "author": {
@@ -47,7 +54,8 @@
     "tailwindcss": "^4.0.0",
     "webpack": "^5.96.1",
     "webpack-cli": "^5.1.4",
-    "webpack-dev-server": "^6.0.0"
+    "webpack-dev-server": "^6.0.0",
+    "wrangler": "^4.135.0"
   },
   "dependencies": {
     "@alpinejs/persist": "^3.14.1",
@@ -64,6 +72,7 @@
     "express": "^5.2.1",
     "flatpickr": "^4.6.13",
     "fullcalendar": "^6.1.15",
+    "jose": "^6.2.12",
     "jsvectormap": "^1.6.0",
     "multer": "^2.0.2"
   }

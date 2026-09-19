@@ -22,6 +22,13 @@ Keep mutable data outside the checkout and outside synced storage. On macOS the 
 
 `SERAFINA_DOCLING_BATCH_PAGES` controls **pages per batch**, defaulting to 32 and accepting 4–64. The historical `SERAFINA_MAX_PDF_PAGES` remains an alias; the new variable takes precedence. It never truncates a Report. Every page receives native-text inventory and Docling layout/OCR/table processing. Cold runs take longer than retries; validated batches are reused. `SERAFINA_OCR_ENGINE=easyocr` is the benchmarked full-report default; `ocrmac` (macOS) and `auto` are also supported. The resolved OCR engine, package/OS versions, and pipeline options are recorded in checkpoint identity. Timing reports separate native text, fresh conversion, cache work, and overlapping stage work.
 
+## Online testing
+
+Run `npm run host:start` for the protected site at `https://serafina.milkbar.design`.
+Use `npm run host:stop` before moving its encrypted workspace to another machine.
+See [hosting and workspace transfer](docs/HOSTING.md) for provisioning, commands,
+access rules, and the single-host ownership guard.
+
 ## Evidence and readiness
 
 - Original PDFs, page text, table cells, duplicate column labels, coordinates, and full Docling batch representations are retained locally. JSON export includes all captured pages and tables; original PDFs remain necessary for images and visual verification.

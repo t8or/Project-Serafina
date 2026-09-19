@@ -39,6 +39,9 @@ app.use((req, res, next) => {
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
+// Bound to loopback; public hosting authenticates this route through its gateway too.
+app.get('/api/health', (_req, res) => res.json({service:'project-serafina', ready:true, instanceId:process.env.SERAFINA_INSTANCE_ID || 'local'}));
+
 // The browser UI and API share one loopback origin, so CORS is intentionally absent.
 app.use('/uploads', express.static(UPLOADS_DIR));
 

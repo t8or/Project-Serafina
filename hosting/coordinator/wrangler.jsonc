@@ -1,0 +1,9 @@
+{
+  "name": "serafina-host-coordinator",
+  "account_id": "27056753e897167d832be68e9d347972",
+  "main": "worker.js",
+  "compatibility_date": "2026-09-19",
+  "workers_dev": true,
+  "durable_objects": {"bindings": [{"name": "HOST_LEASE", "class_name": "HostLease"}]},
+  "migrations": [{"tag": "v1", "new_sqlite_classes": ["HostLease"]}]
+}
