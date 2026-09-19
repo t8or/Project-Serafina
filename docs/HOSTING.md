@@ -13,12 +13,11 @@ Closing the hosting process takes the site offline. The hostname remains fixed.
 
 ## Get the code on another machine
 
-The complete implementation is on the GitHub branch
-`codex/serafina-cloudflare-testing`, including the extraction and model improvements.
-Clone that branch explicitly; the default branch may contain the older runtime:
+The complete implementation is on `main`, including the extraction, model, and
+hosting improvements. Clone the default branch:
 
 ```sh
-git clone --branch codex/serafina-cloudflare-testing https://github.com/t8or/Project-Serafina.git
+git clone https://github.com/t8or/Project-Serafina.git
 cd Project-Serafina
 npm ci
 cp .env.example .env
@@ -28,7 +27,7 @@ For an existing clean clone:
 
 ```sh
 git fetch origin
-git switch codex/serafina-cloudflare-testing
+git switch main
 git pull --ff-only
 npm ci
 ```
@@ -41,7 +40,7 @@ credentials, so the second machine does not need a new tunnel or Cloudflare logi
 
 ## Start and stop
 
-Run from this branch's checkout after provisioning the local runtime:
+Run from an up-to-date checkout after provisioning the local runtime:
 
 ```sh
 npm ci
@@ -66,8 +65,8 @@ connected tunnel before announcing readiness. No router port-forwarding is neede
 cloudflared connector or install this tunnel as a separate system service:
 those bypass the supervisor's ownership checks.
 
-Use the same branch on both machines. The older original checkout does not
-contain these hosting commands.
+Use the same version of `main` on both machines. Update older checkouts before
+using these hosting commands; preserve any uncommitted changes first.
 
 ## Move the existing workspace
 
