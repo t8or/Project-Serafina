@@ -11,6 +11,34 @@ connected to the Internet, with Ollama running. Reports travel over HTTPS throug
 Cloudflare to that machine; no report processing runs in Workers or Pages.
 Closing the hosting process takes the site offline. The hostname remains fixed.
 
+## Get the code on another machine
+
+The complete implementation is on the GitHub branch
+`codex/serafina-cloudflare-testing`, including the extraction and model improvements.
+Clone that branch explicitly; the default branch may contain the older runtime:
+
+```sh
+git clone --branch codex/serafina-cloudflare-testing https://github.com/t8or/Project-Serafina.git
+cd Project-Serafina
+npm ci
+cp .env.example .env
+```
+
+For an existing clean clone:
+
+```sh
+git fetch origin
+git switch codex/serafina-cloudflare-testing
+git pull --ff-only
+npm ci
+```
+
+Git contains the source, dependency locks, tests, and setup instructions. Your
+`.env`, workspace, Cloudflare credentials, Python environment, and model weights
+are intentionally separate. Complete **Move the existing workspace** below
+before starting on the destination machine. Import restores the named tunnel's
+credentials, so the second machine does not need a new tunnel or Cloudflare login.
+
 ## Start and stop
 
 Run from this branch's checkout after provisioning the local runtime:
@@ -38,9 +66,8 @@ connected tunnel before announcing readiness. No router port-forwarding is neede
 cloudflared connector or install this tunnel as a separate system service:
 those bypass the supervisor's ownership checks.
 
-The current checkout is on `codex/serafina-cloudflare-testing`. Commit/push or
-privately copy this exact version before moving machines; the older original
-checkout does not contain these commands.
+Use the same branch on both machines. The older original checkout does not
+contain these hosting commands.
 
 ## Move the existing workspace
 
