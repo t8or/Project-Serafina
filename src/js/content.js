@@ -1,3 +1,4 @@
+import { waitForExtraction } from './extraction-client.js';
 import {
   restoreDialogFocus,
   trapDialogFocus as trapFocusWithinDialog,
@@ -181,12 +182,12 @@ export function initializeContentPage() {
 
         if (!response.ok) throw new Error("Failed to extract text");
 
-        const result = await response.json();
+        const result = await waitForExtraction(response);
         if (result.success) {
           if (result.sections) {
             const sectionCount = result.sections.length;
             this.showNotification(
-              `Local extraction complete! Generated ${sectionCount} section files.`,
+              `${result.partial ? "Partial extraction; review unresolved pages." : "Full report processed."} Generated ${sectionCount} section files.`,
             );
           } else {
             this.showNotification("Text extracted successfully.");

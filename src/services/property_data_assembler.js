@@ -34,6 +34,7 @@ async function loadSavedConfigOnce(service) {
     service.updateConfig(config);
     console.log('[PropertyDataAssembler] Loaded saved scorecard configuration');
   } catch (error) {
+    if (error.code !== 'ENOENT') throw error;
     console.log('[PropertyDataAssembler] No saved configuration found, using defaults');
   }
 }
@@ -81,19 +82,18 @@ export function assemblePropertyData(sections = {}, address = {}, external) {
   const nativeSubmarket = sections.submarket_report?.scoring_metrics || {};
   const property = extractPropertyMetricsFromDocling(sections.subject_property);
 
+  const clean = (values) => Object.fromEntries(Object.entries(values || {}).filter(([, v]) => typeof v === 'number' && Number.isFinite(v)));
+  const merge = (reference, parsed, native, conflicts) => {
+    const result = { ...clean(reference), ...clean(parsed), ...clean(native) };
+    for (const field of Object.keys(conflicts || {})) delete result[field];
+    return result;
+  };
   return {
     address,
-    demographics: {
-      ...(referenceData.demographics || {}),
-      ...nativeDemographics,
-      ...(documentDemographics || {}),
-    },
+    demographics: merge(referenceData.demographics, documentDemographics, nativeDemographics, {...documentDemographics.__conflicts, ...sections.demographics?.scoring_conflicts}),
     property: property || {},
-    submarket: {
-      ...(referenceData.submarket || {}),
-      ...nativeSubmarket,
-      ...(documentSubmarket || {}),
-    },
+    submarket: merge(referenceData.submarket, documentSubmarket, nativeSubmarket, sections.submarket_report?.scoring_conflicts),
     external: referenceData,
+    coverage: sections.subject_property?.metadata?.coverage,
   };
 }

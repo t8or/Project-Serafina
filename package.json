@@ -14,8 +14,9 @@
     "local:doctor": "node scripts/local-doctor.js",
     "local:start": "npm run build && node server.js",
     "start": "npm run local:start",
-    "test": "node --test",
-    "sort": "npx prettier --write src"
+    "test": "node scripts/test.js",
+    "sort": "npx prettier --write src",
+    "test:js": "node --test"
   },
   "keywords": [],
   "author": {
@@ -29,8 +30,8 @@
     "@babel/preset-env": "^7.24.8",
     "@tailwindcss/forms": "^0.5.9",
     "@tailwindcss/postcss": "^4.0.0",
+    "autoprefixer": "^10.4.20",
     "babel-loader": "^9.1.3",
-    "babel-plugin-prismjs": "^2.1.0",
     "css-loader": "^7.1.2",
     "file-loader": "^6.2.0",
     "glob": "^11.0.0",
@@ -46,7 +47,7 @@
     "tailwindcss": "^4.0.0",
     "webpack": "^5.96.1",
     "webpack-cli": "^5.1.4",
-    "webpack-dev-server": "^5.0.4"
+    "webpack-dev-server": "^6.0.0"
   },
   "dependencies": {
     "@alpinejs/persist": "^3.14.1",
@@ -64,7 +65,6 @@
     "flatpickr": "^4.6.13",
     "fullcalendar": "^6.1.15",
     "jsvectormap": "^1.6.0",
-    "multer": "^2.0.2",
-    "swiper": "^11.1.14"
+    "multer": "^2.0.2"
   }
 }

@@ -31,6 +31,11 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const router = express.Router();
+function localFile(root, name) {
+  const resolved = path.resolve(root, name);
+  if (!resolved.startsWith(root + path.sep)) throw new Error('Path must remain inside its designated directory');
+  return resolved;
+}
 
 // Deep XLSXBridge — no shallow XLSXProcessor pass-through
 const xlsxBridge = new XLSXBridge();
@@ -38,7 +43,7 @@ const propertyService = new PropertyService();
 
 // Paths
 const PROJECT_ROOT = path.resolve(__dirname, '../..');
-const TEMPLATES_DIR = path.join(PROJECT_ROOT, '..'); // Root directory for templates
+const TEMPLATES_DIR = PROJECT_ROOT; // Root directory for templates
 const CONFIG_DIR = path.join(PROJECT_ROOT, 'src', 'config');
 
 /**
@@ -64,9 +69,7 @@ router.post('/analyze', async (req, res) => {
     console.log('[FillHandler] Analyzing template:', templatePath);
     
     // Resolve template path
-    const resolvedPath = path.isAbsolute(templatePath) 
-      ? templatePath 
-      : path.resolve(TEMPLATES_DIR, templatePath);
+    const resolvedPath = localFile(TEMPLATES_DIR, templatePath);
     
     // Check if template exists
     try {
@@ -83,9 +86,7 @@ router.post('/analyze', async (req, res) => {
     
     // Save schema if output path provided
     if (outputPath) {
-      const resolvedOutputPath = path.isAbsolute(outputPath)
-        ? outputPath
-        : path.resolve(LOCAL_CONFIG_DIR, outputPath);
+      const resolvedOutputPath = localFile(LOCAL_CONFIG_DIR, outputPath);
       
       await fs.writeFile(resolvedOutputPath, JSON.stringify(schema, null, 2));
       console.log('[FillHandler] Schema saved to:', resolvedOutputPath);
@@ -151,9 +152,7 @@ router.post('/template', async (req, res) => {
 
     console.log('[FillHandler] Filling template:', templatePath);
 
-    const resolvedTemplatePath = path.isAbsolute(templatePath)
-      ? templatePath
-      : path.resolve(TEMPLATES_DIR, templatePath);
+    const resolvedTemplatePath = localFile(TEMPLATES_DIR, templatePath);
 
     try {
       await fs.access(resolvedTemplatePath);
@@ -171,13 +170,19 @@ router.post('/template', async (req, res) => {
       resolvedPropertyId = null;
     }
 
+    const revisionKey = fileId ? 'file_id' : 'property_id';
+    const revisionId = fileId || resolvedPropertyId;
+    const selectedRevision = revisionId && !jsonData && !baseName && !jsonPath
+      ? (await db.query(`SELECT * FROM report_revisions WHERE ${revisionKey} = $1 ORDER BY id DESC LIMIT 1`, [revisionId])).rows[0]
+      : null;
+
     if (jsonData) {
       dataToUse = jsonData;
       dataSource = 'jsonData';
     } else if (baseName) {
       dataToUse = await assembleFillPayloadFromBaseName(EXTRACTED_DIR, baseName);
       dataSource = 'docling_full_sections';
-    } else if (propertyId && resolvedPropertyId) {
+    } else if (propertyId && resolvedPropertyId && !fileId && !selectedRevision) {
       const efResult = await db.query(
         `SELECT storage_path, section_type FROM extracted_files
          WHERE property_id = $1 AND deleted_at IS NULL`,
@@ -201,9 +206,7 @@ router.post('/template', async (req, res) => {
       dataToUse = await assembleFillPayload(sections);
       dataSource = 'property_sections';
     } else if (jsonPath) {
-      const resolvedJsonPath = path.isAbsolute(jsonPath)
-        ? jsonPath
-        : path.resolve(EXTRACTED_DIR, jsonPath);
+      const resolvedJsonPath = localFile(EXTRACTED_DIR, jsonPath);
 
       try {
         const jsonContent = await fs.readFile(resolvedJsonPath, 'utf-8');
@@ -221,50 +224,20 @@ router.post('/template', async (req, res) => {
           error: `JSON file not found or invalid: ${jsonPath}`,
         });
       }
-    } else if (fileId) {
-      const fileQuery = await db.query(
-        'SELECT original_filename FROM files WHERE id = $1',
-        [fileId]
-      );
-
-      if (fileQuery.rows.length === 0) {
-        return res.status(404).json({
-          success: false,
-          error: `File not found in database: ${fileId}`,
-        });
+    } else if (selectedRevision || fileId) {
+      const revision = selectedRevision;
+      if (!revision) return res.status(404).json({success: false, error: 'Extract this Report before filling a workbook'});
+      const report = JSON.parse(await fs.readFile(resolveUploadPath(revision.evidence_path), 'utf8'));
+      if (report.source_sha256 !== revision.source_sha256) throw new Error('Report source identity mismatch');
+      const sections = {};
+      for (const sectionPath of report.section_files) {
+        const section = JSON.parse(await fs.readFile(localFile(EXTRACTED_DIR, path.basename(sectionPath)), 'utf8'));
+        sections[section.section] = section;
       }
-
-      const { original_filename } = fileQuery.rows[0];
-      const extractedFileName = `e_${path.basename(original_filename, path.extname(original_filename))}.json`;
-      const extractedPath = path.join(EXTRACTED_DIR, extractedFileName);
-
-      try {
-        const jsonContent = await fs.readFile(extractedPath, 'utf-8');
-        dataToUse = JSON.parse(jsonContent);
-        dataSource = 'fileId_combined';
-      } catch {
-        // Prefer docling_full section set: find baseName from extracted files for this upload
-        const files = await fs.readdir(EXTRACTED_DIR).catch(() => []);
-        const subject = files.find(
-          (f) => f.endsWith('_subject_property.json') && f.includes(String(fileId))
-        );
-        // Also match by original basename prefix
-        const stem = path.basename(original_filename, path.extname(original_filename));
-        const subjectByName =
-          subject ||
-          files.find((f) => f.endsWith('_subject_property.json') && f.includes(stem));
-
-        if (!subjectByName) {
-          return res.status(404).json({
-            success: false,
-            error: `Extracted JSON not found for file: ${original_filename}. Run docling_full extraction first.`,
-          });
-        }
-
-        const bn = subjectByName.replace('_subject_property.json', '');
-        dataToUse = await assembleFillPayloadFromBaseName(EXTRACTED_DIR, bn);
-        dataSource = 'docling_full_sections';
-      }
+      dataToUse = await assembleFillPayload(sections, {projection: revision.projection_json});
+      dataToUse.report_revision_id = revision.id;
+      resolvedPropertyId = revision.property_id;
+      dataSource = 'report_revision';
 
       // Resolve property from documents/files when not provided
       if (!resolvedPropertyId) {
@@ -295,7 +268,7 @@ router.post('/template', async (req, res) => {
     await fs.mkdir(FILLED_DIR, { recursive: true });
 
     const fillResult = await xlsxBridge.fillTemplate(resolvedTemplatePath, dataToUse, {
-      outputPath: outputPath ? path.resolve(FILLED_DIR, outputPath) : undefined,
+      outputPath: outputPath ? localFile(FILLED_DIR, outputPath) : undefined,
     });
     const result = xlsxBridge.formatFillReport(fillResult);
 
@@ -334,6 +307,8 @@ router.post('/template', async (req, res) => {
       outputPath: relativeOutputPath,
       absolutePath: result.outputPath,
       summary: result.summary,
+      readiness: result.readiness,
+      calculationStatus: result.calculationStatus,
       externalFields: result.externalFields,
       filledFields: result.filledFields?.length || 0,
       dataSource,

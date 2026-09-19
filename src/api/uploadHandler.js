@@ -27,6 +27,7 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
+    files: 10,
     fileSize: 50 * 1024 * 1024, // 50MB limit
     fieldSize: 50 * 1024 * 1024 // Also increase field size limit
   },
@@ -86,7 +87,7 @@ router.post('/upload', (req, res) => {
           uploadedFiles.push(fileRecord);
         } catch (fileError) {
           console.error(`Error processing file ${file.originalname}:`, fileError);
-          return res.status(500).json({
+          return res.status(fileError.statusCode || 500).json({
             success: false,
             error: `Failed to process file ${file.originalname}: ${fileError.message}`
           });

@@ -1,4 +1,6 @@
 import path from 'path';
+import dotenv from 'dotenv';
+dotenv.config({quiet: true});
 import { fileURLToPath } from 'url';
 import { globSync } from 'glob';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
@@ -34,6 +36,7 @@ const APP_HTML_FILES = new Set([
   'file-upload.html',
   'scorecard-config.html',
   'content.html',
+  'reports.html',
   '404.html',
 ]);
 
@@ -58,11 +61,12 @@ export default {
       directory: path.join(__dirname, "./build"),
     },
     compress: true,
+    host: "127.0.0.1",
     port: 3001,
     hot: true,
     proxy: [{
-      context: ['/api'],
-      target: 'http://127.0.0.1:3000',
+      context: ['/api', '/uploads'],
+      target: `http://127.0.0.1:${process.env.PORT || 3000}`,
       secure: false,
       changeOrigin: true
     }]

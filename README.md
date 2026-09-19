@@ -1,175 +1,65 @@
-# Project Serafina — local-first property analysis
+# Project Serafina
 
-Serafina runs as one loopback-only local application. Document processing uses
-local Docling artifacts, persistence uses SQLite in the machine's application
-data directory, and a native-text preflight collects scorecard values already
-present in each CoStar PDF without sending the full report through document ML.
-Additional reference metrics come only from explicitly imported local
-snapshots. The runtime never scrapes public websites or calls cloud services.
+Local CoStar report ingestion, inspectable evidence, property scoring, and underwriting workbook drafts. The product uses Express, SQLite, Python/Docling, Ollama, and the existing Webpack/Alpine interface.
+
+## Run
+
+Requirements: Node 26, a provisioned Python environment, local Docling artifacts with their checksum manifest, and Ollama with the configured model.
 
 ```sh
+npm ci
+cp .env.example .env
+# Set the local Python and artifact paths in .env.
+ollama pull qwen2.5:7b   # Only if not already installed.
 npm run local:setup
 npm run local:doctor
-npm run local:start
+npm start
 ```
 
-`local:start` intentionally fails until the destination machine has provisioned
-the local Python environment, Docling artifacts, and configured Ollama model.
-See [the local runtime guide](docs/LOCAL_RUNTIME.md) for the exact contract.
+The default address is `http://127.0.0.1:3000`. `/reports.html` provides whole-report search, questions, JSON export, and table-cell CSV export. `/file-upload.html` starts durable extraction jobs. `/dashboard.html` provides the existing property workflows.
 
----
+Keep mutable data outside the checkout and outside synced storage. On macOS the default is `~/Library/Application Support/Project Serafina`. `.env` is local machine configuration and is not versioned. The September robustness branch uses a separate `Project Serafina Audit` data directory and port 3011; it does not change the original data.
 
-# TailAdmin - Free Tailwind Admin Dashboard Template
+`SERAFINA_MAX_PDF_PAGES` is the historical name for **pages per batch**, now defaulting to 8. It accepts 4–10. It never truncates a Report. Every page receives native-text inventory and Docling layout/OCR/table processing. Cold runs take longer than retries; validated batches are reused.
 
-TailAdmin is a high-quality, open-source, and **free Tailwind CSS admin template** that is perfect for creating data-rich backends,
-powerful web applications and dashboard-admin projects.
+## Evidence and readiness
 
-![TailAdmin Dashboard Preview](./banner.png)
+- Original PDFs, page text, table cells, duplicate column labels, coordinates, and full Docling batch representations are retained locally. JSON export includes all captured pages and tables; original PDFs remain necessary for images and visual verification.
+- Each Report revision has a source hash, pipeline fingerprint, coverage, and a frozen scoring projection. Old evidence is retained when current property references change.
+- Coverage measures processing, **not semantic correctness**. Image-only pages without readable text, failed batches, and table failures remain visible. Unsupported or encrypted inputs fail visibly.
+- Questions with recognized demographic metrics and explicit radii use exact table headings. Other questions use the local model and checked verbatim quotations. Generated interpretations remain drafts; quotation matching does not certify reasoning or OCR accuracy.
+- Scores require valid inputs for every positively weighted factor. Unknown inputs produce `Insufficient data`, never an investment rejection. CoStar does not supply every crime, school, transit, or financial input; use the existing reference-snapshot workflow for those facts.
+- Workbook exports are **drafts**. Mapped sample inputs are cleared when unsupported. Actual occupancy and achieved rents require rent-roll evidence; availability and effective asking rent are not substitutes. Unmapped template assumptions still require review. Formulas are preserved, and Excel recalculation remains required.
 
-## Overview
+The bundled underwriting template has a versioned, checksum-bound mapping. A changed workbook must have its mapping reviewed before filling. A populated file is reopened to verify written cells and formulas before publication, and existing artifacts cannot be overwritten.
 
-TailAdmin provides essential UI components and layouts for building feature-rich, data-driven admin dashboards and control panels. It's built using:
+## Interfaces for other uses
 
-- HTML
-- Alpine.js
-- Tailwind CSS
-- and Webpack (for bundling)
+| Request | Purpose |
+| --- | --- |
+| `POST /api/upload` (multipart `files`) | Store original PDF files |
+| `POST /api/extract/:fileId` | Return HTTP 202 and a durable job ID |
+| `GET /api/extract/jobs/:jobId` | Read queued/running/completed/partial/failed/interrupted status and progress |
+| `GET /api/reports` | List retained revisions |
+| `GET /api/reports/:id` | Inspect coverage |
+| `GET /api/reports/:id/export` | Export whole-report JSON |
+| `GET /api/reports/:id/export?format=csv` | Export table cells with page, row, column, and original heading |
+| `GET /api/reports/:id/search?q=...` | Retrieve source passages and table evidence |
+| `POST /api/reports/:id/ask` with `{ "question": "..." }` | Ask the retained Report |
+| `POST /api/fill/template` with `{ "fileId": 1, "templatePath": "Serafina UW Phoenix AZ Feb 14 2025.xlsx" }` | Produce a verified workbook draft from a coherent revision |
 
-### Quick Links
+A restart marks unfinished jobs interrupted. Submit the same file again to resume verified checkpoints. A process lock enforces one writer per data directory. Filesystem/process work happens outside short synchronous SQLite transactions. Late rescoring cannot overwrite a newer Report revision.
 
-- [✨ Visit Website](https://tailadmin.com)
-- [📄 Documentation](https://tailadmin.com/docs)
-- [⬇️ Download](https://tailadmin.com/download)
-- [🖌️ Figma Design File (Community Edition)](https://www.figma.com/community/file/1463141366275764364)
-- [⚡ Get PRO Version](https://tailadmin.com/pricing)
+## Validate
 
-### Demos
-
-- [Free Version](https://free-demo.tailadmin.com/)
-- [Pro Version](https://demo.tailadmin.com)
-
-### Other Versions
-
-- [Next.js Version](https://github.com/TailAdmin/free-nextjs-admin-dashboard)
-- [React.js Version](https://github.com/TailAdmin/free-react-tailwind-admin-dashboard)
-- [Vue.js Version](https://github.com/TailAdmin/vue-tailwind-admin-dashboard)
-
-## Installation
-
-### Prerequisites
-
-To get started with TailAdmin, ensure you have the following prerequisites installed and set up:
-
-- Node.js 18.x or later
-
-### Cloning the Repository
-
-Clone the repository using the following command:
-
-```bash
-git clone https://github.com/TailAdmin/tailadmin-free-tailwind-dashboard-template.git
+```sh
+npm test                    # Node and Python adversarial/regression suites
+npm run build               # Production build
+npm audit                   # Dependency advisories
+npm run local:doctor        # Python, artifacts, model, and local paths
+npm run dev                 # Loopback Webpack dev server; start backend separately
 ```
 
-> Windows Users: place the repository near the root of your drive if you face issues while cloning.
+Opt-in integration checks use an isolated local data directory. `scripts/verify-local.js` expects the two bundled PDFs and the scanned fixture from `scripts/create-adversarial-fixtures.py` already extracted; it verifies the running HTTP interfaces, local inference, source hashes, and actual workbook cells. `scripts/verify-recovery.py` creates a temporary 24-page fixture, interrupts Docling after eight pages, and verifies resumed completion without recomputing that checkpoint. Set `DOCLING_ARTIFACTS_PATH` when running it directly with the provisioned Python.
 
-1. Install dependencies:
-
-   ```bash
-   npm install
-   # or
-   yarn install
-   ```
-
-2. Start the development server:
-   ```bash
-   npm run start
-   # or
-   yarn start
-   ```
-
-## Components
-
-TailAdmin is a pre-designed starting point for building a web-based dashboard using HTML, Alpine.js and Tailwind CSS. The template includes:
-
-- Sophisticated and accessible sidebar
-- Data visualization components
-- Prebuilt profile management and 404 page
-- Tables and Charts(Line and Bar)
-- Authentication forms and input elements
-- Alerts, Dropdowns, Modals, Buttons and more
-- Can't forget Dark Mode 🕶️
-
-## Feature Comparison
-
-### Free Version
-
-- 1 Unique Dashboard
-- 30+ dashboard components
-- 50+ UI elements
-- Basic Figma design files
-- Community support
-
-### Pro Version
-
-- 5 Unique Dashboards: Analytics, Ecommerce, Marketing, CRM, Stocks (more coming soon)
-- 400+ dashboard components and UI elements
-- Complete Figma design file
-- Email support
-
-To learn more about pro version features and pricing, visit our [pricing page](https://tailadmin.com/pricing).
-
-## Update Logs
-
-### Version 2.0.1 - [February 27, 2025]
-
-#### Update Overview
-
-- Upgraded to Tailwind CSS v4 for better performance and efficiency.
-- Updated class usage to match the latest syntax and features.
-- Replaced deprecated class and optimized styles.
-
-#### Next Steps
-
-- Run npm install or yarn install to update dependencies.
-- Check for any style changes or compatibility issues.
-- Refer to the Tailwind CSS v4 [Migration Guide](https://tailwindcss.com/docs/upgrade-guide) on this release. if needed.
-- This update keeps the project up to date with the latest Tailwind improvements. 🚀
-
-### Version 2.0.0 - [February 2025]
-
-Major update with comprehensive redesign and new features.
-
-#### Major Improvements
-
-- Complete UI redesign of all pages and components
-- Enhanced user interface with new elements
-- Improved responsiveness and accessibility
-- New features: collapsible sidebar, chat, and calendar
-- Updated data visualization components
-
-#### New Features
-
-- Redesigned dashboards (Ecommerce, Analytics, Marketing, CRM)
-- Enhanced navigation with improved header and breadcrumbs
-- Advanced table components with sorting and filtering
-- New UI components (Avatar, Alert, Ribbon)
-- Full-featured calendar with drag-and-drop
-
-#### Breaking Changes
-
-- Updated sidebar component API
-- New charting library implementation
-- Revised authentication system
-- **Deprecations:** SimpleTable component and legacy icon set
-
-#### Previous Versions
-
-For detailed changelogs of previous versions (1.0.0 - 1.3.0), visit our [documentation](https://tailadmin.com/docs/update-logs/).
-
-## License
-
-The community edition of TailAdmin is released under the MIT License.
-
-## Support
-
-If you find this project helpful, please consider giving it a star on GitHub. Your support helps us continue developing and maintaining this template.
+See [CONTEXT.md](CONTEXT.md), [the evidence decision](docs/adr/0001-retain-complete-report-evidence.md), and [the audit and validation record](docs/ROBUSTNESS_AUDIT.md). Historic documents describe earlier summary-only behavior and are superseded where they conflict with that decision.

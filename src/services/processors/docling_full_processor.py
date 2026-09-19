@@ -2,7 +2,7 @@
 Docling PDF Processor - Processes the bounded property-summary portion of a CoStar report.
 
 This processor:
-- Processes at most the first 10 pages (configurable down to 4)
+- Processes every page in resumable batches of 4 to 10 pages
 - Detects CoStar section headers via OCR/text extraction
 - Groups pages, tables, and content by detected section
 - Outputs separate JSON files per section
@@ -14,6 +14,11 @@ import json
 import sys
 import logging
 import os
+import uuid
+import re
+import inspect
+import hashlib
+from importlib.metadata import version
 import pypdfium2 as pdfium
 from pathlib import Path
 from typing import Dict, Any, List, Optional
@@ -30,9 +35,11 @@ from docling.datamodel.accelerator_options import AcceleratorDevice, Accelerator
 from docling_core.types.doc import DocItemLabel, TextItem, TableItem
 
 if __package__:
+    from src.services.processors.report_evidence import ReportEvidence, atomic_json
     from src.services.processors.costar_page_selector import select_property_summary_end
     from src.services.processors.costar_scoring_preflight import extract_scoring_metrics
 else:
+    from report_evidence import ReportEvidence, atomic_json
     from costar_page_selector import select_property_summary_end
     from costar_scoring_preflight import extract_scoring_metrics
 
@@ -112,10 +119,10 @@ class DoclingFullProcessor:
     """
     Full PDF processor using Docling for ML-based document understanding.
     
-    Processes a bounded leading page range and groups content by detected sections.
+    Processes every page in bounded batches and groups content by detected sections.
     
     Features:
-    - Hard page ceiling keeps long report appendices out of the ML pipeline
+    - Batch checkpoints retain completed work after interruptions
     - Section detection via OCR text analysis
     - Per-section JSON output files
     - Page-level provenance tracking
@@ -140,7 +147,7 @@ class DoclingFullProcessor:
             num_threads: Number of threads for processing
             ocr_languages: List of language codes for OCR (default: ["en"])
             ocr_confidence_threshold: Minimum confidence for OCR results
-            max_pages: Maximum leading PDF pages to process (4-10)
+            max_pages: Maximum pages per batch (4-10)
         """
         if not isinstance(max_pages, int) or not 4 <= max_pages <= 10:
             raise ValueError(f"max_pages must be an integer from 4 to 10; received {max_pages}")
@@ -155,115 +162,6 @@ class DoclingFullProcessor:
         # Initialize the converter with configured options
         self.converter = self._create_converter()
 
-    def _native_preflight(self, file_path: str) -> tuple[int, Dict[str, Any]]:
-        """Select subject pages and collect score inputs without document ML."""
-        try:
-            pdf = pdfium.PdfDocument(file_path)
-            try:
-                page_count = len(pdf)
-                page_texts = []
-                for page_index in range(page_count):
-                    page = pdf[page_index]
-                    text_page = page.get_textpage()
-                    try:
-                        page_texts.append(text_page.get_text_bounded())
-                    finally:
-                        text_page.close()
-                        page.close()
-            finally:
-                pdf.close()
-
-            selected_page_limit = select_property_summary_end(
-                page_texts[:self.max_pages],
-                ceiling=self.max_pages,
-            )
-            scoring_metrics = extract_scoring_metrics(page_texts)
-            if selected_page_limit < min(page_count, self.max_pages):
-                logger.info(
-                    "Detected complete CoStar subject-property coverage through "
-                    f"page {selected_page_limit}"
-                )
-            if scoring_metrics.get("demographics") or scoring_metrics.get("submarket"):
-                logger.info(
-                    "Found native scoring inputs on pages "
-                    f"{scoring_metrics.get('demographics_page')} and "
-                    f"{scoring_metrics.get('submarket_page')}"
-                )
-            return selected_page_limit, scoring_metrics
-        except Exception as error:
-            logger.warning(f"PDF page preflight failed; using {self.max_pages}-page ceiling: {error}")
-            return self.max_pages, {
-                "demographics": {},
-                "submarket": {},
-                "demographics_page": None,
-                "submarket_page": None,
-            }
-
-    def _select_page_limit(self, file_path: str) -> int:
-        """Compatibility seam for page-selection tests and callers."""
-        return self._native_preflight(file_path)[0]
-
-    def _write_native_scoring_sections(
-        self,
-        output_path: Path,
-        base_filename: str,
-        source_file: str,
-        scoring_metrics: Dict[str, Any],
-    ) -> tuple[List[str], List[Dict[str, Any]]]:
-        """Persist small, provenance-bearing scoring sections for the JS pipeline."""
-        section_files = []
-        section_summary = []
-        section_specs = (
-            ("demographics", "demographics_page"),
-            ("submarket_report", "submarket_page"),
-        )
-
-        for section_slug, page_key in section_specs:
-            metrics = scoring_metrics.get(
-                "submarket" if section_slug == "submarket_report" else section_slug,
-                {},
-            )
-            source_page = scoring_metrics.get(page_key)
-            if not metrics or not source_page:
-                continue
-
-            section_output = {
-                "section": section_slug,
-                "section_name": SECTION_NAMES[section_slug],
-                "page_range": {"start": source_page, "end": source_page},
-                "pages": [],
-                "tables": [],
-                "raw_text": "",
-                "scoring_metrics": metrics,
-                "metadata": {
-                    "source_file": Path(source_file).name,
-                    "source_page": source_page,
-                    "extraction_date": datetime.now().isoformat(),
-                    "processor": "native_text_scoring_preflight",
-                },
-            }
-            section_filename = f"e_{base_filename}_{section_slug}.json"
-            section_filepath = output_path / section_filename
-            with open(section_filepath, 'w', encoding='utf-8') as output_file:
-                json.dump(section_output, output_file, indent=2, default=str)
-
-            section_files.append(str(section_filepath))
-            section_summary.append({
-                "section": section_slug,
-                "section_name": SECTION_NAMES[section_slug],
-                "file_path": str(section_filepath),
-                "page_count": 1,
-                "table_count": 0,
-                "page_range": {"start": source_page, "end": source_page},
-                "processor": "native_text_scoring_preflight",
-            })
-            logger.info(
-                f"Wrote native scoring section: {section_filename} "
-                f"(source page {source_page})"
-            )
-
-        return section_files, section_summary
-        
     def _create_converter(self) -> DocumentConverter:
         """Create and configure the DocumentConverter with pipeline options."""
         
@@ -323,7 +221,7 @@ class DoclingFullProcessor:
         # Check each section's patterns
         for section_slug, patterns in COSTAR_SECTIONS.items():
             for pattern in patterns:
-                if pattern.upper() in text_upper:
+                if text_upper.strip() == pattern.upper() or text_upper.strip().startswith(pattern.upper() + " "):
                     return section_slug
         
         return None
@@ -357,172 +255,154 @@ class DoclingFullProcessor:
         return "unknown"
     
     def process(self, file_path: str, output_dir: str) -> Dict[str, Any]:
-        """
-        Process a PDF file and extract structured content grouped by section.
-        
-        Args:
-            file_path: Path to the PDF file
-            output_dir: Directory to write section JSON files
-            
-        Returns:
-            Dictionary containing:
-            - processing_status: "success" or "error"
-            - metadata: File and processing metadata
-            - sections: Summary of detected sections with file paths
-            - section_files: List of generated section file paths
-        """
-        try:
-            logger.info(f"Processing full PDF with Docling: {file_path}")
-            
-            # Ensure output directory exists
-            output_path = Path(output_dir)
-            output_path.mkdir(parents=True, exist_ok=True)
-            
-            selected_page_limit, scoring_metrics = self._native_preflight(file_path)
-
-            # CoStar property fields live in the leading summary pages. Later
-            # comparison and market-report appendices are intentionally excluded
-            # from the expensive layout/OCR/table pipeline.
-            result = self.converter.convert(file_path, page_range=(1, selected_page_limit))
-            
-            # Check conversion status
-            if result.status == ConversionStatus.FAILURE:
-                return {
-                    "processing_status": "error",
-                    "error_message": "Document conversion failed",
-                    "errors": [str(e) for e in result.errors] if result.errors else []
-                }
-            
-            doc = result.document
-            
-            # Extract base metadata
-            metadata = self._extract_metadata(result, file_path, selected_page_limit)
-            
-            # Extract pages with content
-            pages = self._extract_pages(doc)
-            
-            # Extract all tables
-            tables = self._extract_tables(doc)
-            
-            # Assign sections to pages
-            page_sections = self._assign_page_sections(pages)
-            
-            # Group content by section
-            sections_data = self._group_by_section(pages, tables, page_sections)
-            
-            # Generate base filename for outputs
-            base_filename = Path(file_path).stem
-            
-            # Write section files and collect paths
-            section_files = []
-            section_summary = []
-            
-            for section_slug, section_content in sections_data.items():
-                # Skip unknown sections with no content
-                if section_slug == "unknown" and not section_content["pages"]:
+        """Capture the entire Report; batch size is a compute limit, never a page ceiling."""
+        output_path = Path(output_dir)
+        output_path.mkdir(parents=True, exist_ok=True)
+        evidence = ReportEvidence(file_path, output_dir, {
+            "batch_pages": self.max_pages, "ocr": self.do_ocr, "table_mode": str(self.table_mode),
+            "docling_version": version('docling'), "docling_core_version": version('docling-core'),
+            "capture_code": hashlib.sha256(''.join(inspect.getsource(method) for method in
+                [self._create_converter, self._extract_pages, self._extract_tables, self._detect_column_types]).encode()).hexdigest(),
+            "artifact_manifest": hashlib.sha256((Path(os.environ['DOCLING_ARTIFACTS_PATH']) / 'serafina-artifacts.manifest.json').read_bytes()).hexdigest(),
+        })
+        report = evidence.inventory()
+        base_filename = Path(file_path).stem + '_' + uuid.uuid4().hex[:12]
+        evidence_path = output_path / f'e_{base_filename}_report.json'
+        atomic_json(evidence_path, report)
+        native_texts = [page['native_text'] for page in report['pages']]
+        scoring_metrics = extract_scoring_metrics(native_texts)
+        summary_end = select_property_summary_end(native_texts[:self.max_pages], ceiling=self.max_pages)
+        all_pages, all_tables = {}, []
+        total = len(report['pages'])
+        for start in range(1, total + 1, self.max_pages):
+            end = min(total, start + self.max_pages - 1)
+            logger.info(f'Report batch {start}-{end} of {total}')
+            batch = evidence.load_batch(start, end)
+            if batch is not None:
+                logger.info(f'Reusing verified checkpoint {start}-{end}')
+            if batch is None:
+                try:
+                    result = self.converter.convert(file_path, page_range=(start, end))
+                    if result.status != ConversionStatus.SUCCESS:
+                        raise ValueError(f'Incomplete Docling batch: {result.status}; {result.errors}')
+                    doc = result.document
+                    pages = self._extract_pages(doc)
+                    tables = self._extract_tables(doc)
+                    batch = {'start': start, 'end': end, 'status': 'success',
+                             'pages': pages, 'tables': tables, 'document': doc.export_to_dict()}
+                    evidence.save_batch(batch)
+                except Exception as error:
+                    report['warnings'].append({'start': start, 'end': end, 'error': str(error)})
+                    for page in report['pages'][start-1:end]:
+                        page['layout_status'] = 'failed'
+                    atomic_json(evidence_path, report)
                     continue
-                
-                # Create section output
-                section_output = {
-                    "section": section_slug,
-                    "section_name": SECTION_NAMES.get(section_slug, section_slug),
-                    "page_range": {
-                        "start": section_content["start_page"],
-                        "end": section_content["end_page"]
-                    },
-                    "pages": section_content["pages"],
-                    "tables": section_content["tables"],
-                    "raw_text": section_content["raw_text"],
-                    "metadata": {
-                        "source_file": Path(file_path).name,
-                        "total_pages_in_section": len(section_content["pages"]),
-                        "total_tables_in_section": len(section_content["tables"]),
-                        "extraction_date": datetime.now().isoformat(),
-                        "processor": "docling_full"
-                    }
-                }
-                
-                # Write section file
-                section_filename = f"e_{base_filename}_{section_slug}.json"
-                section_filepath = output_path / section_filename
-                
-                with open(section_filepath, 'w', encoding='utf-8') as f:
-                    json.dump(section_output, f, indent=2, default=str)
-                
-                section_files.append(str(section_filepath))
-                section_summary.append({
-                    "section": section_slug,
-                    "section_name": SECTION_NAMES.get(section_slug, section_slug),
-                    "file_path": str(section_filepath),
-                    "page_count": len(section_content["pages"]),
-                    "table_count": len(section_content["tables"]),
-                    "page_range": {
-                        "start": section_content["start_page"],
-                        "end": section_content["end_page"]
-                    }
-                })
-                
-                logger.info(f"Wrote section file: {section_filename} ({len(section_content['pages'])} pages)")
+            pages = {int(key): value for key, value in batch['pages'].items()}
+            # Docling provenance uses original 1-based page numbers, even for a range.
+            if any(number < start or number > end for number in pages):
+                raise ValueError('Docling returned page provenance outside the requested range')
+            all_pages.update(pages)
+            for table in batch['tables']:
+                table['table_id'] = f"p{table['page_number']}-b{start}-t{table['table_index']}"
+                all_tables.append(table)
+            for page in report['pages'][start-1:end]:
+                extracted = pages.get(page['page_number'], {})
+                page['layout_status'] = 'complete'
+                page['text_items'] = extracted.get('text_items', [])
+                page['headers'] = extracted.get('headers', [])
+                page['layout_text'] = '\n'.join(extracted.get('raw_text_parts', []))
+                page['document_batch'] = str(evidence.cache / f'{start}-{end}.json')
+                if any(t.get('error') and t['page_number'] == page['page_number'] for t in batch['tables']):
+                    page['reading_status'] = 'requires_visual_review'
+                if not page['native_text'].strip() and not page['layout_text'].strip():
+                    page['reading_status'] = 'requires_visual_review'
+            report['coverage'] = self._coverage(report)
+            atomic_json(evidence_path, report)
+        # Include native evidence on pages where layout failed, without certifying structure.
+        for page in report['pages']:
+            all_pages.setdefault(page['page_number'], {'page_number': page['page_number'],
+                'text_items': [], 'headers': [], 'tables': [], 'raw_text_parts': [page['native_text']]})
+        page_sections = self._assign_report_sections(report['pages'], all_pages)
+        for page in report['pages']:
+            number = page['page_number']
+            if number <= summary_end and page_sections[number] == 'unknown':
+                page_sections[number] = 'subject_property'
+            page['section'] = page_sections[number]
+        sections_data = self._group_by_section(all_pages, all_tables, page_sections)
+        for slug in ('demographics', 'submarket_report'):
+            sections_data.setdefault(slug, {'pages': [], 'tables': [], 'raw_text': '', 'start_page': None, 'end_page': None})
+        section_files, summaries = [], []
+        for slug, content in sections_data.items():
+            category = 'submarket' if slug == 'submarket_report' else slug
+            metrics = scoring_metrics.get(category, {}) if category in ('demographics', 'submarket') else {}
+            if not content['pages'] and not metrics:
+                continue
+            section = {'section': slug, 'section_name': SECTION_NAMES.get(slug, slug),
+                       'page_range': {'start': content['start_page'], 'end': content['end_page']},
+                       'pages': content['pages'], 'tables': content['tables'], 'raw_text': content['raw_text'],
+                       'scoring_metrics': metrics,
+                       'scoring_evidence': {k.split('.', 1)[1]: v for k, v in scoring_metrics['evidence'].items() if k.startswith(category + '.')},
+                       'scoring_conflicts': {k.split('.', 1)[1]: v for k, v in scoring_metrics['conflicts'].items() if k.startswith(category + '.')},
+                       'metadata': {'source_file': Path(file_path).name, 'source_sha256': evidence.source_hash,
+                                    'processor': 'docling_full', 'evidence_file': evidence_path.name, 'coverage': self._coverage(report)}}
+            section_path = output_path / f'e_{base_filename}_{slug}.json'
+            atomic_json(section_path, section)
+            section_files.append(str(section_path))
+            summaries.append({'section': slug, 'file_path': str(section_path), 'page_count': len(content['pages']),
+                              'table_count': len(content['tables']), 'page_range': section['page_range']})
+        report['tables'] = all_tables
+        report['scoring'] = scoring_metrics
+        report['coverage'] = self._coverage(report)
+        report['section_files'] = section_files
+        atomic_json(evidence_path, report)
+        return {'processing_status': 'success' if report['coverage']['status'] == 'complete' else 'partial_success',
+                'metadata': {'page_count': total, 'processed_page_count': report['coverage']['layout_pages'],
+                             'source_sha256': evidence.source_hash, 'pipeline_fingerprint': evidence.fingerprint},
+                'evidence_file': str(evidence_path), 'coverage': report['coverage'],
+                'section_files': section_files, 'sections': summaries, 'warnings': report['warnings']}
 
-            scoring_files, scoring_summary = self._write_native_scoring_sections(
-                output_path,
-                base_filename,
-                file_path,
-                scoring_metrics,
-            )
-            section_files.extend(scoring_files)
-            section_summary.extend(scoring_summary)
-            
-            # Build summary result
-            output = {
-                "processing_status": "success" if result.status == ConversionStatus.SUCCESS else "partial_success",
-                "metadata": {
-                    **metadata,
-                    "processed_page_count": len(pages),
-                    "total_sections": len(section_files),
-                    "scoring_preflight_pages": {
-                        "demographics": scoring_metrics.get("demographics_page"),
-                        "submarket": scoring_metrics.get("submarket_page"),
-                    },
-                    "output_directory": str(output_path)
-                },
-                "sections": section_summary,
-                "section_files": section_files
-            }
-            
-            if result.status == ConversionStatus.PARTIAL_SUCCESS:
-                output["warnings"] = [str(e) for e in result.errors] if result.errors else []
-            
-            logger.info(
-                f"Successfully processed PDF: {len(pages)} of "
-                f"{metadata.get('page_count', 'unknown')} pages, {len(section_files)} sections"
-            )
-            return output
-            
-        except Exception as e:
-            logger.error(f"Error processing PDF: {str(e)}")
-            import traceback
-            traceback.print_exc(file=sys.stderr)
-            return {
-                "processing_status": "error",
-                "error_message": str(e)
-            }
-    
-    def _extract_metadata(self, result, file_path: str, selected_page_limit: int) -> Dict[str, Any]:
-        """Extract document metadata."""
-        return {
-            "file_name": Path(file_path).name,
-            "file_path": str(file_path),
-            "file_size": result.input.filesize if hasattr(result.input, 'filesize') else None,
-            "page_count": result.input.page_count if hasattr(result.input, 'page_count') else None,
-            "format": str(result.input.format) if hasattr(result.input, 'format') else "PDF",
-            "processor": "docling_full",
-            "ocr_enabled": self.do_ocr,
-            "table_mode": "accurate" if self.table_mode == TableFormerMode.ACCURATE else "fast",
-            "page_limit": selected_page_limit,
-            "page_ceiling": self.max_pages,
-        }
-    
+    def _assign_report_sections(self, report_pages, extracted_pages):
+        """Classify section starts, never table-of-contents references or prose mentions."""
+        assignments, current = {}, 'unknown'
+        for page in report_pages:
+            number = page['page_number']
+            text = page['native_text'] or page.get('layout_text', '')
+            lines = [line.strip() for line in text.splitlines() if line.strip()]
+            if any('TABLE OF CONTENTS' in line.upper() for line in lines[:8]):
+                assignments[number] = 'unknown'
+                continue
+            candidates = lines[:3]
+            if any(line.upper() == 'PREPARED BY' for line in lines[:10]):
+                candidates = lines[:10]
+            cover = next((line for line in candidates if line.lower() in
+                ['multi-family submarket report', 'multi-family market report']), None)
+            if cover:
+                current = 'submarket_report' if 'submarket' in cover.lower() else 'market_report'
+            elif current not in ('submarket_report', 'market_report'):
+                for line in candidates:
+                    if re.fullmatch(r'Demographic(?:s| Overview)', line, re.I):
+                        current = 'demographics'
+                        break
+                    detected = self._detect_section_from_text(line)
+                    # Report scopes require cover evidence; a TOC-like label cannot start one.
+                    if detected in ('submarket_report', 'market_report'):
+                        continue
+                    if detected and not (detected == 'subject_property' and current not in ('unknown', 'subject_property')):
+                        current = detected
+                        break
+            assignments[number] = current
+        return assignments
+
+    def _coverage(self, report):
+        pages = report['pages']
+        completed = [p['page_number'] for p in pages if p['layout_status'] == 'complete']
+        unresolved = [p['page_number'] for p in pages if p['layout_status'] != 'complete' or p.get('reading_status') == 'requires_visual_review']
+        return {'status': 'complete' if not unresolved else 'partial', 'total_pages': len(pages),
+                'native_text_pages': sum(bool(p['native_text'].strip()) for p in pages),
+                'layout_pages': len(completed), 'unresolved_pages': unresolved,
+                'semantic_validation': 'not_certified',
+                'next_action': 'Review image-only pages or retry failed batches' if unresolved else None}
+
     def _extract_pages(self, doc) -> Dict[int, Dict[str, Any]]:
         """Extract content organized by page."""
         pages = {}
@@ -552,18 +432,20 @@ class DoclingFullProcessor:
                 if hasattr(item, 'label') and item.label == DocItemLabel.SECTION_HEADER:
                     pages[page_num]["headers"].append({
                         "text": text,
-                        "level": level
+                        "level": level,
+                        "provenance": [p.model_dump(mode="json") for p in item.prov]
                     })
                 else:
                     pages[page_num]["text_items"].append({
                         "text": text,
                         "label": str(item.label) if hasattr(item, 'label') else "text",
-                        "level": level
+                        "level": level,
+                        "provenance": [p.model_dump(mode="json") for p in item.prov]
                     })
             elif isinstance(item, TableItem):
                 # Tables are extracted separately but we track their page location
                 pages[page_num]["tables"].append({
-                    "table_ref": id(item),
+                    "table_ref": item.self_ref,
                     "level": level
                 })
         
@@ -583,7 +465,12 @@ class DoclingFullProcessor:
                 df = table.export_to_dataframe(doc=doc)
                 
                 # Get headers (column names)
-                headers = list(df.columns)
+                original_headers = [str(h) for h in df.columns]
+                headers = []
+                for index, header in enumerate(original_headers):
+                    headers.append(header if original_headers.count(header) == 1 and header else f"{header or 'column'} [{index + 1}]")
+                cells = df.fillna('').values.tolist()
+                df.columns = headers
                 
                 # Convert rows to list of dicts
                 rows = df.to_dict(orient="records")
@@ -600,6 +487,10 @@ class DoclingFullProcessor:
                     "table_index": table_idx,
                     "page_number": page_num,
                     "headers": headers,
+                    "original_headers": original_headers,
+                    "cells": cells,
+                    "provenance": [p.model_dump(mode="json") for p in table.prov],
+                    "structure": table.data.model_dump(mode="json"),
                     "column_types": column_types,
                     "rows": rows,
                     "row_count": len(df),

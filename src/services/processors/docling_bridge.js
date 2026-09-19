@@ -20,7 +20,11 @@ import { verifyDoclingArtifacts } from '../local_artifacts.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const FULL_PROCESSOR_PATH = path.join(__dirname, 'docling_full_processor.py');
-const DEFAULT_MAX_PDF_PAGES = 10;
+const DEFAULT_MAX_PDF_PAGES = 8;
+const activeChildren = new Set();
+export function stopDoclingProcesses() {
+  for (const child of activeChildren) child.kill('SIGKILL');
+}
 
 export function resolveMaxPdfPages(value) {
   const maxPages = value === undefined || value === '' ? DEFAULT_MAX_PDF_PAGES : Number(value);
@@ -34,7 +38,7 @@ class DoclingBridge {
   constructor(options = {}) {
     this.pythonPath = options.pythonPath || LOCAL_PYTHON_PATH;
     this.artifactsPath = options.artifactsPath || DOCLING_ARTIFACTS_PATH;
-    this.timeout = options.timeout || 900_000;
+    this.timeout = options.timeout || 7_200_000;
     this.maxPages = resolveMaxPdfPages(
       options.maxPages ?? process.env.SERAFINA_MAX_PDF_PAGES
     );
@@ -80,20 +84,25 @@ class DoclingBridge {
           TRANSFORMERS_OFFLINE: '1',
         },
       });
+      activeChildren.add(child);
       let stdout = '';
       let stderr = '';
       const timeoutId = setTimeout(() => {
         child.kill('SIGTERM');
+        const force = setTimeout(() => child.kill('SIGKILL'), 5_000);
+        force.unref();
         reject(new Error(`Docling process timed out after ${timeout}ms`));
       }, timeout);
 
       child.stdout.on('data', (data) => { stdout += data.toString(); });
-      child.stderr.on('data', (data) => { stderr += data.toString(); });
+      child.stderr.on('data', (data) => { stderr = (stderr + data.toString()).slice(-64_000); });
       child.on('error', (error) => {
+        activeChildren.delete(child);
         clearTimeout(timeoutId);
         reject(new Error(`Failed to start local Python (${this.pythonPath}): ${error.message}`));
       });
       child.on('close', (code) => {
+        activeChildren.delete(child);
         clearTimeout(timeoutId);
         if (code === 0) resolve(stdout);
         else reject(new Error(stderr || `Docling processor exited with code ${code}`));

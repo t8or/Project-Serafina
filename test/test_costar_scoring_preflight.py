@@ -27,7 +27,7 @@ def native_page_texts(pdf_path: Path) -> list[str]:
 
 
 class CoStarScoringPreflightTest(unittest.TestCase):
-    def test_treats_dash_counts_as_zero_without_inventing_other_values(self):
+    def test_does_not_invent_metrics_from_an_unlabeled_layout(self):
         metrics = extract_scoring_metrics([
             """
 Overview
@@ -39,9 +39,7 @@ Submarket 1,000 8.0% $1,000 $990 0 0 -
 """
         ])
 
-        self.assertEqual(metrics["submarket"]["vacancy_rate"], 0.08)
-        self.assertEqual(metrics["submarket"]["delivered_pct_of_inventory"], 0)
-        self.assertEqual(metrics["submarket"]["construction_pct_of_inventory"], 0)
+        self.assertEqual(metrics["submarket"], {})
 
     def test_extracts_hawks_scoring_metrics_from_two_target_pages(self):
         metrics = extract_scoring_metrics(

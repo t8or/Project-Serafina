@@ -664,7 +664,7 @@
                                   'bg-yellow-100 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-400': property.decisionColor === 'yellow',
                                   'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400': property.decisionColor === 'red'
                                 }"
-                                x-text="property.score?.toFixed(1) || '0.0'"
+                                x-text="property.score == null ? '—' : property.score.toFixed(1)"
                               ></span>
                               <!-- Missing items indicator -->
                               <span
@@ -676,6 +676,9 @@
                           </td>
                           <td class="px-6 py-4">
                             <div class="flex items-center gap-2">
+                              <template x-if="property.decisionColor === 'gray' || property.score == null">
+                                <span class="text-xs font-medium text-gray-600 dark:text-gray-300">Insufficient data</span>
+                              </template>
                               <!-- Status Icon -->
                               <template
                                 x-if="property.decisionColor === 'green'"
@@ -904,7 +907,7 @@
                           'text-yellow-600 dark:text-yellow-400': selectedProperty?.decisionColor === 'yellow',
                           'text-red-600 dark:text-red-400': selectedProperty?.decisionColor === 'red'
                         }"
-                        x-text="selectedProperty?.score?.toFixed(1) + ' / 10'"
+                        x-text="selectedProperty?.score == null ? 'Insufficient data' : selectedProperty.score.toFixed(1) + ' / 10'"
                       ></p>
                     </div>
                     <div
@@ -1990,7 +1993,7 @@
                   ...p,
                   propertyName: p.name,
                   decisionColor:
-                    p.score >= 7 ? "green" : p.score >= 5.5 ? "yellow" : "red",
+                    p.score == null ? "gray" : p.score >= 7 ? "green" : p.score >= 5.5 ? "yellow" : "red",
                 }));
               } else {
                 throw new Error(

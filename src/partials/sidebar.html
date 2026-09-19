@@ -41,6 +41,8 @@
   </div>
 
   <nav class="flex-1 overflow-y-auto px-3 pb-5 pt-2" aria-label="Serafina">
+
+
     <p
       class="mb-2 px-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-gray-400 dark:text-gray-500"
       :class="sidebarToggle ? 'lg:sr-only' : ''"
@@ -48,6 +50,7 @@
       Workspace
     </p>
     <ul class="flex flex-col gap-1.5">
+      <li><a href="reports.html" class="menu-item menu-item-inactive group min-h-11" title="Report evidence"><span class="h-6 w-6 shrink-0" aria-hidden="true">▤</span><span :class="sidebarToggle ? 'lg:hidden' : ''">Report evidence</span></a></li>
       <li>
         <a
           href="dashboard.html"

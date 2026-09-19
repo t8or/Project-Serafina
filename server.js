@@ -1,4 +1,7 @@
 import express from 'express';
+import { acquireRuntimeLock } from './src/services/runtime_lock.js';
+import { stopDoclingProcesses } from './src/services/processors/docling_bridge.js';
+import reportsRouter from './src/api/reportsHandler.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import uploadRouter from './src/api/uploadHandler.js';
@@ -8,7 +11,7 @@ import fillRouter from './src/api/fillHandler.js';
 import referenceDataRouter from './src/api/referenceDataHandler.js';
 import scoringRouter from './src/api/scoringHandler.js';
 import propertyRouter from './src/api/propertyHandler.js';
-import { initDb } from './src/config/database.js';
+import { initDb, db } from './src/config/database.js';
 import { UPLOADS_DIR, assertLoopbackHost } from './src/config/runtime_paths.js';
 import { assertLocalRuntimeReady } from './src/services/local_runtime.js';
 
@@ -21,6 +24,18 @@ const buildDir = path.join(__dirname, 'build');
 
 assertLoopbackHost(host);
 
+app.use((req, res, next) => {
+  const allowedHosts = new Set([`127.0.0.1:${port}`, `localhost:${port}`, `[::1]:${port}`]);
+  if (!allowedHosts.has(req.headers.host)) return res.status(403).json({error: 'Unknown local host'});
+  if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method) && req.headers.origin) {
+    try {
+      const origin = new URL(req.headers.origin);
+      const allowedOrigins = new Set([...allowedHosts, '127.0.0.1:3001', 'localhost:3001']);
+      if (origin.protocol !== 'http:' || !allowedOrigins.has(origin.host)) throw new Error();
+    } catch { return res.status(403).json({error: 'Cross-origin changes are not allowed'}); }
+  }
+  next();
+});
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
@@ -39,24 +54,36 @@ app.use('/api/fill', fillRouter);
 app.use('/api/reference-data', referenceDataRouter);
 app.use('/api/scoring', scoringRouter);
 app.use('/api/properties', propertyRouter);
+app.use('/api/reports', reportsRouter);
 
 app.use((err, _req, res, _next) => {
   console.error('Server error:', err);
-  res.status(500).json({ success: false, error: err.message || 'Local server error' });
+  res.status(err.statusCode || 500).json({ success: false, error: err.message || 'Local server error' });
 });
 
+let releaseLock;
 async function start() {
+  releaseLock = await acquireRuntimeLock();
   await initDb();
+  await db.query("UPDATE extraction_jobs SET status = 'interrupted', error = 'Application stopped; retry to resume cached batches' WHERE status IN ('running', 'queued')");
   await assertLocalRuntimeReady();
 
   const server = app.listen(port, host, () => {
     console.log(`Serafina local runtime listening at http://${host}:${port}`);
   });
+  for (const signal of ['SIGINT', 'SIGTERM']) process.once(signal, async () => {
+    stopDoclingProcesses();
+    server.close();
+    await releaseLock();
+    process.exit(0);
+  });
+  server.on('error', async error => { console.error(error.message); await releaseLock(); process.exitCode = 1; });
   server.timeout = 900_000;
   server.keepAliveTimeout = 901_000;
 }
 
-start().catch((error) => {
+start().catch(async (error) => {
+  if (releaseLock) await releaseLock();
   console.error(error.message);
   process.exitCode = 1;
 });
