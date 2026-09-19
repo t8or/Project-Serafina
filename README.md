@@ -10,7 +10,7 @@ Requirements: Node 26, a provisioned Python environment, local Docling artifacts
 npm ci
 cp .env.example .env
 # Set the local Python and artifact paths in .env.
-ollama pull qwen2.5:7b   # Only if not already installed.
+ollama pull gemma4:12b   # Only if not already installed.
 npm run local:setup
 npm run local:doctor
 npm start
@@ -20,7 +20,7 @@ The default address is `http://127.0.0.1:3000`. `/reports.html` provides whole-r
 
 Keep mutable data outside the checkout and outside synced storage. On macOS the default is `~/Library/Application Support/Project Serafina`. `.env` is local machine configuration and is not versioned. The September robustness branch uses a separate `Project Serafina Audit` data directory and port 3011; it does not change the original data.
 
-`SERAFINA_MAX_PDF_PAGES` is the historical name for **pages per batch**, now defaulting to 8. It accepts 4–10. It never truncates a Report. Every page receives native-text inventory and Docling layout/OCR/table processing. Cold runs take longer than retries; validated batches are reused.
+`SERAFINA_DOCLING_BATCH_PAGES` controls **pages per batch**, defaulting to 32 and accepting 4–64. The historical `SERAFINA_MAX_PDF_PAGES` remains an alias; the new variable takes precedence. It never truncates a Report. Every page receives native-text inventory and Docling layout/OCR/table processing. Cold runs take longer than retries; validated batches are reused. `SERAFINA_OCR_ENGINE=easyocr` is the benchmarked full-report default; `ocrmac` (macOS) and `auto` are also supported. The resolved OCR engine, package/OS versions, and pipeline options are recorded in checkpoint identity. Timing reports separate native text, fresh conversion, cache work, and overlapping stage work.
 
 ## Evidence and readiness
 
@@ -63,3 +63,5 @@ npm run dev                 # Loopback Webpack dev server; start backend separat
 Opt-in integration checks use an isolated local data directory. `scripts/verify-local.js` expects the two bundled PDFs and the scanned fixture from `scripts/create-adversarial-fixtures.py` already extracted; it verifies the running HTTP interfaces, local inference, source hashes, and actual workbook cells. `scripts/verify-recovery.py` creates a temporary 24-page fixture, interrupts Docling after eight pages, and verifies resumed completion without recomputing that checkpoint. Set `DOCLING_ARTIFACTS_PATH` when running it directly with the provisioned Python.
 
 See [CONTEXT.md](CONTEXT.md), [the evidence decision](docs/adr/0001-retain-complete-report-evidence.md), and [the audit and validation record](docs/ROBUSTNESS_AUDIT.md). Historic documents describe earlier summary-only behavior and are superseded where they conflict with that decision.
+
+See [the performance and model comparison](docs/PERFORMANCE.md) for measured results and reproducible benchmarks.

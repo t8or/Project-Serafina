@@ -1,8 +1,8 @@
 """
-Docling PDF Processor - Processes the bounded property-summary portion of a CoStar report.
+Docling PDF Processor - Processes complete CoStar reports with retained evidence.
 
 This processor:
-- Processes every page in resumable batches of 4 to 10 pages
+- Processes every page in resumable batches of 4 to 64 pages
 - Detects CoStar section headers via OCR/text extraction
 - Groups pages, tables, and content by detected section
 - Outputs separate JSON files per section
@@ -15,6 +15,8 @@ import sys
 import logging
 import os
 import uuid
+import time
+import platform
 import re
 import inspect
 import hashlib
@@ -29,16 +31,19 @@ from docling.datamodel.base_models import InputFormat, ConversionStatus
 from docling.datamodel.pipeline_options import (
     PdfPipelineOptions,
     EasyOcrOptions,
+    OcrMacOptions,
     TableFormerMode,
 )
 from docling.datamodel.accelerator_options import AcceleratorDevice, AcceleratorOptions
 from docling_core.types.doc import DocItemLabel, TextItem, TableItem
 
 if __package__:
+    from src.services.processors.extraction_settings import resolve_ocr_engine
     from src.services.processors.report_evidence import ReportEvidence, atomic_json
     from src.services.processors.costar_page_selector import select_property_summary_end
     from src.services.processors.costar_scoring_preflight import extract_scoring_metrics
 else:
+    from extraction_settings import resolve_ocr_engine
     from report_evidence import ReportEvidence, atomic_json
     from costar_page_selector import select_property_summary_end
     from costar_scoring_preflight import extract_scoring_metrics
@@ -136,7 +141,8 @@ class DoclingFullProcessor:
         num_threads: int = 4,
         ocr_languages: List[str] = None,
         ocr_confidence_threshold: float = 0.5,
-        max_pages: int = 10,
+        max_pages: int = 32,
+        ocr_engine: str = None,
     ):
         """
         Initialize the Docling full processor with configurable options.
@@ -147,11 +153,12 @@ class DoclingFullProcessor:
             num_threads: Number of threads for processing
             ocr_languages: List of language codes for OCR (default: ["en"])
             ocr_confidence_threshold: Minimum confidence for OCR results
-            max_pages: Maximum pages per batch (4-10)
+            max_pages: Maximum pages per batch (4-64)
         """
-        if not isinstance(max_pages, int) or not 4 <= max_pages <= 10:
-            raise ValueError(f"max_pages must be an integer from 4 to 10; received {max_pages}")
+        if not isinstance(max_pages, int) or not 4 <= max_pages <= 64:
+            raise ValueError(f"max_pages must be an integer from 4 to 64; received {max_pages}")
 
+        self.ocr_engine = resolve_ocr_engine(ocr_engine)
         self.do_ocr = do_ocr
         self.table_mode = TableFormerMode.ACCURATE if table_mode == "accurate" else TableFormerMode.FAST
         self.num_threads = num_threads
@@ -177,8 +184,10 @@ class DoclingFullProcessor:
         if artifacts_path:
             pipeline_options.artifacts_path = Path(artifacts_path)
         
-        # Configure OCR with EasyOCR
-        if self.do_ocr:
+        # Both engines retain OCR boxes; no page is skipped based on native-text presence.
+        if self.do_ocr and self.ocr_engine == 'ocrmac':
+            pipeline_options.ocr_options = OcrMacOptions(lang=['en-US'], recognition='accurate', framework='vision')
+        elif self.do_ocr:
             pipeline_options.ocr_options = EasyOcrOptions(
                 lang=self.ocr_languages,
                 confidence_threshold=self.ocr_confidence_threshold
@@ -256,33 +265,54 @@ class DoclingFullProcessor:
     
     def process(self, file_path: str, output_dir: str) -> Dict[str, Any]:
         """Capture the entire Report; batch size is a compute limit, never a page ceiling."""
+        started = time.perf_counter()
         output_path = Path(output_dir)
         output_path.mkdir(parents=True, exist_ok=True)
         evidence = ReportEvidence(file_path, output_dir, {
             "batch_pages": self.max_pages, "ocr": self.do_ocr, "table_mode": str(self.table_mode),
+            "ocr_engine": self.ocr_engine, "ocr_version": version(self.ocr_engine),
+            "macos_version": platform.mac_ver()[0] if self.ocr_engine == 'ocrmac' else None,
+            "pipeline_options": self.converter.format_to_options[InputFormat.PDF].pipeline_options.model_dump(mode='json'),
             "docling_version": version('docling'), "docling_core_version": version('docling-core'),
             "capture_code": hashlib.sha256(''.join(inspect.getsource(method) for method in
                 [self._create_converter, self._extract_pages, self._extract_tables, self._detect_column_types]).encode()).hexdigest(),
             "artifact_manifest": hashlib.sha256((Path(os.environ['DOCLING_ARTIFACTS_PATH']) / 'serafina-artifacts.manifest.json').read_bytes()).hexdigest(),
         })
+        identity_seconds = time.perf_counter() - started
+        inventory_started = time.perf_counter()
         report = evidence.inventory()
+        timings = {'source_identity_seconds': identity_seconds, 'native_text_seconds': time.perf_counter() - inventory_started,
+                   'fresh_conversion_seconds': 0.0, 'checkpoint_read_seconds': 0.0, 'checkpoint_write_seconds': 0.0,
+                   'cached_pages': 0, 'fresh_pages': 0, 'batches': [], 'stage_work_seconds': {}}
+        report['timings'] = timings
         base_filename = Path(file_path).stem + '_' + uuid.uuid4().hex[:12]
         evidence_path = output_path / f'e_{base_filename}_report.json'
         atomic_json(evidence_path, report)
         native_texts = [page['native_text'] for page in report['pages']]
         scoring_metrics = extract_scoring_metrics(native_texts)
-        summary_end = select_property_summary_end(native_texts[:self.max_pages], ceiling=self.max_pages)
+        summary_ceiling = min(10, self.max_pages)
+        summary_end = select_property_summary_end(native_texts[:summary_ceiling], ceiling=summary_ceiling)
         all_pages, all_tables = {}, []
         total = len(report['pages'])
         for start in range(1, total + 1, self.max_pages):
             end = min(total, start + self.max_pages - 1)
             logger.info(f'Report batch {start}-{end} of {total}')
+            batch_started = time.perf_counter()
             batch = evidence.load_batch(start, end)
+            timings['checkpoint_read_seconds'] += time.perf_counter() - batch_started
+            cache_hit = batch is not None
             if batch is not None:
                 logger.info(f'Reusing verified checkpoint {start}-{end}')
             if batch is None:
                 try:
+                    from docling.datamodel.settings import settings
+                    settings.debug.profile_pipeline_timings = True
+                    convert_started = time.perf_counter()
                     result = self.converter.convert(file_path, page_range=(start, end))
+                    timings['fresh_conversion_seconds'] += time.perf_counter() - convert_started
+                    for name, profile in result.timings.items():
+                        # Stages overlap and may include repeated page work; these are not additive wall times.
+                        timings['stage_work_seconds'][name] = timings['stage_work_seconds'].get(name, 0.0) + sum(profile.times)
                     if result.status != ConversionStatus.SUCCESS:
                         raise ValueError(f'Incomplete Docling batch: {result.status}; {result.errors}')
                     doc = result.document
@@ -290,13 +320,17 @@ class DoclingFullProcessor:
                     tables = self._extract_tables(doc)
                     batch = {'start': start, 'end': end, 'status': 'success',
                              'pages': pages, 'tables': tables, 'document': doc.export_to_dict()}
+                    write_started = time.perf_counter()
                     evidence.save_batch(batch)
+                    timings['checkpoint_write_seconds'] += time.perf_counter() - write_started
                 except Exception as error:
                     report['warnings'].append({'start': start, 'end': end, 'error': str(error)})
                     for page in report['pages'][start-1:end]:
                         page['layout_status'] = 'failed'
                     atomic_json(evidence_path, report)
                     continue
+            timings['cached_pages' if cache_hit else 'fresh_pages'] += end - start + 1
+            timings['batches'].append({'start': start, 'end': end, 'cache_hit': cache_hit, 'seconds': time.perf_counter() - batch_started})
             pages = {int(key): value for key, value in batch['pages'].items()}
             # Docling provenance uses original 1-based page numbers, even for a range.
             if any(number < start or number > end for number in pages):
@@ -354,8 +388,9 @@ class DoclingFullProcessor:
         report['scoring'] = scoring_metrics
         report['coverage'] = self._coverage(report)
         report['section_files'] = section_files
+        timings['pipeline_seconds'] = time.perf_counter() - started
         atomic_json(evidence_path, report)
-        return {'processing_status': 'success' if report['coverage']['status'] == 'complete' else 'partial_success',
+        return {'timings': timings, 'processing_status': 'success' if report['coverage']['status'] == 'complete' else 'partial_success',
                 'metadata': {'page_count': total, 'processed_page_count': report['coverage']['layout_pages'],
                              'source_sha256': evidence.source_hash, 'pipeline_fingerprint': evidence.fingerprint},
                 'evidence_file': str(evidence_path), 'coverage': report['coverage'],
@@ -673,8 +708,8 @@ def main():
         }))
         sys.exit(1)
     
-    # Process the bounded leading page range.
-    max_pages = int(sys.argv[3]) if len(sys.argv) > 3 else 10
+    # Process the entire report in bounded batches.
+    max_pages = int(sys.argv[3]) if len(sys.argv) > 3 else 32
     processor = DoclingFullProcessor(max_pages=max_pages)
     result = processor.process(pdf_path, output_dir)
     

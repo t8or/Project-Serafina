@@ -1,0 +1,681 @@
+{
+  "machine": "Apple M5 Pro, 24GB unified memory",
+  "docling": "2.66.0",
+  "docling_core": "2.57.0",
+  "notes": "Single cold runs; no GPU inference in parallel. Stage work overlaps and is not additive wall time.",
+  "runs": {
+    "easyocr_batch8": {
+      "seconds": {
+        "imports": 2.0486132078804076,
+        "configure": 0.0021382500417530537,
+        "process": 178.0948813338764,
+        "total": 180.14563279179856
+      },
+      "pages": 127,
+      "tables": 170,
+      "coverage": {
+        "status": "complete",
+        "total_pages": 127,
+        "native_text_pages": 127,
+        "layout_pages": 127,
+        "unresolved_pages": [],
+        "semantic_validation": "not_certified",
+        "next_action": null
+      },
+      "timings": null,
+      "batch_pages": 8,
+      "ocr_engine": "easyocr",
+      "table_mode": "accurate"
+    },
+    "easyocr_batch32": {
+      "seconds": {
+        "imports": 2.027232666965574,
+        "configure": 0.001954750157892704,
+        "process": 152.7199172079563,
+        "total": 154.74910462507978
+      },
+      "pages": 127,
+      "tables": 170,
+      "coverage": {
+        "status": "complete",
+        "total_pages": 127,
+        "native_text_pages": 127,
+        "layout_pages": 127,
+        "unresolved_pages": [],
+        "semantic_validation": "not_certified",
+        "next_action": null
+      },
+      "timings": {
+        "source_identity_seconds": 0.007026250008493662,
+        "native_text_seconds": 0.07957950001582503,
+        "fresh_conversion_seconds": 151.20059120794758,
+        "checkpoint_read_seconds": 0.0018047918565571308,
+        "checkpoint_write_seconds": 0.2594267919193953,
+        "cached_pages": 0,
+        "fresh_pages": 127,
+        "batches": [
+          {
+            "start": 1,
+            "end": 32,
+            "cache_hit": false,
+            "seconds": 39.34427991695702
+          },
+          {
+            "start": 33,
+            "end": 64,
+            "cache_hit": false,
+            "seconds": 30.09601983311586
+          },
+          {
+            "start": 65,
+            "end": 96,
+            "cache_hit": false,
+            "seconds": 27.629620041931048
+          },
+          {
+            "start": 97,
+            "end": 127,
+            "cache_hit": false,
+            "seconds": 55.421628416050225
+          }
+        ],
+        "stage_work_seconds": {
+          "pipeline_total": 149.2632870429661,
+          "page_parse": 3.435082324082032,
+          "ocr": 65.74143742164597,
+          "layout": 22.063826869940385,
+          "table_structure": 138.36870713089593,
+          "page_assemble": 0.004992418689653277,
+          "doc_assemble": 0.13032687385566533,
+          "reading_order": 0.1282948749139905,
+          "doc_enrich": 0.006407582201063633
+        },
+        "pipeline_seconds": 152.6523758340627
+      },
+      "batch_pages": 32,
+      "ocr_engine": "easyocr",
+      "table_mode": "accurate"
+    },
+    "apple_vision_batch32": {
+      "seconds": {
+        "imports": 3.040430875029415,
+        "configure": 0.002109917113557458,
+        "process": 172.46485250000842,
+        "total": 175.5073932921514
+      },
+      "pages": 127,
+      "tables": 170,
+      "coverage": {
+        "status": "complete",
+        "total_pages": 127,
+        "native_text_pages": 127,
+        "layout_pages": 127,
+        "unresolved_pages": [],
+        "semantic_validation": "not_certified",
+        "next_action": null
+      },
+      "timings": {
+        "source_identity_seconds": 0.008560207905247808,
+        "native_text_seconds": 0.22051441692747176,
+        "fresh_conversion_seconds": 171.0748218332883,
+        "checkpoint_read_seconds": 0.0018058749847114086,
+        "checkpoint_write_seconds": 0.2517436249181628,
+        "cached_pages": 0,
+        "fresh_pages": 127,
+        "batches": [
+          {
+            "start": 1,
+            "end": 32,
+            "cache_hit": false,
+            "seconds": 71.50216183299199
+          },
+          {
+            "start": 33,
+            "end": 64,
+            "cache_hit": false,
+            "seconds": 28.785599790979177
+          },
+          {
+            "start": 65,
+            "end": 96,
+            "cache_hit": false,
+            "seconds": 25.46085224999115
+          },
+          {
+            "start": 97,
+            "end": 127,
+            "cache_hit": false,
+            "seconds": 46.34383995900862
+          }
+        ],
+        "stage_work_seconds": {
+          "pipeline_total": 165.0132820007857,
+          "page_parse": 3.3963255325797945,
+          "ocr": 87.43762312713079,
+          "layout": 13.92670766520314,
+          "table_structure": 123.9553310063202,
+          "page_assemble": 0.004930625669658184,
+          "doc_assemble": 0.2010686257854104,
+          "reading_order": 0.19885658496059477,
+          "doc_enrich": 0.007095166947692633
+        },
+        "pipeline_seconds": 172.39952916605398
+      },
+      "batch_pages": 32,
+      "ocr_engine": "ocrmac",
+      "table_mode": "accurate"
+    }
+  },
+  "production": {
+    "Hawks Landing CoStar.pdf": {
+      "job_id": 12,
+      "timings": {
+        "source_identity_seconds": 0.008237540954723954,
+        "native_text_seconds": 0.09684150014072657,
+        "fresh_conversion_seconds": 156.46743258298375,
+        "checkpoint_read_seconds": 0.001912584062665701,
+        "checkpoint_write_seconds": 0.26131433295086026,
+        "cached_pages": 0,
+        "fresh_pages": 127,
+        "batches": [
+          {
+            "start": 1,
+            "end": 32,
+            "cache_hit": false,
+            "seconds": 40.04072962491773
+          },
+          {
+            "start": 33,
+            "end": 64,
+            "cache_hit": false,
+            "seconds": 33.54440466593951
+          },
+          {
+            "start": 65,
+            "end": 96,
+            "cache_hit": false,
+            "seconds": 27.56737266597338
+          },
+          {
+            "start": 97,
+            "end": 127,
+            "cache_hit": false,
+            "seconds": 56.402040584012866
+          }
+        ],
+        "stage_work_seconds": {
+          "pipeline_total": 154.44839633419178,
+          "page_parse": 3.596222334075719,
+          "ocr": 66.76041087508202,
+          "layout": 21.234247914748266,
+          "table_structure": 143.2447909193579,
+          "page_assemble": 0.00555912428535521,
+          "doc_assemble": 0.13730183406732976,
+          "reading_order": 0.13505495712161064,
+          "doc_enrich": 0.006722331745550036
+        },
+        "pipeline_seconds": 157.73336741607636,
+        "application_seconds": 162.136715917
+      },
+      "comparison": {
+        "pages": [
+          127,
+          127
+        ],
+        "tables": [
+          170,
+          170
+        ],
+        "native_text_identical": true,
+        "layout_text_identical": true,
+        "text_provenance_identical": true,
+        "scoring_facts_identical": true,
+        "coverage": [
+          {
+            "status": "complete",
+            "total_pages": 127,
+            "native_text_pages": 127,
+            "layout_pages": 127,
+            "unresolved_pages": [],
+            "semantic_validation": "not_certified",
+            "next_action": null
+          },
+          {
+            "status": "complete",
+            "total_pages": 127,
+            "native_text_pages": 127,
+            "layout_pages": 127,
+            "unresolved_pages": [],
+            "semantic_validation": "not_certified",
+            "next_action": null
+          }
+        ],
+        "changed_tables": {
+          "removed": 0,
+          "added": 0,
+          "pages": []
+        },
+        "details": {
+          "removed": [],
+          "added": []
+        }
+      }
+    },
+    "Serafina CoStart Report.pdf": {
+      "job_id": 13,
+      "timings": {
+        "source_identity_seconds": 0.008457333082333207,
+        "native_text_seconds": 0.25732937501743436,
+        "fresh_conversion_seconds": 200.48485279199667,
+        "checkpoint_read_seconds": 0.002942458027973771,
+        "checkpoint_write_seconds": 0.331947916187346,
+        "cached_pages": 0,
+        "fresh_pages": 152,
+        "batches": [
+          {
+            "start": 1,
+            "end": 32,
+            "cache_hit": false,
+            "seconds": 39.5353297078982
+          },
+          {
+            "start": 33,
+            "end": 64,
+            "cache_hit": false,
+            "seconds": 27.789435415994376
+          },
+          {
+            "start": 65,
+            "end": 96,
+            "cache_hit": false,
+            "seconds": 46.08898241701536
+          },
+          {
+            "start": 97,
+            "end": 128,
+            "cache_hit": false,
+            "seconds": 42.65055858390406
+          },
+          {
+            "start": 129,
+            "end": 152,
+            "cache_hit": false,
+            "seconds": 45.717109291115776
+          }
+        ],
+        "stage_work_seconds": {
+          "pipeline_total": 198.45851266710088,
+          "page_parse": 4.0179391680285335,
+          "ocr": 73.0747319564689,
+          "layout": 24.50350171374157,
+          "table_structure": 181.75301474146545,
+          "page_assemble": 0.009001284139230847,
+          "doc_assemble": 0.17822849960066378,
+          "reading_order": 0.1752086675260216,
+          "doc_enrich": 0.007506208028644323
+        },
+        "pipeline_seconds": 202.1475569580216,
+        "application_seconds": 206.61389287500003
+      },
+      "comparison": {
+        "pages": [
+          152,
+          152
+        ],
+        "tables": [
+          207,
+          207
+        ],
+        "native_text_identical": true,
+        "layout_text_identical": true,
+        "text_provenance_identical": true,
+        "scoring_facts_identical": true,
+        "coverage": [
+          {
+            "status": "complete",
+            "total_pages": 152,
+            "native_text_pages": 152,
+            "layout_pages": 152,
+            "unresolved_pages": [],
+            "semantic_validation": "not_certified",
+            "next_action": null
+          },
+          {
+            "status": "complete",
+            "total_pages": 152,
+            "native_text_pages": 152,
+            "layout_pages": 152,
+            "unresolved_pages": [],
+            "semantic_validation": "not_certified",
+            "next_action": null
+          }
+        ],
+        "changed_tables": {
+          "removed": 0,
+          "added": 0,
+          "pages": []
+        },
+        "details": {
+          "removed": [],
+          "added": []
+        }
+      }
+    }
+  },
+  "scanned_fixture": {
+    "easy": {
+      "seconds": {
+        "imports": 3.0532904998399317,
+        "configure": 0.002186667174100876,
+        "process": 4.220313582802191,
+        "total": 7.275790749816224
+      },
+      "coverage": {
+        "status": "complete",
+        "total_pages": 2,
+        "native_text_pages": 0,
+        "layout_pages": 2,
+        "unresolved_pages": [],
+        "semantic_validation": "not_certified",
+        "next_action": null
+      },
+      "page_text": [
+        "Subject Property Unexpected Layout Apartments 47 Synthetic Lane Exampleville, Arizona 117 Units Built 1998 Source validation token: LANTERN-7319",
+        "Demographics DEMOGRAPHIC SUMMARY Population 3 Mile 1 Mile 5 Mile 2026 Population 9000 1000 20000 Median Household Income 583,210 S65,000 S95,000\nA previously unknown field: solar capacity 317 kW"
+      ],
+      "tables": 0
+    },
+    "vision": {
+      "seconds": {
+        "imports": 2.0063330000266433,
+        "configure": 0.0020900419913232327,
+        "process": 2.7622568749357015,
+        "total": 4.770679916953668
+      },
+      "coverage": {
+        "status": "complete",
+        "total_pages": 2,
+        "native_text_pages": 0,
+        "layout_pages": 2,
+        "unresolved_pages": [],
+        "semantic_validation": "not_certified",
+        "next_action": null
+      },
+      "page_text": [
+        "Subject Property Unexpected Layout Apartments 47 Synthetic Lane Exampleville, Arizona 117 Units Built 1998 Source validation token: LANTERN-7319",
+        "Demographics DEMOGRAPHIC SUMMARY Population 3 Mile 1 Mile 5 Mile 2026 Population 9000 1000 20000 Median Household Income $83,210 $65,000 $95,000\nA previously unknown field: solar capacity 317 kW"
+      ],
+      "tables": 0
+    }
+  },
+  "pre_fix_retry": {
+    "file": "Hawks Landing CoStar.pdf",
+    "timings": {
+      "source_identity_seconds": 0.009813166921958327,
+      "native_text_seconds": 0.07883354206569493,
+      "fresh_conversion_seconds": 82.06429741624743,
+      "checkpoint_read_seconds": 0.296907790703699,
+      "checkpoint_write_seconds": 0.15340999979525805,
+      "cached_pages": 64,
+      "fresh_pages": 63,
+      "batches": [
+        {
+          "start": 1,
+          "end": 32,
+          "cache_hit": false,
+          "seconds": 37.40472741704434
+        },
+        {
+          "start": 33,
+          "end": 64,
+          "cache_hit": true,
+          "seconds": 0.04606924997642636
+        },
+        {
+          "start": 65,
+          "end": 96,
+          "cache_hit": true,
+          "seconds": 0.03514275001361966
+        },
+        {
+          "start": 97,
+          "end": 127,
+          "cache_hit": false,
+          "seconds": 45.54881566693075
+        }
+      ],
+      "stage_work_seconds": {
+        "pipeline_total": 80.27355325012468,
+        "page_parse": 1.4914086610078812,
+        "ocr": 26.720289876917377,
+        "layout": 9.745809419313446,
+        "table_structure": 75.22916662157513,
+        "page_assemble": 0.0023838281631469727,
+        "doc_assemble": 0.07276775012724102,
+        "reading_order": 0.07181370770558715,
+        "doc_enrich": 0.0029938749503344297
+      },
+      "pipeline_seconds": 83.18886699993163,
+      "application_seconds": 86.00468425
+    },
+    "defect": "Numeric page keys failed checksum after JSON reload across digit boundaries."
+  },
+  "final_cold_and_warm_validation": [
+    {
+      "phase": "fresh_after_checksum_fix",
+      "file_id": 1,
+      "job_id": 15,
+      "timings": {
+        "source_identity_seconds": 0.00697066611610353,
+        "native_text_seconds": 0.19760570884682238,
+        "fresh_conversion_seconds": 153.2824157080613,
+        "checkpoint_read_seconds": 0.0018038754351437092,
+        "checkpoint_write_seconds": 0.4321705410256982,
+        "cached_pages": 0,
+        "fresh_pages": 127,
+        "batches": [
+          {
+            "start": 1,
+            "end": 32,
+            "cache_hit": false,
+            "seconds": 42.358581291045994
+          },
+          {
+            "start": 33,
+            "end": 64,
+            "cache_hit": false,
+            "seconds": 32.608296332880855
+          },
+          {
+            "start": 65,
+            "end": 96,
+            "cache_hit": false,
+            "seconds": 25.480400583008304
+          },
+          {
+            "start": 97,
+            "end": 127,
+            "cache_hit": false,
+            "seconds": 54.073612459003925
+          }
+        ],
+        "stage_work_seconds": {
+          "pipeline_total": 151.46541779115796,
+          "page_parse": 3.385449545457959,
+          "ocr": 60.26176616945304,
+          "layout": 19.793401289498433,
+          "table_structure": 142.55687429872341,
+          "page_assemble": 0.005785081535577774,
+          "doc_assemble": 0.5105960837099701,
+          "reading_order": 0.5086172102019191,
+          "doc_enrich": 0.006345417117699981
+        },
+        "pipeline_seconds": 154.7992220830638,
+        "application_seconds": 158.45904620899995
+      },
+      "pages": 127,
+      "tables": 170,
+      "exact_evidence_match": true
+    },
+    {
+      "phase": "fresh_after_checksum_fix",
+      "file_id": 2,
+      "job_id": 16,
+      "timings": {
+        "source_identity_seconds": 0.008516999892890453,
+        "native_text_seconds": 0.2480147499591112,
+        "fresh_conversion_seconds": 186.8506405807566,
+        "checkpoint_read_seconds": 0.0028680418618023396,
+        "checkpoint_write_seconds": 0.7035036662127823,
+        "cached_pages": 0,
+        "fresh_pages": 152,
+        "batches": [
+          {
+            "start": 1,
+            "end": 32,
+            "cache_hit": false,
+            "seconds": 37.49826662498526
+          },
+          {
+            "start": 33,
+            "end": 64,
+            "cache_hit": false,
+            "seconds": 27.828166458988562
+          },
+          {
+            "start": 65,
+            "end": 96,
+            "cache_hit": false,
+            "seconds": 44.91043749987148
+          },
+          {
+            "start": 97,
+            "end": 128,
+            "cache_hit": false,
+            "seconds": 40.51994612510316
+          },
+          {
+            "start": 129,
+            "end": 152,
+            "cache_hit": false,
+            "seconds": 37.75853450014256
+          }
+        ],
+        "stage_work_seconds": {
+          "pipeline_total": 184.89240645966493,
+          "page_parse": 4.345102783292532,
+          "ocr": 68.7833576281555,
+          "layout": 22.89209396089427,
+          "table_structure": 168.7414769215975,
+          "page_assemble": 0.006093082716688514,
+          "doc_assemble": 0.174923085141927,
+          "reading_order": 0.17238358361646533,
+          "doc_enrich": 0.007443584036082029
+        },
+        "pipeline_seconds": 188.87719612498768,
+        "application_seconds": 192.88766637500004
+      },
+      "pages": 152,
+      "tables": 207,
+      "exact_evidence_match": true
+    },
+    {
+      "phase": "warm",
+      "file_id": 1,
+      "job_id": 17,
+      "timings": {
+        "source_identity_seconds": 0.007655417080968618,
+        "native_text_seconds": 0.20049612503498793,
+        "fresh_conversion_seconds": 0,
+        "checkpoint_read_seconds": 0.2739300827961415,
+        "checkpoint_write_seconds": 0,
+        "cached_pages": 127,
+        "fresh_pages": 0,
+        "batches": [
+          {
+            "start": 1,
+            "end": 32,
+            "cache_hit": true,
+            "seconds": 0.053378083975985646
+          },
+          {
+            "start": 33,
+            "end": 64,
+            "cache_hit": true,
+            "seconds": 0.04425020795315504
+          },
+          {
+            "start": 65,
+            "end": 96,
+            "cache_hit": true,
+            "seconds": 0.09051587502472103
+          },
+          {
+            "start": 97,
+            "end": 127,
+            "cache_hit": true,
+            "seconds": 0.08605741616338491
+          }
+        ],
+        "stage_work_seconds": {},
+        "pipeline_seconds": 0.5474328750278801,
+        "application_seconds": 4.0476844580000035
+      },
+      "pages": 127,
+      "tables": 170,
+      "exact_evidence_match": true
+    },
+    {
+      "phase": "warm",
+      "file_id": 2,
+      "job_id": 18,
+      "timings": {
+        "source_identity_seconds": 0.007885708007961512,
+        "native_text_seconds": 0.10134000005200505,
+        "fresh_conversion_seconds": 0,
+        "checkpoint_read_seconds": 0.3378318331670016,
+        "checkpoint_write_seconds": 0,
+        "cached_pages": 152,
+        "fresh_pages": 0,
+        "batches": [
+          {
+            "start": 1,
+            "end": 32,
+            "cache_hit": true,
+            "seconds": 0.05150270787999034
+          },
+          {
+            "start": 33,
+            "end": 64,
+            "cache_hit": true,
+            "seconds": 0.04233979107812047
+          },
+          {
+            "start": 65,
+            "end": 96,
+            "cache_hit": true,
+            "seconds": 0.11836495785973966
+          },
+          {
+            "start": 97,
+            "end": 128,
+            "cache_hit": true,
+            "seconds": 0.05695008300244808
+          },
+          {
+            "start": 129,
+            "end": 152,
+            "cache_hit": true,
+            "seconds": 0.06901295809075236
+          }
+        ],
+        "stage_work_seconds": {},
+        "pipeline_seconds": 0.5363660419825464,
+        "application_seconds": 3.2131957499999553
+      },
+      "pages": 152,
+      "tables": 207,
+      "exact_evidence_match": true
+    }
+  ]
+}

@@ -167,12 +167,12 @@ test('Docling artifacts require a complete local checksum manifest', async () =>
 });
 
 test('Docling batch size is bounded independently of full Report page count', () => {
-  assert.equal(resolveMaxPdfPages(undefined), 8);
+  assert.equal(resolveMaxPdfPages(undefined), 32);
   assert.equal(resolveMaxPdfPages('4'), 4);
   assert.equal(resolveMaxPdfPages(10), 10);
-  assert.throws(() => resolveMaxPdfPages('3'), /integer from 4 to 10/);
-  assert.throws(() => resolveMaxPdfPages('11'), /integer from 4 to 10/);
-  assert.throws(() => resolveMaxPdfPages('all'), /integer from 4 to 10/);
+  assert.throws(() => resolveMaxPdfPages('3'), /integer from 4 to 64/);
+  assert.throws(() => resolveMaxPdfPages('65'), /integer from 4 to 64/);
+  assert.throws(() => resolveMaxPdfPages('all'), /integer from 4 to 64/);
 });
 
 test('file processing invokes only the injected Docling-full adapter', async () => {

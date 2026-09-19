@@ -68,6 +68,10 @@ export async function inspectLocalRuntime() {
     checks.push(check('docling_artifacts', false, error.message));
   }
 
+  const ocr = await executableVersion(LOCAL_PYTHON_PATH, ['-c',
+    'from src.services.processors.extraction_settings import resolve_ocr_engine; print(resolve_ocr_engine())']);
+  checks.push(check('ocr_engine', ocr.ok, ocr.detail));
+
   const docling = await new DoclingBridge().checkAvailability();
   checks.push(check('docling', docling.available, docling.available ? `Docling ${docling.version}` : docling.error));
 

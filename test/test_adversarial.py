@@ -94,6 +94,23 @@ class ProjectionMutationTests(unittest.TestCase):
         self.assertNotEqual(rows[0]['_source']['row'],rows[1]['_source']['row'])
 
 class CheckpointMutationTests(unittest.TestCase):
+    def test_numeric_page_keys_survive_digit_boundaries_and_disk_round_trip(self):
+        from src.services.processors.report_evidence import ReportEvidence
+        import json
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);source=root/'source.pdf';source.write_bytes(b'fixture bytes')
+            store=ReportEvidence(source,root,{'batch_pages':32})
+            for start,end in [(1,32),(97,128)]:
+                data={'start':start,'end':end,'status':'success',
+                      'pages':{n:{'text':f'Page {n} — $83,210'} for n in range(start,end+1)},
+                      'tables':[],'document':{}}
+                store.save_batch(data)
+                self.assertEqual(store.load_batch(start,end),json.loads(json.dumps(data)))
+                path=store.cache/f'{start}-{end}.json';payload=json.loads(path.read_text())
+                payload['pages'][str(start)]['text']='changed without a valid checksum'
+                path.write_text(json.dumps(payload))
+                self.assertIsNone(store.load_batch(start,end))
+
     def test_changed_or_truncated_checkpoint_is_recomputed(self):
         from src.services.processors.report_evidence import ReportEvidence
         import json
@@ -107,5 +124,22 @@ class CheckpointMutationTests(unittest.TestCase):
             self.assertIsNone(store.load_batch(1,8))
             path.write_text('{interrupted')
             self.assertIsNone(store.load_batch(1,8))
+
+class ExtractionSettingsTests(unittest.TestCase):
+    def test_invalid_and_incompatible_ocr_engines_fail_explicitly(self):
+        from src.services.processors.extraction_settings import resolve_ocr_engine
+        with self.assertRaisesRegex(ValueError,'must be'):
+            resolve_ocr_engine('mystery-model')
+        with self.assertRaisesRegex(ValueError,'requires macOS'):
+            resolve_ocr_engine('ocrmac',platform_name='linux')
+        self.assertEqual(resolve_ocr_engine('auto',platform_name='linux'),'easyocr')
+
+    def test_engine_settings_are_part_of_checkpoint_identity(self):
+        from src.services.processors.report_evidence import ReportEvidence
+        with tempfile.TemporaryDirectory() as temp:
+            source=Path(temp)/'source.pdf';source.write_bytes(b'fixture')
+            easy=ReportEvidence(source,temp,{'ocr_engine':'easyocr','batch_pages':32})
+            vision=ReportEvidence(source,temp,{'ocr_engine':'ocrmac','batch_pages':32})
+            self.assertNotEqual(easy.fingerprint,vision.fingerprint)
 
 if __name__=='__main__':unittest.main()

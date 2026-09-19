@@ -22,7 +22,7 @@ class OllamaService {
     const response = await fetch(new URL('/api/chat', this.baseUrl), {
       method: 'POST', headers: {'Content-Type': 'application/json'},
       signal: AbortSignal.timeout(180_000),
-      body: JSON.stringify({model: this.model, stream: false, format: {
+      body: JSON.stringify({model: this.model, stream: false, ...(/^(qwen3|gemma4)/.test(this.model) ? {think: false} : {}), keep_alive: '5m', format: {
         type: 'object', properties: {answer: {type: 'string'}, citations: {type: 'array', items: {
           type: 'object', properties: {id: {type: 'string'}, quote: {type: 'string'}}, required: ['id', 'quote'], additionalProperties: false,
         }}}, required: ['answer', 'citations'], additionalProperties: false,
@@ -33,8 +33,12 @@ class OllamaService {
     });
     if (!response.ok) throw new Error(`Local model failed: HTTP ${response.status}`);
     const result = await response.json();
-    if (result.done === false) throw new Error('Local model response was incomplete');
-    return JSON.parse(result.message?.content || '{}');
+    if (result.done === false || result.done_reason === 'length') throw new Error('Local model response was incomplete');
+    return {...JSON.parse(result.message?.content || '{}'), inference: {
+      totalSeconds: (result.total_duration || 0) / 1e9, loadSeconds: (result.load_duration || 0) / 1e9,
+      promptSeconds: (result.prompt_eval_duration || 0) / 1e9, generationSeconds: (result.eval_duration || 0) / 1e9,
+      promptTokens: result.prompt_eval_count, generatedTokens: result.eval_count,
+    }};
   }
 
   async checkAvailability() {

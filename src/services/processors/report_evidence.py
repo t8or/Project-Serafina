@@ -60,5 +60,8 @@ class ReportEvidence:
         return None
 
     def save_batch(self, data):
-        digest = hashlib.sha256(json.dumps(data, sort_keys=True, ensure_ascii=False, default=str).encode()).hexdigest()
-        atomic_json(self.cache / f"{data['start']}-{data['end']}.json", {**data, '_sha256': digest})
+        # JSON turns numeric page keys into strings. Hash the persisted representation:
+        # numeric sorting (9, 10) differs from string sorting ("10", "9") after reload.
+        payload = json.loads(json.dumps(data, ensure_ascii=False, default=str, allow_nan=False))
+        digest = hashlib.sha256(json.dumps(payload, sort_keys=True, ensure_ascii=False, default=str).encode()).hexdigest()
+        atomic_json(self.cache / f"{data['start']}-{data['end']}.json", {**payload, '_sha256': digest})

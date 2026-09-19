@@ -111,7 +111,7 @@ export class ReportLibrary {
     if (!passages.length) return {answer: 'The retained evidence does not answer this question.', citations: [], status: 'insufficient_evidence'};
     const generated = await this.model.answer(question, passages);
     return {...validateAnswer(generated, passages), revisionId: revision.id, coverage: report.coverage,
-      model: this.model.model, notice: 'Quotes are checked against extracted text. Interpretations and OCR still require review; retrieval may omit relevant evidence.'};
+      model: this.model.model, inference: generated.inference, notice: 'Quotes are checked against extracted text. Interpretations and OCR still require review; retrieval may omit relevant evidence.'};
   }
 }
 

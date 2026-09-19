@@ -14,7 +14,7 @@
     "local:doctor": "node scripts/local-doctor.js",
     "local:start": "npm run build && node server.js",
     "start": "npm run local:start",
-    "test": "node scripts/test.js",
+    "test": "node scripts/run-tests.js",
     "sort": "npx prettier --write src",
     "test:js": "node --test"
   },

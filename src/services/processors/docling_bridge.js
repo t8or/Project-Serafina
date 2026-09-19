@@ -20,7 +20,7 @@ import { verifyDoclingArtifacts } from '../local_artifacts.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const FULL_PROCESSOR_PATH = path.join(__dirname, 'docling_full_processor.py');
-const DEFAULT_MAX_PDF_PAGES = 8;
+const DEFAULT_MAX_PDF_PAGES = 32;
 const activeChildren = new Set();
 export function stopDoclingProcesses() {
   for (const child of activeChildren) child.kill('SIGKILL');
@@ -28,8 +28,8 @@ export function stopDoclingProcesses() {
 
 export function resolveMaxPdfPages(value) {
   const maxPages = value === undefined || value === '' ? DEFAULT_MAX_PDF_PAGES : Number(value);
-  if (!Number.isInteger(maxPages) || maxPages < 4 || maxPages > 10) {
-    throw new Error(`SERAFINA_MAX_PDF_PAGES must be an integer from 4 to 10; received ${value}`);
+  if (!Number.isInteger(maxPages) || maxPages < 4 || maxPages > 64) {
+    throw new Error(`SERAFINA_DOCLING_BATCH_PAGES (or SERAFINA_MAX_PDF_PAGES) must be an integer from 4 to 64; received ${value}`);
   }
   return maxPages;
 }
@@ -40,11 +40,12 @@ class DoclingBridge {
     this.artifactsPath = options.artifactsPath || DOCLING_ARTIFACTS_PATH;
     this.timeout = options.timeout || 7_200_000;
     this.maxPages = resolveMaxPdfPages(
-      options.maxPages ?? process.env.SERAFINA_MAX_PDF_PAGES
+      options.maxPages ?? process.env.SERAFINA_DOCLING_BATCH_PAGES ?? process.env.SERAFINA_MAX_PDF_PAGES
     );
   }
 
   async processFull(filePath, outputDir) {
+    const started = performance.now();
     await fs.access(filePath);
     await verifyDoclingArtifacts(this.artifactsPath);
     await fs.mkdir(outputDir, { recursive: true });
@@ -54,7 +55,9 @@ class DoclingBridge {
         [FULL_PROCESSOR_PATH, filePath, outputDir, String(this.maxPages)],
         this.timeout
       );
-      return JSON.parse(rawResult);
+      const result = JSON.parse(rawResult);
+      result.timings = {...result.timings, application_seconds: (performance.now() - started) / 1000};
+      return result;
     } catch (error) {
       return { processing_status: 'error', error_message: error.message };
     }

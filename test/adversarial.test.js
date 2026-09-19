@@ -147,3 +147,22 @@ test('impossible domain values and percent-unit mistakes cannot become business 
   const decline=service.calculateScore({demographics:{population_growth_3mile:-.04}});
   assert.equal(decline.breakdown.populationGrowth.rawValue,-.04);
 });
+
+test('oversized extraction batches are bounded independently of the property-summary scope', async()=>{
+  const {resolveMaxPdfPages}=await import('../src/services/processors/docling_bridge.js');
+  assert.equal(resolveMaxPdfPages('32'),32);assert.equal(resolveMaxPdfPages('64'),64);
+  for(const value of ['65','0','NaN','32.5'])assert.throws(()=>resolveMaxPdfPages(value));
+});
+
+test('model adapter rejects output-token truncation and disables unnecessary modern-model thinking',async()=>{
+  const {OllamaService}=await import('../src/services/ollama_service.js');const actualFetch=globalThis.fetch;let sent;
+  try {
+    globalThis.fetch=async(_url,init)=>{sent=JSON.parse(init.body);return {ok:true,json:async()=>({done:true,done_reason:'length',message:{content:'{}'}})}};
+    for (const model of ['qwen3.5:9b','gemma4:12b']) {
+      await assert.rejects(()=>new OllamaService({model}).answer('Question',[]),/incomplete/);
+      assert.equal(sent.think,false);
+    }
+    await assert.rejects(()=>new OllamaService({model:'qwen2.5:7b'}).answer('Question',[]),/incomplete/);
+    assert.equal(sent.think,undefined);
+  } finally {globalThis.fetch=actualFetch;}
+});

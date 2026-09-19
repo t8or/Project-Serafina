@@ -5,7 +5,7 @@ const library = new ReportLibrary();
 router.get('/', async (_req, res) => res.json({reports: await library.list()}));
 router.get('/:id', async (req, res) => {
   const {revision, report} = await library.read(req.params.id);
-  res.json({revision, coverage: report.coverage, tableCount: report.tables.length,
+  res.json({revision, coverage: report.coverage, timings: report.timings || null, tableCount: report.tables.length,
     pages: report.pages.map(p => ({page: p.page_number, section: p.section, status: p.layout_status, readingStatus: p.reading_status}))});
 });
 router.get('/:id/export', async (req, res) => {

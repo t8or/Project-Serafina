@@ -37,7 +37,7 @@ export const LOCAL_PYTHON_PATH = path.resolve(
   process.env.SERAFINA_PYTHON || path.join(projectRoot, '.venv', 'bin', 'python')
 );
 export const OLLAMA_BASE_URL = process.env.SERAFINA_OLLAMA_BASE_URL || 'http://127.0.0.1:11434';
-export const OLLAMA_MODEL = process.env.SERAFINA_OLLAMA_MODEL || 'qwen2.5:7b';
+export const OLLAMA_MODEL = process.env.SERAFINA_OLLAMA_MODEL || 'gemma4:12b';
 
 function isWithin(parent, child) {
   return child === parent || child.startsWith(`${parent}${path.sep}`);
