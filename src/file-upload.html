@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <title>File Upload | Serafina</title>
+    <title>New assessment | Serafina</title>
   </head>
   <body
     x-data="{ 
@@ -16,7 +16,7 @@
       scrollTop: false
     }"
     x-init="
-      darkMode = JSON.parse(localStorage.getItem('darkMode'));
+      darkMode = localStorage.getItem('darkMode') === 'true';
       $watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(value)))"
     :class="{'dark bg-gray-900': darkMode === true}"
   >
@@ -45,10 +45,15 @@
           <div class="mx-auto max-w-screen-2xl p-4 sm:p-5 md:p-6 2xl:p-10">
             <!-- Breadcrumb -->
             <div class="mb-6">
-              <h1
-                class="text-title-md2 font-semibold text-black dark:text-white"
+              <a
+                href="dashboard.html"
+                class="hover:text-brand-500 mb-4 inline-flex text-sm text-gray-500 dark:text-gray-400"
+                >← Assessments</a
               >
-                Upload Files
+              <h1
+                class="text-2xl font-semibold tracking-tight text-gray-900 sm:text-3xl dark:text-white"
+              >
+                New assessment
               </h1>
             </div>
 
@@ -92,14 +97,13 @@
                     id="upload-heading"
                     class="mb-2 text-lg font-semibold text-gray-900 sm:text-xl dark:text-white"
                   >
-                    Drop PDFs here or choose files
+                    Add CoStar reports
                   </h2>
                   <p
                     id="upload-help"
                     class="mb-4 text-sm text-gray-500 dark:text-gray-400"
                   >
-                    Local PDF files only, up to 50 MB each. Each PDF is analyzed
-                    across all pages on this computer.
+                    PDFs, up to 50 MB each.
                   </p>
                 </div>
 
@@ -241,7 +245,7 @@
                   <button
                     type="button"
                     x-ref="openOptionsButton"
-                    @click="openOptionsModal($event)"
+                    @click="beginAssessment($event)"
                     :disabled="uploading || files.length === 0"
                     class="bg-brand-500 hover:bg-brand-600 focus-visible:outline-brand-500 flex w-full items-center justify-center gap-2 rounded-lg px-6 py-3 text-sm font-medium text-white transition-[background-color,transform] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                   >
@@ -260,7 +264,7 @@
                       <polyline points="17 8 12 3 7 8" />
                       <line x1="12" y1="3" x2="12" y2="15" />
                     </svg>
-                    <span>Upload & Process</span>
+                    <span>Assess properties</span>
                   </button>
                 </div>
               </div>
@@ -284,7 +288,6 @@
                   role="dialog"
                   aria-modal="true"
                   aria-labelledby="processing-dialog-title"
-                  aria-describedby="processing-dialog-description"
                   :aria-busy="processing"
                   tabindex="-1"
                   @keydown.tab="trapDialogFocus($event)"
@@ -304,7 +307,7 @@
                       id="processing-dialog-title"
                       class="text-xl font-semibold text-gray-900 dark:text-white"
                     >
-                      Local Processing
+                      Property assessment
                     </h2>
                     <button
                       type="button"
@@ -328,22 +331,6 @@
                         />
                       </svg>
                     </button>
-                  </div>
-
-                  <div
-                    class="rounded-lg bg-gray-50 p-4 text-sm dark:bg-gray-800"
-                  >
-                    <p class="font-medium text-gray-900 dark:text-white">
-                      Local PDF analysis
-                    </p>
-                    <p
-                      id="processing-dialog-description"
-                      class="mt-1 text-xs leading-5 text-gray-500 dark:text-gray-400"
-                    >
-                      Every PDF is processed by local Docling across all pages.
-                      Reference metrics are used only when a matching local
-                      snapshot has already been imported.
-                    </p>
                   </div>
 
                   <!-- Persistent processing feedback -->
@@ -422,6 +409,7 @@
                     <button
                       type="button"
                       x-ref="startProcessingButton"
+                      x-show="!processing"
                       @click="startProcessing()"
                       :disabled="processing"
                       class="bg-brand-500 hover:bg-brand-600 focus-visible:outline-brand-500 flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-white transition-[background-color,transform] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97] disabled:cursor-wait disabled:opacity-50 sm:w-auto"
@@ -449,7 +437,7 @@
                         ></path>
                       </svg>
                       <span
-                        x-text="processing ? 'Processing…' : (pendingExtractions.length > 0 ? 'Try Again' : 'Start Processing')"
+                        x-text="processing ? 'Processing…' : (pendingExtractions.length > 0 ? 'Try Again' : 'Retry assessment')"
                       ></span>
                     </button>
                   </div>

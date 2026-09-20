@@ -74,7 +74,7 @@
       class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-gray-200 bg-white/70 text-gray-600 shadow-theme-xs hover:bg-gray-100 hover:text-gray-900 dark:border-gray-700 dark:bg-gray-900/70 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white"
       :aria-label="darkMode ? 'Use light appearance' : 'Use dark appearance'"
       :title="darkMode ? 'Use light appearance' : 'Use dark appearance'"
-      :aria-pressed="darkMode.toString()"
+      :aria-pressed="Boolean(darkMode).toString()"
       @click="darkMode = !darkMode"
     >
       <svg

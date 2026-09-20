@@ -5,6 +5,9 @@ import persist from "@alpinejs/persist";
 import { initializeContentPage } from "./content.js";
 import { restoreDialogFocus, trapDialogFocus } from "./dialog.js";
 import { initializeFileUpload } from "./upload.js";
+import * as assessmentView from "./assessment-view.js";
+
+window.assessmentView = assessmentView;
 
 let apexChartsPromise;
 
@@ -13,10 +16,15 @@ let apexChartsPromise;
 // without paying for the visualization library.
 window.loadApexCharts = () => {
   if (!apexChartsPromise) {
-    apexChartsPromise = import("apexcharts").then(({ default: ApexCharts }) => {
-      window.ApexCharts = ApexCharts;
-      return ApexCharts;
-    });
+    apexChartsPromise = import("apexcharts")
+      .then(({ default: ApexCharts }) => {
+        window.ApexCharts = ApexCharts;
+        return ApexCharts;
+      })
+      .catch((error) => {
+        apexChartsPromise = null;
+        throw error;
+      });
   }
   return apexChartsPromise;
 };

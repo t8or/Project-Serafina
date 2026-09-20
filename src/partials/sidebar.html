@@ -1,7 +1,7 @@
 <aside
   id="app-sidebar"
   class="app-sidebar fixed inset-y-0 left-0 z-50 flex h-dvh w-[280px] shrink-0 flex-col overflow-hidden border-r border-gray-200 bg-white shadow-theme-xl lg:static lg:z-auto lg:h-screen lg:translate-x-0 lg:shadow-none dark:border-gray-800 dark:bg-gray-950"
-  :class="sidebarToggle ? 'translate-x-0 lg:w-[88px]' : '-translate-x-full lg:w-[280px]'"
+  :class="sidebarToggle ? 'translate-x-0 lg:w-[88px]' : '-translate-x-full lg:w-[232px]'"
   aria-label="Primary navigation"
   @keydown.escape.window="sidebarToggle = false"
 >
@@ -23,7 +23,6 @@
       </span>
       <span class="min-w-0" :class="sidebarToggle ? 'lg:hidden' : ''">
         <span class="block truncate text-lg font-semibold tracking-[-0.02em] text-gray-900 dark:text-white">Serafina</span>
-        <span class="block truncate text-xs text-gray-500 dark:text-gray-400">Property intelligence</span>
       </span>
     </a>
 
@@ -40,13 +39,7 @@
     </button>
   </div>
 
-  <nav class="flex-1 overflow-y-auto px-3 pb-5 pt-2" aria-label="Serafina">
-    <p
-      class="mb-2 px-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-gray-400 dark:text-gray-500"
-      :class="sidebarToggle ? 'lg:sr-only' : ''"
-    >
-      Workspace
-    </p>
+  <nav class="flex flex-1 flex-col overflow-y-auto px-3 pb-5 pt-2" aria-label="Serafina">
     <ul class="flex flex-col gap-1.5">
       <li>
         <a
@@ -93,6 +86,8 @@
         </a>
       </li>
 
+    </ul>
+    <ul class="mt-auto flex flex-col gap-1.5 border-t border-gray-200 pt-4 dark:border-gray-800">
       <li>
         <a
           href="scorecard-config.html"

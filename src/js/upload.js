@@ -110,6 +110,12 @@ export function initializeFileUpload() {
       this.$nextTick(() => this.$refs.optionsDialog?.focus());
     },
 
+    async beginAssessment(event) {
+      if (this.files.length === 0 || this.processing) return;
+      this.openOptionsModal(event);
+      return this.startProcessing();
+    },
+
     closeOptionsModal() {
       // Once a request is in flight, keep its status visible and prevent accidental
       // dismissal. Escape and the close controls work again as soon as it settles.
