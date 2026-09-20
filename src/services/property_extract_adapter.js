@@ -12,10 +12,14 @@
  */
 
 import fs from 'fs/promises';
+import os from 'node:os';
+import crypto from 'node:crypto';
 import path from 'path';
 import { spawn } from 'child_process';
 import { fileURLToPath } from 'url';
-import { SECTION_TYPES } from './costar_extract.js';
+import { AddressExtractor } from './address_extractor.js';
+import { assemblePropertyData } from './property_data_assembler.js';
+import { SECTION_TYPES, extractDemographicsFromDocling } from './costar_extract.js';
 import { LOCAL_PYTHON_PATH } from '../config/runtime_paths.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -70,7 +74,7 @@ export function sectionsToDoclingInput(sections, options = {}) {
   const preferred =
     options.sectionTypes ||
     (sections?.subject_property
-      ? ['subject_property', 'rent_comps'].filter((k) => sections[k])
+      ? ['subject_property']
       : Object.keys(sections || {}).filter((k) => k !== 'external'));
 
   const tables = [];
@@ -99,7 +103,7 @@ export function sectionsToDoclingInput(sections, options = {}) {
 
     sectionList.push({
       header: data.section_name || data.section || sectionType,
-      content: data.raw_text ? [data.raw_text] : [],
+      content: data.raw_text ? data.raw_text.split(/\r?\n/).filter(Boolean) : [],
       section_type: sectionType,
       page_range: data.page_range,
     });
@@ -115,16 +119,12 @@ export function sectionsToDoclingInput(sections, options = {}) {
     tables,
     sections: sectionList,
     pages,
-    raw_text: rawTextParts.join('\n\n'),
+    raw_text: [...rawTextParts, ...tables.map(table => table.markdown || '')].join('\n\n'),
   };
 }
 
 async function runPythonTransformer(doclingInput) {
-  const tempPath = path.join(
-    __dirname,
-    'processors',
-    `temp_sections_${Date.now()}.json`
-  );
+  const tempPath = path.join(os.tmpdir(), `serafina-transform-${crypto.randomUUID()}.json`);
   await fs.writeFile(tempPath, JSON.stringify(doclingInput));
   const pythonPath = await resolvePythonPath();
 
@@ -180,7 +180,7 @@ async function runPythonTransformer(doclingInput) {
  * @param {Object} sections - map of section_type → parsed section JSON
  * @returns {Promise<Object>} fill-ready JSON (includes structured_data[0])
  */
-export async function assembleFillPayload(sections) {
+export async function assembleFillPayload(sections, options = {}) {
   if (!sections || Object.keys(sections).length === 0) {
     throw new Error('No section data to assemble for XLSX fill');
   }
@@ -200,9 +200,33 @@ export async function assembleFillPayload(sections) {
     throw new Error('Transformer returned no structured_data[0]');
   }
 
+  const address = new AddressExtractor().extractFromSubjectProperty(sections.subject_property);
+  const subject = transformed.structured_data[0];
+  const property = subject.property;
+  const projection = options.projection || assemblePropertyData(sections, address);
+  const oneMile = extractDemographicsFromDocling(sections.demographics, null, 1);
+  const fiveMile = extractDemographicsFromDocling(sections.demographics, null, 5);
+  subject.demographics = {...oneMile, ...fiveMile, ...projection.demographics};
+  subject.submarket = projection.submarket;
+  subject.external = projection.external;
+  subject.property_metrics = projection.property;
+  if (subject.unitBreakdown?.length) {
+    subject.unitBreakdownSourceTables = subject.unitBreakdown;
+    subject.unitBreakdown = [{...subject.unitBreakdown[0], rows: subject.unitBreakdown.flatMap(table => table.rows || [])}];
+    const detailRows = subject.unitBreakdown[0].rows.filter(row => typeof row.bed === 'number' && typeof row.bath === 'number');
+    const units = detailRows.map(row => row['unitMix.units']);
+    if (units.length && units.every(Number.isFinite) && Number.isFinite(property.no_of_units)
+        && units.reduce((a,b)=>a+b,0) !== property.no_of_units) {
+      throw new Error('Subject unit-mix rows do not reconcile with the reported unit count; inspect source rows before filling');
+    }
+  }
+  for (const [target, source] of Object.entries({name: 'propertyName', address: 'street', city: 'city', state: 'stateAbbr', zip_code: 'zipCode'})) {
+    if (address[source]) property[target] = address[source];
+  }
   return {
     ...transformed,
     source: 'docling_full_sections',
+    source_sha256: sections.subject_property?.metadata?.source_sha256,
     section_types: Object.keys(sections),
   };
 }

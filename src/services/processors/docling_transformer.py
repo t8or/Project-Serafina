@@ -243,13 +243,29 @@ class DoclingTransformer:
                 owner_data.update(parsed.get("owner", {}))
         
         # Fall back to section/text extraction if property info tables didn't provide data
-        if not property_data:
-            property_data = self._extract_property_info(sections, raw_text)
+        fallback = self._extract_property_info(sections, raw_text)
+        for key, value in fallback.items():
+            if property_data.get(key) is None:
+                property_data[key] = value
         if not owner_data:
             owner_data = self._extract_owner_info(sections, raw_text)
         
+        # Keep raw representations while projecting unambiguous typed property facts.
+        raw_fields = {}
+        for key in ['no_of_units', 'stories', 'avg_unit_size', 'year_built']:
+            value = property_data.get(key)
+            if isinstance(value, str):
+                raw_fields[key] = value
+                token = value.strip().replace(',', '')
+                if key == 'year_built':
+                    match = re.fullmatch(r'(?:[A-Za-z]+\s+)?((?:18|19|20)\d{2})', token)
+                    property_data[key] = int(match.group(1)) if match else None
+                else:
+                    property_data[key] = float(token) if re.fullmatch(r'\d+(?:\.\d+)?', token) else None
+        if raw_fields: property_data['raw_fields'] = raw_fields
+
         # Extract ASKING RENTS, VACANCY, and ABSORPTION from raw_text
-        metrics = self._extract_metrics_from_raw_text(raw_text)
+        metrics = self._extract_metrics_from_tables(tables) or self._extract_metrics_from_raw_text(raw_text)
         if metrics:
             asking_rents = metrics.get("asking_rents", {})
             vacancy = metrics.get("vacancy", {})
@@ -397,8 +413,14 @@ class DoclingTransformer:
                 classified["property_info"].append(table)
                 continue
             
+            has_beds = any(str(header).lower().strip() in ('bed', 'beds') for header in headers)
+            has_baths = any(str(header).lower().strip() in ('bath', 'baths') for header in headers)
+            if has_beds and has_baths:
+                classified['unit_breakdown'].append(table)
+                continue
             matched = False
             for table_type, patterns in self.TABLE_PATTERNS.items():
+                if table_type == 'unit_breakdown': continue
                 for pattern in patterns:
                     if re.search(pattern, header_text, re.IGNORECASE):
                         classified[table_type].append(table)
@@ -556,6 +578,25 @@ class DoclingTransformer:
         if "name" not in target and value:
             target["name"] = value
     
+    def _extract_metrics_from_tables(self, tables):
+        """Recover current metrics even when Docling promotes the first data row to headings."""
+        result = {'asking_rents': {}, 'vacancy': {}, 'absorption': {}}
+        for table in tables:
+            headers = table.get('original_headers', table.get('headers', []))
+            header_values = [re.sub(r' \[\d+\]$', '', re.sub(r'^(?:ASKING RENTS PER UNIT/SF|VACANCY|12 MONTH ABSORPTION)\.', '', str(h))) for h in headers]
+            rows = [header_values] + table.get('cells', [list(row.values()) for row in table.get('rows', [])])
+            for row in rows:
+                if len(row) != 8: continue
+                if not str(row[0]).strip().endswith(':') or not str(row[3]).strip().endswith(':') or not str(row[6]).strip().endswith(':'): continue
+                if not str(row[1]).strip().startswith('$') or '%' not in str(row[4]): continue
+                rent_key = self._map_metric_label(str(row[0]).strip().rstrip(':'))
+                vacancy_key = self._map_metric_label(str(row[3]).strip().rstrip(':'))
+                absorption_key = self._map_absorption_label(str(row[6]).strip().rstrip(':'))
+                if rent_key: result['asking_rents'][rent_key] = {'per_unit': self._parse_currency(str(row[1])), 'per_sf': self._parse_currency(str(row[2]))}
+                if vacancy_key: result['vacancy'][vacancy_key] = {'rate': self._parse_percentage(str(row[4])), 'units': self._parse_units(str(row[5]))}
+                if absorption_key: result['absorption'][absorption_key] = self._parse_units(str(row[7]))
+        return result if any(result.values()) else None
+
     def _extract_metrics_from_raw_text(self, raw_text: str) -> Optional[Dict[str, Any]]:
         """
         Extract ASKING RENTS, VACANCY, and ABSORPTION metrics from raw markdown text.
@@ -684,18 +725,16 @@ class DoclingTransformer:
     
     def _parse_units(self, value: str) -> Optional[int]:
         """Parse units value like '14 Units' or '(10) Units'."""
-        # Handle negative values in parentheses like (10) Units
-        match = re.search(r'\(?([\d.]+)\)?\s*Units?', value, re.IGNORECASE)
-        if match:
-            try:
-                num = float(match.group(1))
-                # If it was in parentheses, it's negative
-                if '(' in value:
-                    num = -num
-                return num
-            except ValueError:
-                pass
-        return None
+        match = re.fullmatch(r'\s*(\(?[+\-−]?[\d,]+(?:\.\d+)?\)?)\s*Units?\s*', value, re.IGNORECASE)
+        if not match:
+            return None
+        token = match.group(1).replace(',', '').replace('−', '-')
+        if token.startswith('(') and token.endswith(')'):
+            token = '-' + token[1:-1]
+        try:
+            return float(token)
+        except ValueError:
+            return None
     
     def _format_unit_breakdown(self, tables: List[Dict]) -> List[Dict]:
         """Format unit breakdown tables to match expected schema."""
@@ -715,8 +754,8 @@ class DoclingTransformer:
                 }
             }
             
-            for row in rows:
-                formatted_row = {}
+            for row_index, row in enumerate(rows):
+                formatted_row = {'_source': {'table_id': table.get('table_id'), 'page': table.get('page_number'), 'row': row_index + 1}}
                 for header, value in row.items():
                     # Normalize header names
                     normalized_key = self._normalize_header(header)
@@ -1108,8 +1147,8 @@ class DoclingTransformer:
         # Common extraction patterns
         patterns = {
             "no_of_units": [
-                r'(\d+)\s*(?:Units?|Apartments?)',
-                r'Property\s+Size[:\s]*(\d+)',
+                r'(?<![\d,])([\d,]+)\s*(?:Units?|Apartments?)',
+                r'No\.?\s+of\s+Units[:\s]*([\d,]+)',
             ],
             "stories": [
                 r'(\d+)\s*(?:Stor(?:y|ies)|Floor)',

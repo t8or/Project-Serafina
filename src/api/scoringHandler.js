@@ -374,8 +374,8 @@ router.get('/properties', async (req, res) => {
         if (efResult.rows.length > 0) {
           const storagePath = efResult.rows[0].storage_path;
           const filename = storagePath.split('/').pop();
-          const match = filename.match(/^(e_\d+-[a-z0-9]+)_/);
-          extractionIds[p.id] = match ? match[1] : null;
+          const section = SECTION_TYPES.find(type => filename.endsWith(`_${type}.json`));
+          extractionIds[p.id] = section ? filename.slice(0, -(`_${section}.json`).length) : null;
         }
       }
 
@@ -390,7 +390,7 @@ router.get('/properties', async (req, res) => {
           zipCode: p.address_zip,
           fullAddress: p.address_full
         },
-        score: p.score ? parseFloat(p.score) : null,
+        score: p.score == null ? null : Number(p.score),
         decision: p.decision,
         decisionColor: p.decision_color,
         breakdown: p.breakdown,
@@ -578,7 +578,7 @@ router.get('/aggregate', async (req, res) => {
         zipCode: p.address_zip,
         fullAddress: p.address_full
       },
-      score: p.score ? parseFloat(p.score) : null,
+      score: p.score == null ? null : Number(p.score),
       decision: p.decision,
       decisionColor: p.decision_color,
       breakdown: p.breakdown,
@@ -622,7 +622,7 @@ router.get('/aggregate', async (req, res) => {
           regionCounts[regionKey].moveForward++;
         } else if (p.decisionColor === 'yellow') {
           regionCounts[regionKey].needsReview++;
-        } else {
+        } else if (p.decisionColor === 'red') {
           regionCounts[regionKey].rejected++;
         }
       }
@@ -658,7 +658,7 @@ router.get('/aggregate', async (req, res) => {
           stateCounts[stateAbbr].moveForward++;
         } else if (p.decisionColor === 'yellow') {
           stateCounts[stateAbbr].needsReview++;
-        } else {
+        } else if (p.decisionColor === 'red') {
           stateCounts[stateAbbr].rejected++;
         }
       }
@@ -692,7 +692,7 @@ router.get('/aggregate', async (req, res) => {
           cityCounts[cityKey].moveForward++;
         } else if (p.decisionColor === 'yellow') {
           cityCounts[cityKey].needsReview++;
-        } else {
+        } else if (p.decisionColor === 'red') {
           cityCounts[cityKey].rejected++;
         }
       }
@@ -758,6 +758,7 @@ router.post('/rescore', async (req, res) => {
 
     for (const property of dbProperties) {
       try {
+        const revision = (await db.query('SELECT id FROM report_revisions WHERE property_id = $1 ORDER BY id DESC LIMIT 1', [property.id])).rows[0];
         // Load extracted files for this property
         const extractedFiles = await db.query(
           'SELECT * FROM extracted_files WHERE property_id = $1 AND deleted_at IS NULL',
@@ -786,6 +787,7 @@ router.post('/rescore', async (req, res) => {
         };
 
         const propertyData = assemblePropertyData(sections, address);
+        if (revision) propertyData.reportRevisionId = revision.id;
 
         // Recalculate score
         const scoreResult = scoringService.calculateScore(propertyData);

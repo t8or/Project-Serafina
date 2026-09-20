@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Report evidence | Serafina</title>
+  </head>
+  <body
+    x-data="{page:'reports', loaded:true, darkMode:false, sidebarToggle:false}"
+    x-init="darkMode = localStorage.getItem('darkMode') === 'true'; $watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(value)))"
+    :class="{'dark bg-gray-900': darkMode}"
+  >
+    <div class="flex h-screen overflow-hidden">
+      <include src="./partials/sidebar.html"></include>
+      <div
+        class="relative flex flex-1 flex-col overflow-x-hidden overflow-y-auto"
+      >
+        <include src="./partials/overlay.html"></include>
+        <include src="./partials/header.html"></include>
+        <main>
+          <div
+            class="report-workspace mx-auto max-w-screen-2xl p-4 md:p-6 2xl:p-10"
+            x-data="reportsWorkspace"
+          >
+            <div class="assessment-page-heading">
+              <h1
+                class="text-2xl font-semibold tracking-tight text-gray-900 sm:text-3xl dark:text-white"
+              >
+                Report evidence
+              </h1>
+              <a href="file-upload.html" class="report-primary-button"
+                >+ New assessment</a
+              >
+            </div>
+            <p x-show="loading" role="status" class="report-muted py-8">
+              Loading reports…
+            </p>
+            <div x-cloak x-show="loadError" class="report-panel" role="alert">
+              <p x-text="loadError" class="report-error"></p>
+              <button
+                type="button"
+                class="assessment-open mt-4"
+                @click="loadReports()"
+              >
+                Try again
+              </button>
+            </div>
+            <template x-if="!loading && !loadError">
+              <div>
+                <div
+                  x-show="!reports.length"
+                  class="report-panel assessment-empty"
+                >
+                  <h2>No reports yet</h2>
+                  <p class="report-muted mt-2">
+                    Add a PDF to ask questions and inspect its source evidence.
+                  </p>
+                  <a href="file-upload.html" class="report-primary-button mt-5"
+                    >Add report</a
+                  >
+                </div>
+                <div x-show="reports.length > 0">
+                  <section
+                    class="report-panel report-context"
+                    aria-label="Selected report"
+                  >
+                    <div class="report-select">
+                      <label for="report">Report</label
+                      ><select
+                        id="report"
+                        x-model="selectedId"
+                        @change="selectReport()"
+                      >
+                        <option value="" disabled>Select a report</option>
+                        <template x-for="report in reports" :key="report.id"
+                          ><option
+                            :value="String(report.id)"
+                            :selected="selectedId === String(report.id)"
+                            x-text="report.original_filename + ' · Revision ' + report.id"
+                          ></option
+                        ></template>
+                      </select>
+                    </div>
+                    <div x-show="selectedReport" class="report-context-details">
+                      <span class="report-muted" x-text="coverageLabel"></span>
+                      <span
+                        class="report-coverage-status"
+                        :data-complete="coverage?.status === 'complete'"
+                        x-text="coverage?.status === 'complete' ? 'Complete' : 'Partial coverage'"
+                      ></span>
+                      <a
+                        :href="'/api/files/' + selectedReport?.file_id + '/download'"
+                        class="assessment-text-button"
+                        >Original PDF ↗</a
+                      >
+                      <details class="report-downloads">
+                        <summary>Export</summary>
+                        <div>
+                          <a :href="'/api/reports/' + selectedId + '/export'"
+                            >Complete JSON</a
+                          ><a
+                            :href="'/api/reports/' + selectedId + '/export?format=csv'"
+                            >Table cells CSV</a
+                          >
+                        </div>
+                      </details>
+                    </div>
+                    <details
+                      x-show="selectedReport"
+                      class="report-processing-details"
+                    >
+                      <summary>Processing details</summary>
+                      <p
+                        class="report-muted"
+                        x-text="detailsError || (details ? processingLabel : 'Loading details…')"
+                      ></p>
+                    </details>
+                    <p
+                      x-show="contextMissing"
+                      class="report-context-warning"
+                      role="status"
+                    >
+                      No retained report for this selection. Process its PDF
+                      from <a href="content.html">Files</a>, or select another
+                      report.
+                    </p>
+                    <p
+                      x-show="selectedReport && coverage?.status !== 'complete'"
+                      class="report-context-warning"
+                      x-text="'Some pages are unread. Answers may be incomplete.' + (coverage?.unresolved_pages?.length ? ' Review pages ' + coverage.unresolved_pages.join(', ') + '.' : '')"
+                    ></p>
+                  </section>
+                  <div x-show="selectedReport" class="report-work-area">
+                    <section
+                      class="report-panel report-question-panel"
+                      aria-labelledby="ask-heading"
+                    >
+                      <h2 id="ask-heading">Ask this report</h2>
+                      <form @submit.prevent="askReport()">
+                        <label class="sr-only" for="question"
+                          >Question about this report</label
+                        >
+                        <textarea
+                          id="question"
+                          rows="3"
+                          maxlength="2000"
+                          required
+                          x-model="question"
+                          :disabled="asking"
+                          placeholder="Ask about rents, amenities, or the property's market…"
+                        ></textarea>
+                        <div class="report-question-actions">
+                          <span class="report-muted"
+                            >Answers include source quotations.</span
+                          ><button
+                            type="submit"
+                            class="report-primary-button"
+                            :disabled="asking || !question.trim()"
+                            x-text="asking ? 'Reading report…' : 'Ask report'"
+                          ></button>
+                        </div>
+                      </form>
+                      <p
+                        x-show="asking"
+                        x-cloak
+                        role="status"
+                        class="report-muted mt-5"
+                      >
+                        Reading the report evidence…
+                      </p>
+                      <p
+                        x-show="askError"
+                        x-cloak
+                        role="alert"
+                        class="report-error mt-5"
+                        x-text="askError"
+                      ></p>
+                      <div
+                        x-show="answer"
+                        x-cloak
+                        class="report-answer"
+                        aria-live="polite"
+                      >
+                        <p
+                          class="report-answer-text"
+                          x-text="answer?.answer"
+                        ></p>
+                        <details
+                          x-show="citations.length"
+                          class="report-sources"
+                          open
+                        >
+                          <summary
+                            x-text="citations.length + (citations.length === 1 ? ' source' : ' sources')"
+                          ></summary>
+                          <template
+                            x-for="passage in citations"
+                            :key="passage.key"
+                            ><include
+                              src="./partials/report-passage.html"
+                            ></include
+                          ></template>
+                        </details>
+                        <p
+                          x-show="answer?.model"
+                          class="report-model"
+                          x-text="'Model: ' + answer?.model"
+                        ></p>
+                        <p
+                          x-show="answer?.status === 'grounded_draft'"
+                          class="report-muted report-answer-note"
+                        >
+                          Check the quoted passages before relying on the
+                          answer.
+                        </p>
+                      </div>
+                    </section>
+                    <section
+                      class="report-panel report-search-panel"
+                      aria-labelledby="search-heading"
+                    >
+                      <h2 id="search-heading">Search evidence</h2>
+                      <form
+                        @submit.prevent="searchEvidence()"
+                        class="report-search-form"
+                      >
+                        <label class="sr-only" for="query"
+                          >Words or values</label
+                        ><input
+                          id="query"
+                          type="search"
+                          x-model="query"
+                          required
+                          maxlength="2000"
+                          placeholder="Words or values"
+                        /><button
+                          type="submit"
+                          class="assessment-open"
+                          :disabled="searching || !query.trim()"
+                          x-text="searching ? 'Searching…' : 'Search'"
+                        ></button>
+                      </form>
+                      <p
+                        x-show="searchError"
+                        x-cloak
+                        role="alert"
+                        class="report-error mt-4"
+                        x-text="searchError"
+                      ></p>
+                      <p
+                        x-show="searched && !results.length"
+                        x-cloak
+                        role="status"
+                        class="report-muted mt-4"
+                      >
+                        No matching passages.
+                      </p>
+                      <div class="report-search-results" aria-live="polite">
+                        <template x-for="passage in results" :key="passage.key"
+                          ><include
+                            src="./partials/report-passage.html"
+                          ></include
+                        ></template>
+                      </div>
+                    </section>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </div>
+        </main>
+      </div>
+    </div>
+  </body>
+</html>

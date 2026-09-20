@@ -9,6 +9,23 @@
  * - "Lower is better" factors: if Figure <= threshold → get that score
  */
 
+// Bounds describe the units of established input fields, independently of scoring thresholds.
+const INPUT_RANGES = {
+  'demographics.population_3mile': [0, Infinity],
+  'demographics.population_growth_3mile': [-1, Infinity],
+  'demographics.median_hh_income_3mile': [0, Infinity],
+  'demographics.median_home_value_3mile': [0, Infinity],
+  'demographics.renter_households_pct_3mile': [0, 1],
+  'external.crime.violent_crime_index': [0, Infinity],
+  'external.crime.property_crime_index': [0, Infinity],
+  'external.schools.average_rating': [0, 10],
+  'external.walkScore.walk_score': [0, 100],
+  'external.walkScore.transit_score': [0, 100],
+  'submarket.vacancy_rate': [0, 1],
+  'submarket.delivered_pct_of_inventory': [0, Infinity],
+  'submarket.construction_pct_of_inventory': [0, Infinity],
+};
+
 // Default scorecard configuration with threshold-based scoring
 // Each factor has thresholds for scores 10 through 1
 const DEFAULT_SCORECARD_CONFIG = {
@@ -271,6 +288,7 @@ class ScoringService {
    * Update the scorecard configuration.
    */
   updateConfig(newConfig) {
+    const previous = structuredClone(this.config);
     if (newConfig.factors) {
       for (const [key, value] of Object.entries(newConfig.factors)) {
         if (this.config.factors[key]) {
@@ -281,6 +299,8 @@ class ScoringService {
     if (newConfig.thresholds) {
       this.config.thresholds = { ...this.config.thresholds, ...newConfig.thresholds };
     }
+    const validation = this.validateConfig();
+    if (!validation.valid) { this.config = previous; throw new Error(validation.message); }
   }
 
   /**
@@ -304,12 +324,17 @@ class ScoringService {
    * For "lower is better": Find highest score where value <= threshold
    */
   _calculateFactorScore(value, factorConfig) {
-    if (value === null || value === undefined || isNaN(value)) {
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
       return {
         score: 0,
         rawValue: null,
         calculation: 'No data available',
       };
+    }
+
+    const range = INPUT_RANGES[factorConfig.dataPath];
+    if (range && (value < range[0] || value > range[1])) {
+      return {score: 0, rawValue: null, calculation: 'Input outside its valid range; review source value and units'};
     }
 
     const thresholds = factorConfig.thresholds;
@@ -378,6 +403,11 @@ class ScoringService {
       };
     }
 
+    const missingFactors = Object.entries(breakdown)
+      .filter(([, factor]) => factor.weight > 0 && factor.rawValue === null)
+      .map(([key]) => key);
+    const eligible = missingFactors.length === 0 && this.validateConfig().valid && (!propertyData.coverage || propertyData.coverage.status === 'complete');
+
     // Total score is the weighted sum of (score × weight)
     // Since scores are 0-10 and weights sum to 1.0, totalWeightedScore IS the final score
     // Example: (10 × 0.075) + (4 × 0.10) + ... = 7.13
@@ -386,7 +416,10 @@ class ScoringService {
     // Determine decision based on thresholds
     let decision;
     let decisionColor;
-    if (normalizedScore >= this.config.thresholds.moveForward) {
+    if (!eligible) {
+      decision = 'Insufficient data';
+      decisionColor = 'gray';
+    } else if (normalizedScore >= this.config.thresholds.moveForward) {
       decision = 'Move Forward';
       decisionColor = 'green';
     } else if (normalizedScore >= this.config.thresholds.quickCheck) {
@@ -398,7 +431,9 @@ class ScoringService {
     }
 
     return {
-      score: normalizedScore,
+      score: eligible ? normalizedScore : null,
+      eligible,
+      missingFactors,
       decision,
       decisionColor,
       breakdown,
@@ -449,10 +484,17 @@ class ScoringService {
     let totalWeight = 0;
 
     for (const factor of Object.values(factors)) {
-      totalWeight += factor.weight || 0;
+      if (typeof factor.weight !== 'number' || !Number.isFinite(factor.weight) || factor.weight < 0
+          || typeof factor.dataPath !== 'string' || !/^[a-zA-Z][\w]*(?:\.[a-zA-Z][\w]*)+$/.test(factor.dataPath)
+          || !factor.thresholds || Object.values(factor.thresholds).some(v => typeof v !== 'number' || !Number.isFinite(v))) {
+        return {valid: false, message: 'Factors require finite nonnegative weights, numeric thresholds, and a data path'};
+      }
+      totalWeight += factor.weight;
     }
 
-    const isValid = Math.abs(totalWeight - 1.0) < 0.001;
+    const thresholdsValid = Number.isFinite(config.thresholds?.moveForward) && Number.isFinite(config.thresholds?.quickCheck)
+      && config.thresholds.moveForward >= config.thresholds.quickCheck;
+    const isValid = thresholdsValid && Math.abs(totalWeight - 1.0) < 0.001;
 
     return {
       valid: isValid,
@@ -483,7 +525,11 @@ class ScoringService {
     };
 
     for (const prop of scoredProperties) {
-      const score = prop.score || 0;
+      if (prop.score === null || prop.decision === 'Insufficient data') {
+        stats.insufficientData = (stats.insufficientData || 0) + 1;
+        continue;
+      }
+      const score = prop.score;
       stats.scores.push(score);
       stats.averageScore += score;
 
@@ -499,8 +545,9 @@ class ScoringService {
       }
     }
 
-    stats.averageScore = Math.round((stats.averageScore / stats.count) * 100) / 100;
+    stats.averageScore = Math.round((stats.averageScore / (stats.scores.length || 1)) * 100) / 100;
 
+    if (!stats.scores.length) stats.minScore = stats.maxScore = stats.averageScore = null;
     return stats;
   }
 }

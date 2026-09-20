@@ -1,3 +1,4 @@
+import { waitForExtraction } from './extraction-client.js';
 import { restoreDialogFocus, trapDialogFocus } from "./dialog.js";
 
 export const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024;
@@ -191,6 +192,11 @@ export function initializeFileUpload() {
               `Could not process ${file.original_filename}.`,
             );
             failedExtractions.push({ ...file, processingError: message });
+          } else {
+            const result = await waitForExtraction(response, (status, progress) => {
+              this.processingStep = `${status === 'queued' ? 'Queued' : 'Reading all pages of'} ${file.original_filename}${progress ? ` (${progress.layout_pages || 0}/${progress.total_pages} pages)` : ''}…`;
+            });
+            if (result.partial) failedExtractions.push({...file, processingError: 'Some pages need review. Retry resumes completed batches.'});
           }
         } catch (error) {
           failedExtractions.push({

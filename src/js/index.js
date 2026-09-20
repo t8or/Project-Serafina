@@ -5,6 +5,7 @@ import persist from "@alpinejs/persist";
 import { initializeContentPage } from "./content.js";
 import { restoreDialogFocus, trapDialogFocus } from "./dialog.js";
 import { initializeFileUpload } from "./upload.js";
+import { initializeReportsPage } from "./reports.js";
 import * as assessmentView from "./assessment-view.js";
 
 window.assessmentView = assessmentView;
@@ -37,6 +38,7 @@ window.dialogFocus = Object.freeze({
 Alpine.plugin(persist);
 Alpine.data("contentPage", initializeContentPage);
 Alpine.data("fileUpload", initializeFileUpload);
+Alpine.data("reportsWorkspace", initializeReportsPage);
 
 window.Alpine = Alpine;
 Alpine.start();

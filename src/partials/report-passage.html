@@ -1,0 +1,52 @@
+<article class="report-passage">
+  <a
+    class="report-source-page"
+    :href="'/api/files/' + selectedReport?.file_id + '/download#page=' + passage.page"
+    target="_blank"
+    rel="noopener"
+    :aria-label="'Download source PDF for page ' + passage.page"
+  >
+    <span x-text="'Page ' + passage.page"></span
+    ><span aria-hidden="true">↗</span>
+  </a>
+  <span
+    class="report-section-label"
+    x-show="passage.section"
+    x-text="passage.section"
+  ></span>
+  <template x-if="passage.table">
+    <div
+      class="report-table-scroll"
+      tabindex="0"
+      role="region"
+      :aria-label="'Evidence table from page ' + passage.page"
+    >
+      <table class="report-evidence-table">
+        <thead>
+          <tr>
+            <template
+              x-for="(heading, index) in passage.table.headers"
+              :key="index"
+              ><th scope="col" x-text="heading"></th
+            ></template>
+          </tr>
+        </thead>
+        <tbody>
+          <template
+            x-for="(row, rowIndex) in passage.table.cells"
+            :key="rowIndex"
+            ><tr>
+              <template x-for="(cell, columnIndex) in row" :key="columnIndex"
+                ><td x-text="cell ?? ''"></td
+              ></template></tr
+          ></template>
+        </tbody>
+      </table>
+    </div>
+  </template>
+  <pre
+    x-show="!passage.table"
+    class="report-quotation"
+    x-text="passage.text"
+  ></pre>
+</article>

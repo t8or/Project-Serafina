@@ -81,3 +81,22 @@ test("empty collections and unmatched searches return empty results", () => {
     [],
   );
 });
+
+test("unscored assessments remain in geography totals and gray filters", async () => {
+  const { filterAssessmentGroups } = await import(
+    "../src/js/assessment-view.js"
+  );
+  const groups = [
+    { key: "west", total: 3, moveForward: 1, needsReview: 0, rejected: 0 },
+  ];
+  assert.equal(filterAssessmentGroups(groups)[0].insufficientData, 2);
+  assert.deepEqual(filterAssessmentGroups(groups, "gray")[0], {
+    key: "west",
+    total: 2,
+    moveForward: 0,
+    needsReview: 0,
+    rejected: 0,
+    insufficientData: 2,
+  });
+  assert.equal(filterAssessmentGroups(groups, "green")[0].insufficientData, 0);
+});

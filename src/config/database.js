@@ -3,7 +3,7 @@
  *
  * Interface preserved for callers:
  *   db.query(sql, params?) -> { rows, rowCount }
- *   db.connect() -> transaction client with query/release
+ *   db.transaction(callback) -> synchronous atomic publication
  *   initDb() -> initialize local schema
  *
  * The adapter keeps existing modules focused on property behaviour rather than
@@ -16,7 +16,7 @@ import { ensureDataDirectories, DATABASE_PATH } from './runtime_paths.js';
 
 let database = null;
 
-const JSON_COLUMNS = new Set(['breakdown', 'raw_data', 'config_snapshot', 'records_json']);
+const JSON_COLUMNS = new Set(['breakdown', 'raw_data', 'config_snapshot', 'records_json', 'projection_json']);
 
 function getDatabase() {
   if (!database) {
@@ -58,9 +58,10 @@ function isRowQuery(sql) {
 }
 
 class LocalDatabase {
-  async query(sql, params = []) {
+  querySync(sql, params = []) {
     const statement = getDatabase().prepare(toSqliteSql(sql));
-    const values = params.map(toSqliteParameter);
+    const indexes = [...sql.matchAll(/\$(\d+)/g)].map(match => Number(match[1]) - 1);
+    const values = (indexes.length ? indexes.map(index => params[index]) : params).map(toSqliteParameter);
 
     if (isRowQuery(sql)) {
       const rows = statement.all(...values).map(hydrateRow);
@@ -75,13 +76,21 @@ class LocalDatabase {
     };
   }
 
-  async connect() {
-    // A single DatabaseSync connection is intentional: Serafina has one local
-    // writer, which avoids cross-process locking complexity for user data.
-    return {
-      query: this.query.bind(this),
-      release() {},
-    };
+  async query(sql, params = []) { return this.querySync(sql, params); }
+
+  transaction(callback) {
+    if (callback.constructor.name === 'AsyncFunction') throw new Error('Transactions require synchronous callbacks');
+    const database = getDatabase();
+    database.exec('BEGIN IMMEDIATE');
+    try {
+      const result = callback({ query: this.querySync.bind(this) });
+      if (result?.then) throw new Error('Transactions cannot await asynchronous work');
+      database.exec('COMMIT');
+      return result;
+    } catch (error) {
+      database.exec('ROLLBACK');
+      throw error;
+    }
   }
 
   close() {
@@ -95,6 +104,25 @@ class LocalDatabase {
 const db = new LocalDatabase();
 
 const SCHEMA = `
+  CREATE TABLE IF NOT EXISTS report_revisions (
+    id INTEGER PRIMARY KEY,
+    file_id INTEGER NOT NULL REFERENCES files(id),
+    property_id INTEGER REFERENCES properties(id),
+    source_sha256 TEXT NOT NULL,
+    evidence_path TEXT NOT NULL,
+    coverage_json TEXT NOT NULL,
+    projection_json TEXT,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  );
+  CREATE TABLE IF NOT EXISTS extraction_jobs (
+    id INTEGER PRIMARY KEY,
+    file_id INTEGER NOT NULL REFERENCES files(id),
+    status TEXT NOT NULL,
+    result_json TEXT,
+    error TEXT,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  );
   CREATE TABLE IF NOT EXISTS files (
     id INTEGER PRIMARY KEY,
     filename TEXT NOT NULL,
@@ -143,6 +171,7 @@ const SCHEMA = `
     property_id INTEGER REFERENCES properties(id) ON DELETE CASCADE,
     document_id INTEGER REFERENCES documents(id) ON DELETE CASCADE,
     section_type TEXT NOT NULL,
+    superseded INTEGER NOT NULL DEFAULT 0,
     storage_path TEXT NOT NULL,
     data_hash TEXT,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -153,7 +182,7 @@ const SCHEMA = `
   CREATE TABLE IF NOT EXISTS scores (
     id INTEGER PRIMARY KEY,
     property_id INTEGER NOT NULL REFERENCES properties(id) ON DELETE CASCADE UNIQUE,
-    score REAL NOT NULL,
+    score REAL,
     decision TEXT NOT NULL,
     decision_color TEXT NOT NULL,
     breakdown TEXT,
@@ -218,6 +247,24 @@ export async function initDb() {
   // this avoids filesystem-sync and multi-process WAL failure modes.
   database.exec('PRAGMA foreign_keys = ON; PRAGMA journal_mode = DELETE; PRAGMA busy_timeout = 5000;');
   database.exec(SCHEMA);
+  if (!database.prepare('PRAGMA table_info(report_revisions)').all().some(c => c.name === 'projection_json')) {
+    database.exec('ALTER TABLE report_revisions ADD COLUMN projection_json TEXT');
+  }
+  if (!database.prepare('PRAGMA table_info(extracted_files)').all().some(c => c.name === 'superseded')) {
+    database.exec('ALTER TABLE extracted_files ADD COLUMN superseded INTEGER NOT NULL DEFAULT 0');
+  }
+  // Additive migration: incomplete inputs have no numeric investment score.
+  if (database.prepare('PRAGMA table_info(scores)').all().find(c => c.name === 'score')?.notnull) {
+    database.exec(`BEGIN IMMEDIATE;
+      DROP TRIGGER IF EXISTS update_scores_updated_at;
+      ALTER TABLE scores RENAME TO scores_legacy_notnull;
+      ${SCHEMA.match(/CREATE TABLE IF NOT EXISTS scores \([\s\S]*?\);/)[0]}
+      INSERT INTO scores SELECT * FROM scores_legacy_notnull;
+      DROP TABLE scores_legacy_notnull;
+      COMMIT;`);
+    database.exec(SCHEMA);
+  }
+
   return { path: DATABASE_PATH };
 }
 

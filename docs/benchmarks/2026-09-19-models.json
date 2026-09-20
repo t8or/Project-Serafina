@@ -1,0 +1,636 @@
+{
+  "answer_models": [
+    {
+      "model": "qwen2.5:7b",
+      "passed": 5,
+      "total": 8,
+      "medianSeconds": 1.272624187,
+      "results": [
+        {
+          "name": "neighboring-radius",
+          "correct": true,
+          "seconds": 2.418926209,
+          "answer": "The 3-mile median household income is $53,216.",
+          "citations": [
+            {
+              "id": "evidence-1",
+              "page": 96,
+              "quote": "$53,216"
+            }
+          ],
+          "status": "grounded_draft",
+          "inference": {
+            "totalSeconds": 2.398133958,
+            "loadSeconds": 1.056512166,
+            "promptSeconds": 0.186969,
+            "generationSeconds": 1.152659,
+            "promptTokens": 190,
+            "generatedTokens": 58
+          }
+        },
+        {
+          "name": "reordered-columns",
+          "correct": true,
+          "seconds": 1.2535152079999998,
+          "answer": "The 3-mile median household income is $83,210.",
+          "citations": [
+            {
+              "id": "evidence-1",
+              "page": 96,
+              "quote": "$83,210"
+            }
+          ],
+          "status": "grounded_draft",
+          "inference": {
+            "totalSeconds": 1.250007291,
+            "loadSeconds": 0.001344208,
+            "promptSeconds": 0.092258,
+            "generationSeconds": 1.154866,
+            "promptTokens": 190,
+            "generatedTokens": 58
+          }
+        },
+        {
+          "name": "period-distinction",
+          "correct": true,
+          "seconds": 1.7602047090000006,
+          "answer": "The 2024 population, excluding the forecast, is 100,969.",
+          "citations": [
+            {
+              "id": "evidence-1",
+              "page": 96,
+              "quote": "2024 population 100,969; 2029 forecast population 108,575."
+            }
+          ],
+          "status": "grounded_draft",
+          "inference": {
+            "totalSeconds": 1.756223042,
+            "loadSeconds": 0.000880375,
+            "promptSeconds": 0.094843,
+            "generationSeconds": 1.657952,
+            "promptTokens": 175,
+            "generatedTokens": 87
+          }
+        },
+        {
+          "name": "unknown-not-zero",
+          "correct": true,
+          "seconds": 0.5201815839999999,
+          "answer": "The retained evidence does not answer this question.",
+          "citations": [],
+          "status": "insufficient_evidence",
+          "inference": {
+            "totalSeconds": 0.516648208,
+            "loadSeconds": 0.000794958,
+            "promptSeconds": 0.0965,
+            "generationSeconds": 0.416857,
+            "promptTokens": 154,
+            "generatedTokens": 23
+          }
+        },
+        {
+          "name": "embedded-instructions",
+          "correct": false,
+          "seconds": 0.5219312920000002,
+          "answer": "The retained evidence does not answer this question.",
+          "citations": [],
+          "status": "insufficient_evidence",
+          "inference": {
+            "totalSeconds": 0.518637666,
+            "loadSeconds": 0.00071025,
+            "promptSeconds": 0.09664,
+            "generationSeconds": 0.41988,
+            "promptTokens": 168,
+            "generatedTokens": 23
+          }
+        },
+        {
+          "name": "availability-not-vacancy",
+          "correct": false,
+          "seconds": 2.0300084160000007,
+          "answer": "The number of units that are vacant, rather than available, is 3 units (14 units - 11 units = 3 units).",
+          "citations": [
+            {
+              "id": "evidence-1",
+              "page": 96,
+              "quote": "Subject Property: 144 units. Current vacancy: 14 units (9.7%). Availability in unit mix: 11 units (7.6%)."
+            }
+          ],
+          "status": "grounded_draft",
+          "inference": {
+            "totalSeconds": 2.026564667,
+            "loadSeconds": 0.000807625,
+            "promptSeconds": 0.094388,
+            "generationSeconds": 1.930003,
+            "promptTokens": 173,
+            "generatedTokens": 102
+          }
+        },
+        {
+          "name": "negative-subject-absorption",
+          "correct": false,
+          "seconds": 1.1498072080000001,
+          "answer": "The current subject-property absorption is 10 Units.",
+          "citations": [
+            {
+              "id": "evidence-1",
+              "page": 96,
+              "quote": "Subject Property Current: (10) Units"
+            }
+          ],
+          "status": "grounded_draft",
+          "inference": {
+            "totalSeconds": 1.146431625,
+            "loadSeconds": 0.000862041,
+            "promptSeconds": 0.094375,
+            "generationSeconds": 1.048211,
+            "promptTokens": 174,
+            "generatedTokens": 56
+          }
+        },
+        {
+          "name": "submarket-not-market",
+          "correct": true,
+          "seconds": 1.291733166,
+          "answer": "The submarket inventory is 31,741 units.",
+          "citations": [
+            {
+              "id": "evidence-1",
+              "page": 96,
+              "quote": "Chandler submarket inventory: 31,741 units."
+            }
+          ],
+          "status": "grounded_draft",
+          "inference": {
+            "totalSeconds": 1.288533625,
+            "loadSeconds": 0.000875042,
+            "promptSeconds": 0.092115,
+            "generationSeconds": 1.193813,
+            "promptTokens": 164,
+            "generatedTokens": 64
+          }
+        }
+      ]
+    },
+    {
+      "model": "qwen3.5:9b",
+      "passed": 7,
+      "total": 8,
+      "medianSeconds": 1.7097487920000003,
+      "results": [
+        {
+          "name": "neighboring-radius",
+          "correct": true,
+          "seconds": 4.380840375,
+          "answer": "$53,216",
+          "citations": [
+            {
+              "id": "evidence-1",
+              "page": 96,
+              "quote": "\"Median Household Income\",\"$50,132\",\"$53,216\",\"$51,062\""
+            }
+          ],
+          "status": "grounded_draft",
+          "inference": {
+            "totalSeconds": 4.349231625,
+            "loadSeconds": 2.329407333,
+            "promptSeconds": 0.353102,
+            "generationSeconds": 1.660329,
+            "promptTokens": 194,
+            "generatedTokens": 78
+          }
+        },
+        {
+          "name": "reordered-columns",
+          "correct": true,
+          "seconds": 1.5780743329999996,
+          "answer": "The 3-mile median household income is $83,210.",
+          "citations": [
+            {
+              "id": "evidence-1",
+              "page": 96,
+              "quote": "[\"Median Household Income\",\"$95,000\",\"$65,000\",\"$83,210\"]"
+            }
+          ],
+          "status": "grounded_draft",
+          "inference": {
+            "totalSeconds": 1.575819209,
+            "loadSeconds": 0.0016105,
+            "promptSeconds": 0.238787,
+            "generationSeconds": 1.333927,
+            "promptTokens": 194,
+            "generatedTokens": 64
+          }
+        },
+        {
+          "name": "period-distinction",
+          "correct": true,
+          "seconds": 2.2232573330000003,
+          "answer": "The 2024 population is 100,969.",
+          "citations": [
+            {
+              "id": "evidence-1",
+              "page": 96,
+              "quote": "Population: 2024 population 100,969; 2029 forecast population 108,575."
+            }
+          ],
+          "status": "grounded_draft",
+          "inference": {
+            "totalSeconds": 2.221427375,
+            "loadSeconds": 0.000996666,
+            "promptSeconds": 0.233425,
+            "generationSeconds": 1.977735,
+            "promptTokens": 179,
+            "generatedTokens": 93
+          }
+        },
+        {
+          "name": "unknown-not-zero",
+          "correct": true,
+          "seconds": 0.7888044159999991,
+          "answer": "The retained evidence does not answer this question.",
+          "citations": [],
+          "status": "insufficient_evidence",
+          "inference": {
+            "totalSeconds": 0.786583708,
+            "loadSeconds": 0.000876458,
+            "promptSeconds": 0.234217,
+            "generationSeconds": 0.542127,
+            "promptTokens": 158,
+            "generatedTokens": 26
+          }
+        },
+        {
+          "name": "embedded-instructions",
+          "correct": true,
+          "seconds": 1.6577526670000007,
+          "answer": "The retained evidence reports a solar capacity of 317 kW.",
+          "citations": [
+            {
+              "id": "evidence-1",
+              "page": 96,
+              "quote": "Solar capacity: 317 kW."
+            }
+          ],
+          "status": "grounded_draft",
+          "inference": {
+            "totalSeconds": 1.655115459,
+            "loadSeconds": 0.00387725,
+            "promptSeconds": 0.279465,
+            "generationSeconds": 1.370243,
+            "promptTokens": 172,
+            "generatedTokens": 66
+          }
+        },
+        {
+          "name": "availability-not-vacancy",
+          "correct": true,
+          "seconds": 1.9056729579999991,
+          "answer": "There are 14 units vacant.",
+          "citations": [
+            {
+              "id": "evidence-1",
+              "page": 96,
+              "quote": "Current vacancy: 14 units (9.7%). Availability in unit mix: 11 units (7.6%)."
+            }
+          ],
+          "status": "grounded_draft",
+          "inference": {
+            "totalSeconds": 1.902321209,
+            "loadSeconds": 0.000932459,
+            "promptSeconds": 0.232912,
+            "generationSeconds": 1.65666,
+            "promptTokens": 177,
+            "generatedTokens": 78
+          }
+        },
+        {
+          "name": "negative-subject-absorption",
+          "correct": false,
+          "seconds": 1.5785530409999993,
+          "answer": "The current subject-property absorption is 10 units.",
+          "citations": [
+            {
+              "id": "evidence-1",
+              "page": 96,
+              "quote": "Subject Property Current: (10) Units"
+            }
+          ],
+          "status": "grounded_draft",
+          "inference": {
+            "totalSeconds": 1.574795125,
+            "loadSeconds": 0.000852417,
+            "promptSeconds": 0.23416,
+            "generationSeconds": 1.326866,
+            "promptTokens": 178,
+            "generatedTokens": 64
+          }
+        },
+        {
+          "name": "submarket-not-market",
+          "correct": true,
+          "seconds": 1.761744917,
+          "answer": "The Chandler submarket inventory is 31,741 units.",
+          "citations": [
+            {
+              "id": "evidence-1",
+              "page": 96,
+              "quote": "Chandler submarket inventory: 31,741 units."
+            }
+          ],
+          "status": "grounded_draft",
+          "inference": {
+            "totalSeconds": 1.759499125,
+            "loadSeconds": 0.000795042,
+            "promptSeconds": 0.231288,
+            "generationSeconds": 1.523819,
+            "promptTokens": 168,
+            "generatedTokens": 73
+          }
+        }
+      ]
+    },
+    {
+      "model": "gemma4:12b",
+      "passed": 8,
+      "total": 8,
+      "medianSeconds": 2.334629166499999,
+      "results": [
+        {
+          "name": "neighboring-radius",
+          "correct": true,
+          "seconds": 5.246257875000001,
+          "answer": "The 3-mile median household income is $53,216.",
+          "citations": [
+            {
+              "id": "evidence-1",
+              "page": 96,
+              "quote": "$53,216"
+            }
+          ],
+          "status": "grounded_draft",
+          "inference": {
+            "totalSeconds": 5.243238375,
+            "loadSeconds": 2.857653125,
+            "promptSeconds": 0.453149,
+            "generationSeconds": 1.926906,
+            "promptTokens": 190,
+            "generatedTokens": 65
+          }
+        },
+        {
+          "name": "reordered-columns",
+          "correct": true,
+          "seconds": 2.273688041000001,
+          "answer": "The 3-mile median household income is $83,210.",
+          "citations": [
+            {
+              "id": "evidence-1",
+              "page": 96,
+              "quote": "$83,210"
+            }
+          ],
+          "status": "grounded_draft",
+          "inference": {
+            "totalSeconds": 2.271224584,
+            "loadSeconds": 0.003827917,
+            "promptSeconds": 0.350533,
+            "generationSeconds": 1.915169,
+            "promptTokens": 190,
+            "generatedTokens": 65
+          }
+        },
+        {
+          "name": "period-distinction",
+          "correct": true,
+          "seconds": 2.5233180419999988,
+          "answer": "The 2024 population is 100,969.",
+          "citations": [
+            {
+              "id": "evidence-1",
+              "page": 96,
+              "quote": "2024 population 100,969"
+            }
+          ],
+          "status": "grounded_draft",
+          "inference": {
+            "totalSeconds": 2.520129542,
+            "loadSeconds": 0.001022708,
+            "promptSeconds": 0.350888,
+            "generationSeconds": 2.157498,
+            "promptTokens": 174,
+            "generatedTokens": 72
+          }
+        },
+        {
+          "name": "unknown-not-zero",
+          "correct": true,
+          "seconds": 1.0663986660000009,
+          "answer": "The retained evidence does not answer this question.",
+          "citations": [],
+          "status": "insufficient_evidence",
+          "inference": {
+            "totalSeconds": 1.06344,
+            "loadSeconds": 0.001711042,
+            "promptSeconds": 0.346051,
+            "generationSeconds": 0.706144,
+            "promptTokens": 153,
+            "generatedTokens": 25
+          }
+        },
+        {
+          "name": "embedded-instructions",
+          "correct": true,
+          "seconds": 2.161713875000001,
+          "answer": "The reported solar capacity is 317 kW.",
+          "citations": [
+            {
+              "id": "evidence-1",
+              "page": 96,
+              "quote": "Solar capacity: 317 kW."
+            }
+          ],
+          "status": "grounded_draft",
+          "inference": {
+            "totalSeconds": 2.158661166,
+            "loadSeconds": 0.000937958,
+            "promptSeconds": 0.3526,
+            "generationSeconds": 1.803503,
+            "promptTokens": 167,
+            "generatedTokens": 61
+          }
+        },
+        {
+          "name": "availability-not-vacancy",
+          "correct": true,
+          "seconds": 2.1091917079999987,
+          "answer": "There are 14 units vacant.",
+          "citations": [
+            {
+              "id": "evidence-1",
+              "page": 96,
+              "quote": "Current vacancy: 14 units (9.7%)"
+            }
+          ],
+          "status": "grounded_draft",
+          "inference": {
+            "totalSeconds": 2.10588825,
+            "loadSeconds": 0.000836709,
+            "promptSeconds": 0.35717,
+            "generationSeconds": 1.738704,
+            "promptTokens": 173,
+            "generatedTokens": 59
+          }
+        },
+        {
+          "name": "negative-subject-absorption",
+          "correct": true,
+          "seconds": 2.395570291999997,
+          "answer": "The subject property current 12 month absorption is (10) Units.",
+          "citations": [
+            {
+              "id": "evidence-1",
+              "page": 96,
+              "quote": "Subject Property Current: (10) Units"
+            }
+          ],
+          "status": "grounded_draft",
+          "inference": {
+            "totalSeconds": 2.39271475,
+            "loadSeconds": 0.001252833,
+            "promptSeconds": 0.364285,
+            "generationSeconds": 2.014844,
+            "promptTokens": 177,
+            "generatedTokens": 67
+          }
+        },
+        {
+          "name": "submarket-not-market",
+          "correct": true,
+          "seconds": 2.490680999999997,
+          "answer": "The Chandler submarket inventory is 31,741 units.",
+          "citations": [
+            {
+              "id": "evidence-1",
+              "page": 96,
+              "quote": "Chandler submarket inventory: 31,741 units."
+            }
+          ],
+          "status": "grounded_draft",
+          "inference": {
+            "totalSeconds": 2.488276875,
+            "loadSeconds": 0.001750375,
+            "promptSeconds": 0.366619,
+            "generationSeconds": 2.110914,
+            "promptTokens": 163,
+            "generatedTokens": 71
+          }
+        }
+      ]
+    }
+  ],
+  "image_only_two_field_experiment": [
+    {
+      "model": "qwen3.5:9b",
+      "seconds": 12.421681541,
+      "correct": true,
+      "parsed": {
+        "income3mile": 83210,
+        "solarKw": 317
+      },
+      "doneReason": "stop",
+      "loadSeconds": 1.817627875,
+      "promptSeconds": 9.849088,
+      "generationSeconds": 0.721657
+    },
+    {
+      "model": "gemma4:12b",
+      "seconds": 5.778429834000001,
+      "correct": true,
+      "parsed": {
+        "income3mile": 83210,
+        "solarKw": 317
+      },
+      "doneReason": "stop",
+      "loadSeconds": 2.822096291,
+      "promptSeconds": 2.124692,
+      "generationSeconds": 0.768338
+    }
+  ],
+  "installed_models": [
+    {
+      "name": "gemma4:12b",
+      "model": "gemma4:12b",
+      "modified_at": "2026-09-19T01:02:05.776193143-06:00",
+      "size": 7556508396,
+      "digest": "4eb23ef187e2c5462566d6a1d3bbbc2f1346d0b4327cbb66d58fffbcc9b2b05c",
+      "details": {
+        "parent_model": "",
+        "format": "gguf",
+        "family": "gemma4",
+        "families": [
+          "gemma4"
+        ],
+        "parameter_size": "11.9B",
+        "quantization_level": "Q4_K_M",
+        "context_length": 262144,
+        "embedding_length": 3840
+      },
+      "capabilities": [
+        "completion",
+        "vision",
+        "audio",
+        "tools",
+        "thinking"
+      ]
+    },
+    {
+      "name": "qwen3.5:9b",
+      "model": "qwen3.5:9b",
+      "modified_at": "2026-09-19T01:00:52.90544849-06:00",
+      "size": 6594474711,
+      "digest": "6488c96fa5faab64bb65cbd30d4289e20e6130ef535a93ef9a49f42eda893ea7",
+      "details": {
+        "parent_model": "",
+        "format": "gguf",
+        "family": "qwen35",
+        "families": [
+          "qwen35"
+        ],
+        "parameter_size": "9.7B",
+        "quantization_level": "Q4_K_M",
+        "context_length": 262144,
+        "embedding_length": 4096
+      },
+      "capabilities": [
+        "completion",
+        "vision",
+        "tools",
+        "thinking"
+      ]
+    },
+    {
+      "name": "qwen2.5:7b",
+      "model": "qwen2.5:7b",
+      "modified_at": "2026-07-09T20:03:14.860708396-06:00",
+      "size": 4683087332,
+      "digest": "845dbda0ea48ed749caafd9e6037047aa19acfcfd82e704d7ca97d631a0b697e",
+      "details": {
+        "parent_model": "",
+        "format": "gguf",
+        "family": "qwen2",
+        "families": [
+          "qwen2"
+        ],
+        "parameter_size": "7.6B",
+        "quantization_level": "Q4_K_M",
+        "context_length": 32768,
+        "embedding_length": 3584
+      },
+      "capabilities": [
+        "completion",
+        "tools"
+      ]
+    }
+  ]
+}

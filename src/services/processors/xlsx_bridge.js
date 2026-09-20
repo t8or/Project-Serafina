@@ -10,6 +10,7 @@ import { FILLED_DIR, LOCAL_PYTHON_PATH } from '../../config/runtime_paths.js';
 import { fileURLToPath } from 'url';
 import path from 'path';
 import fs from 'fs/promises';
+import crypto from 'node:crypto';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -116,7 +117,7 @@ class XLSXBridge {
         await fs.access(jsonPath);
       } else {
         // It's an object, write to temp file
-        jsonPath = path.join(OUTPUT_DIR, `temp_json_${Date.now()}.json`);
+        jsonPath = path.join(OUTPUT_DIR, `temp_json_${crypto.randomUUID()}.json`);
         await fs.writeFile(jsonPath, JSON.stringify(jsonData, null, 2));
         cleanupJson = true;
       }
@@ -183,7 +184,7 @@ class XLSXBridge {
    * @returns {Object} Formatted fill report for UI display
    */
   formatFillReport(fillResult) {
-    if (fillResult.status === 'error') {
+    if (fillResult.status !== 'success' || fillResult.errors?.length) {
       return {
         success: false,
         error: fillResult.error,
@@ -195,6 +196,8 @@ class XLSXBridge {
       success: true,
       outputPath: fillResult.output_path,
       timestamp: fillResult.timestamp,
+      readiness: fillResult.readiness,
+      calculationStatus: fillResult.calculation_status,
       summary: {
         filled: fillResult.summary?.total_filled || 0,
         skipped: fillResult.summary?.total_skipped || 0,

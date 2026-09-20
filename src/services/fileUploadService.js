@@ -13,7 +13,7 @@ const FILE_TYPE_DIRS = {
 export class FileUploadService {
   constructor() {
     // Ensure uploads directory exists
-    this.initializeUploadDirs();
+    this.ready = this.initializeUploadDirs();
   }
 
   async initializeUploadDirs() {
@@ -50,6 +50,10 @@ export class FileUploadService {
   }
 
   async uploadFile(file, userId = '000') {
+    await this.ready;
+    if (file.mimetype !== 'application/pdf' || !file.buffer?.subarray(0, 1024).includes(Buffer.from('%PDF-'))) {
+      const error = new Error('The uploaded content is not a PDF'); error.statusCode = 400; throw error;
+    }
     try {
       console.log('Starting file upload process:', {
         originalname: file.originalname,
@@ -63,7 +67,7 @@ export class FileUploadService {
       
       // Generate unique filename
       const timestamp = Date.now();
-      const extension = path.extname(file.originalname);
+      const extension = '.pdf';
       const filename = `${timestamp}-${Math.random().toString(36).substring(7)}${extension}`;
       console.log('Generated filename:', filename);
       

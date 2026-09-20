@@ -16,37 +16,20 @@ export const SECTION_TYPES = [
  */
 export function parseMarkdownTable(markdown) {
   if (!markdown) return [];
-  
-  const lines = markdown.split('\n').filter(l => l.trim());
+  const split = line => {
+    const cells = line.trim().split(/(?<!\\)\|/).map(c => c.trim().replace(/\\\|/g, '|'));
+    if (cells[0] === '') cells.shift();
+    if (cells.at(-1) === '') cells.pop();
+    return cells;
+  };
+  const lines = markdown.split('\n').filter(line => line.includes('|') && line.trim());
   if (lines.length < 2) return [];
-  
-  // Parse header row (first line with |)
-  const headerLine = lines.find(l => l.includes('|') && !l.match(/^\|[\s-:|]+\|$/));
-  if (!headerLine) return [];
-  
-  const headers = headerLine.split('|')
-    .map(h => h.trim())
-    .filter(h => h && !h.match(/^-+$/));
-  
-  const rows = [];
-  
-  // Parse data rows
-  for (const line of lines) {
-    if (line.match(/^\|[\s-:|]+\|$/) || line === headerLine) continue;
-    if (!line.includes('|')) continue;
-    
-    const cells = line.split('|').map(c => c.trim()).filter((c, i) => i > 0 && i <= headers.length);
-    
-    if (cells.length > 0) {
-      const row = {};
-      headers.forEach((h, i) => {
-        row[h] = cells[i] || '';
-      });
-      rows.push(row);
-    }
-  }
-  
-  return rows;
+  const rawHeaders = split(lines[0]);
+  const headers = rawHeaders.map((header, i) => header && rawHeaders.indexOf(header) === rawHeaders.lastIndexOf(header) ? header : `${header || 'column'} [${i + 1}]`);
+  return lines.slice(1).filter(line => !/^[|\s:-]+$/.test(line)).flatMap(line => {
+    const cells = split(line);
+    return cells.length === headers.length ? [Object.fromEntries(headers.map((header, i) => [header, cells[i]]))] : [];
+  });
 }
 
 /**
@@ -73,12 +56,13 @@ export function findTableValue(tables, rowLabel, columnName) {
             }
             // Try partial match on column name
             for (const [key, value] of Object.entries(row)) {
-              if (key.toLowerCase().includes(columnName.toLowerCase())) {
+              if (key.toLowerCase().trim().replace(/miles$/, 'mile') === columnName.toLowerCase().trim().replace(/miles$/, 'mile')) {
                 return value;
               }
             }
           }
-          // If no column match, return second value (often the data column)
+          if (columnName) continue;
+          // Without a requested column, use the second value.
           if (rowValues.length > 1) {
             return rowValues[1];
           }
@@ -100,10 +84,11 @@ export function findTableValue(tables, rowLabel, columnName) {
           }
           // Try case-insensitive column match
           for (const [key, value] of Object.entries(row)) {
-            if (columnName && key.toLowerCase().includes(columnName.toLowerCase())) {
+            if (columnName && key.toLowerCase().trim().replace(/miles$/, 'mile') === columnName.toLowerCase().trim().replace(/miles$/, 'mile')) {
               return value;
             }
           }
+          if (columnName) continue;
           // Return first numeric-looking value after the label
           for (let i = 1; i < rowValues.length; i++) {
             if (String(rowValues[i]).match(/[\d$%]/)) {
@@ -121,145 +106,59 @@ export function findTableValue(tables, rowLabel, columnName) {
  * Parse a numeric value from various formats ($123,456 or 12.5% or 123,456)
  */
 export function parseNumericValue(value, isPercentage = false) {
-  if (!value) return null;
-  const str = String(value).replace(/[$,]/g, '').trim();
-  
-  if (str === '-' || str === '') return null;
-  
-  const match = str.match(/([-\d.]+)%?/);
-  if (match) {
-    const num = parseFloat(match[1]);
-    // If it's a percentage value, divide by 100
-    if (isPercentage || str.includes('%')) {
-      return num / 100;
-    }
-    return num;
-  }
-  return null;
+  if (value === null || value === undefined || typeof value === 'boolean') return null;
+  let str = String(value).trim().replace(/−/g, '-');
+  const percent = isPercentage || str.includes('%');
+  str = str.replace(/%$/, '');
+  if (/^\(.*\)$/.test(str)) str = '-' + str.slice(1, -1).replace(/%$/, '');
+  str = str.replace(/\$/g, '');
+  if (!/^[+-]?(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?$/.test(str)) return null;
+  const num = Number(str.replace(/,/g, ''));
+  return Number.isFinite(num) ? num / (percent ? 100 : 1) : null;
 }
 
 /**
  * Extract demographics data from Docling sections.
  * The 3-mile demographics are typically in the submarket_report section.
  */
-export function extractDemographicsFromDocling(demographicsSection, submarketSection) {
+export function extractDemographicsFromDocling(demographicsSection, submarketSection, radius = 3) {
+  const tables = [demographicsSection, submarketSection].filter(Boolean).flatMap(section => [
+    ...(section.tables || []), ...(section.pages || []).flatMap(page => page.tables || []),
+  ]);
+  const candidates = [];
+  for (const table of tables) {
+    const rows = table.rows || parseMarkdownTable(table.markdown);
+    for (const row of rows) {
+      const columns = Object.keys(row).filter(key => new RegExp(`^${radius}[ -]*miles?$`, 'i').test(key.trim()));
+      if (columns.length !== 1) continue;
+      const label = String(Object.values(row)[0] || '').trim();
+      let field, percentage = false, period = null;
+      if (/^(?:\d{4} )?population$/i.test(label)) {
+        field = 'population_3mile'; period = label.match(/\d{4}/)?.[0];
+      } else if (/^pop(?:ulation)? growth\b/i.test(label)) {
+        field = 'population_growth_3mile'; percentage = true;
+      } else if (/^median (?:household|hh) income$/i.test(label)) field = 'median_hh_income_3mile';
+      else if (/^median home value$/i.test(label)) field = 'median_home_value_3mile';
+      else if (/^renter(?: occupied| households)?(?: %| percent| percentage)?$/i.test(label) && String(row[columns[0]]).includes('%')) {
+        field = 'renter_households_pct_3mile'; percentage = true;
+      }
+      if (!field) continue;
+      const value = parseNumericValue(row[columns[0]], percentage);
+      if (value !== null) candidates.push({field: field.replace('_3mile', `_${radius}mile`), value, period, label});
+    }
+  }
+  const years = candidates.filter(c => c.field === `population_${radius}mile` && c.period).map(c => Number(c.period));
+  const baseline = years.length ? Math.min(...years) : null;
+  const grouped = {};
+  for (const candidate of candidates) {
+    if (candidate.field === `population_${radius}mile` && candidate.period && Number(candidate.period) !== baseline) continue;
+    (grouped[candidate.field] ||= []).push(candidate);
+  }
   const result = {};
-  
-  // Collect all tables from both sections
-  const allTables = [];
-  
-  if (submarketSection) {
-    // Tables in the submarket section often have 3-mile demographics
-    if (submarketSection.tables) {
-      allTables.push(...submarketSection.tables);
-    }
-    // Also check pages for tables
-    const pages = submarketSection.pages || [];
-    for (const page of pages) {
-      if (page.tables) allTables.push(...page.tables);
-    }
+  for (const [field, values] of Object.entries(grouped)) {
+    if (new Set(values.map(v => v.value)).size === 1) result[field] = values[0].value;
+    else (result.__conflicts ||= {})[field] = values;
   }
-  
-  if (demographicsSection) {
-    if (demographicsSection.tables) {
-      allTables.push(...demographicsSection.tables);
-    }
-    const pages = demographicsSection.pages || [];
-    for (const page of pages) {
-      if (page.tables) allTables.push(...page.tables);
-    }
-  }
-  
-  // Look for 3-mile demographics in tables
-  // Format: Row label | 1 Mile | 3 Mile | ...
-  // Also check for "3 Mile" as a row key in structured table data
-  
-  // First check if there's structured table data with "3 Mile" column
-  for (const table of allTables) {
-    if (table.rows) {
-      for (const row of table.rows) {
-        const rowLabel = Object.values(row)[0] || '';
-        const threeValue = row['3 Mile'];
-        
-        if (threeValue && threeValue !== '') {
-          const label = String(rowLabel).toLowerCase();
-          
-          if (label.includes('2024 population') || label === 'population') {
-            const val = parseNumericValue(threeValue);
-            if (val && val > 1000) result.population_3mile = val; // Sanity check
-          }
-          if (label.includes('pop growth') || label.includes('population growth') || label.includes('household growth')) {
-            result.population_growth_3mile = parseNumericValue(threeValue, true);
-          }
-          if (label.includes('median household income') || label.includes('median hh income')) {
-            result.median_hh_income_3mile = parseNumericValue(threeValue);
-          }
-          if (label.includes('median home value')) {
-            result.median_home_value_3mile = parseNumericValue(threeValue);
-          }
-          if (label.includes('renter')) {
-            result.renter_households_pct_3mile = parseNumericValue(threeValue, true);
-          }
-        }
-      }
-    }
-  }
-  
-  // Fallback to markdown table parsing if not found
-  if (!result.population_3mile) {
-    const pop = findTableValue(allTables, '2024 Population', '3 Mile');
-    if (pop) result.population_3mile = parseNumericValue(pop);
-  }
-  
-  if (!result.population_growth_3mile) {
-    const popGrowth = findTableValue(allTables, 'Pop Growth', '3 Mile') ||
-                      findTableValue(allTables, 'Population Growth', '3 Mile') ||
-                      findTableValue(allTables, 'Household Growth', '3 Mile');
-    if (popGrowth) result.population_growth_3mile = parseNumericValue(popGrowth, true);
-  }
-  
-  if (!result.median_hh_income_3mile) {
-    const income = findTableValue(allTables, 'Median Household Income', '3 Mile') ||
-                   findTableValue(allTables, 'Median HH Income', '3 Mile');
-    if (income) result.median_hh_income_3mile = parseNumericValue(income);
-  }
-  
-  if (!result.median_home_value_3mile) {
-    const homeValue = findTableValue(allTables, 'Median Home Value', '3 Mile');
-    if (homeValue) result.median_home_value_3mile = parseNumericValue(homeValue);
-  }
-  
-  // Renter households percentage - often needs to be looked up separately
-  if (!result.renter_households_pct_3mile) {
-    const renterPct = findTableValue(allTables, 'Renter', '3 Mile') ||
-                      findTableValue(allTables, 'Renter Occupied', '3 Mile') ||
-                      findTableValue(allTables, 'Renter Households', '3 Mile');
-    if (renterPct) result.renter_households_pct_3mile = parseNumericValue(renterPct, true);
-  }
-  
-  // If not found in tables, search text for demographics
-  const allText = [];
-  if (demographicsSection?.pages) {
-    for (const page of demographicsSection.pages) {
-      for (const item of (page.text_items || [])) {
-        allText.push(item.text || '');
-      }
-    }
-  }
-  
-  const combinedText = allText.join(' ');
-  
-  // Try to extract from text if not found in tables
-  if (!result.renter_households_pct_3mile) {
-    // Look for patterns like "60% of households now rent" or "renter: 48%"
-    const renterMatch = combinedText.match(/(\d+(?:\.\d+)?)\s*%\s*(?:of\s+)?(?:households?\s+)?(?:now\s+)?rent/i) ||
-                        combinedText.match(/rent(?:er|al)?[:\s]+(\d+(?:\.\d+)?)\s*%/i);
-    if (renterMatch) {
-      result.renter_households_pct_3mile = parseFloat(renterMatch[1]) / 100;
-    }
-  }
-  
-  console.log('[CoStarExtract] Extracted demographics:', result);
   return result;
 }
 

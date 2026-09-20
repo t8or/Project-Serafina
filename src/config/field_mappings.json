@@ -1,9 +1,8 @@
 {
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Field mappings from Docling JSON extract to XLSX template cells",
   "template_name": "Serafina UW Phoenix AZ Feb 14 2025",
   "json_root": "structured_data[0]",
-  
   "sheets": {
     "Property Summary": {
       "description": "Basic property information from CoStar report",
@@ -158,17 +157,49 @@
           "transform": "years_since_purchase",
           "source": "pdf_extract",
           "notes": "Calculate from purchase date"
+        },
+        {
+          "cell": "C10",
+          "label": "County",
+          "json_path": null,
+          "type": "text",
+          "source": "external"
+        },
+        {
+          "cell": "C14",
+          "label": "Year Renovated",
+          "json_path": null,
+          "type": "text",
+          "source": "external"
+        },
+        {
+          "cell": "C15",
+          "label": "Management Type",
+          "json_path": null,
+          "type": "text",
+          "source": "external"
         }
       ]
     },
-    
     "Unit Mix & Comps": {
       "description": "Unit breakdown data from CoStar report",
       "array_source": "unitBreakdown[0].rows",
       "row_start": 7,
       "max_rows": 30,
       "clear_before_fill": true,
-      "clear_columns": ["B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"],
+      "clear_columns": [
+        "B",
+        "C",
+        "D",
+        "E",
+        "F",
+        "G",
+        "H",
+        "I",
+        "J",
+        "K",
+        "L"
+      ],
       "mappings": [
         {
           "column": "B",
@@ -199,14 +230,15 @@
           "type": "number",
           "source": "pdf_extract",
           "transform": "calc_occupied",
-          "notes": "Calculate: total units - available units"
+          "notes": "Requires physical vacancy by floor plan. CoStar availability is not physical vacancy."
         },
         {
           "column": "G",
           "label": "Unit Mix Percentage",
           "json_field": "unitMix.mix%",
           "type": "percentage",
-          "source": "pdf_extract"
+          "source": "pdf_extract",
+          "transform": "divide_by_100"
         },
         {
           "column": "H",
@@ -217,25 +249,14 @@
         },
         {
           "column": "J",
-          "label": "Average Effective Rent",
-          "json_field": "avgEffectiveRent.perUnit",
+          "label": "Achieved Rent",
+          "json_field": null,
           "type": "currency",
-          "source": "pdf_extract"
+          "source": "external",
+          "notes": "Actual achieved rent requires a rent roll; CoStar effective asking rent is not an achieved lease rent."
         }
-      ],
-      "unit_type_mapping": {
-        "description": "Maps bed/bath combinations to template row offsets",
-        "rows": [
-          {"bed": 1, "bath": 1, "sf_range": [0, 700], "row_offset": 0, "template_label": "1 Bed- Classic"},
-          {"bed": 1, "bath": 1, "sf_range": [700, 800], "row_offset": 1, "template_label": "1 Bed PU"},
-          {"bed": 1, "bath": 1, "sf_range": [800, 1000], "row_offset": 2, "template_label": "1 Bed Reno"},
-          {"bed": 2, "bath": 1, "sf_range": [800, 900], "row_offset": 3, "template_label": "2 Bed/1 Ba - Classic"},
-          {"bed": 2, "bath": 2, "sf_range": [900, 1000], "row_offset": 4, "template_label": "2 Bed/2 Ba PU"},
-          {"bed": 2, "bath": 2, "sf_range": [1000, 1100], "row_offset": 5, "template_label": "2 Bed/2 Ba Reno"}
-        ]
-      }
+      ]
     },
-    
     "Historical Financials": {
       "description": "Financial data - mostly external input needed",
       "mappings": [
@@ -263,36 +284,201 @@
         }
       ]
     },
-    
     "Demos": {
-      "description": "Demographics data - external source",
+      "description": "Report demographics and local reference inputs; missing sample inputs are cleared",
       "mappings": [
         {
           "cell": "C6",
           "label": "Population (1 Mile)",
-          "json_path": null,
+          "json_path": "demographics.population_1mile",
           "type": "number",
-          "source": "external",
-          "notes": "Demographics not in CoStar property PDF"
+          "source": "pdf_extract"
+        },
+        {
+          "cell": "C7",
+          "label": "Population Growth (1 Mile)",
+          "json_path": "demographics.population_growth_1mile",
+          "type": "percentage",
+          "source": "pdf_extract"
+        },
+        {
+          "cell": "C8",
+          "label": "Median HH Income (1 Mile)",
+          "json_path": "demographics.median_hh_income_1mile",
+          "type": "currency",
+          "source": "pdf_extract"
+        },
+        {
+          "cell": "C9",
+          "label": "Median Home Value (1 Mile)",
+          "json_path": "demographics.median_home_value_1mile",
+          "type": "currency",
+          "source": "pdf_extract"
+        },
+        {
+          "cell": "C10",
+          "label": "Renter Households % (1 Mile)",
+          "json_path": "demographics.renter_households_pct_1mile",
+          "type": "percentage",
+          "source": "pdf_extract"
         },
         {
           "cell": "D6",
           "label": "Population (3 Mile)",
+          "json_path": "demographics.population_3mile",
+          "type": "number",
+          "source": "pdf_extract"
+        },
+        {
+          "cell": "D7",
+          "label": "Population Growth (3 Mile)",
+          "json_path": "demographics.population_growth_3mile",
+          "type": "percentage",
+          "source": "pdf_extract"
+        },
+        {
+          "cell": "D8",
+          "label": "Median HH Income (3 Mile)",
+          "json_path": "demographics.median_hh_income_3mile",
+          "type": "currency",
+          "source": "pdf_extract"
+        },
+        {
+          "cell": "D9",
+          "label": "Median Home Value (3 Mile)",
+          "json_path": "demographics.median_home_value_3mile",
+          "type": "currency",
+          "source": "pdf_extract"
+        },
+        {
+          "cell": "D10",
+          "label": "Renter Households % (3 Mile)",
+          "json_path": "demographics.renter_households_pct_3mile",
+          "type": "percentage",
+          "source": "pdf_extract"
+        },
+        {
+          "cell": "E6",
+          "label": "Population (5 Mile)",
+          "json_path": "demographics.population_5mile",
+          "type": "number",
+          "source": "pdf_extract"
+        },
+        {
+          "cell": "E7",
+          "label": "Population Growth (5 Mile)",
+          "json_path": "demographics.population_growth_5mile",
+          "type": "percentage",
+          "source": "pdf_extract"
+        },
+        {
+          "cell": "E8",
+          "label": "Median HH Income (5 Mile)",
+          "json_path": "demographics.median_hh_income_5mile",
+          "type": "currency",
+          "source": "pdf_extract"
+        },
+        {
+          "cell": "E9",
+          "label": "Median Home Value (5 Mile)",
+          "json_path": "demographics.median_home_value_5mile",
+          "type": "currency",
+          "source": "pdf_extract"
+        },
+        {
+          "cell": "E10",
+          "label": "Renter Households % (5 Mile)",
+          "json_path": "demographics.renter_households_pct_5mile",
+          "type": "percentage",
+          "source": "pdf_extract"
+        },
+        {
+          "cell": "C12",
+          "label": "Violent Crime Rate",
+          "json_path": "external.crime.violent_crime_index",
+          "type": "number",
+          "source": "pdf_extract"
+        },
+        {
+          "cell": "C13",
+          "label": "Property Crime Rate",
+          "json_path": "external.crime.property_crime_index",
+          "type": "number",
+          "source": "pdf_extract"
+        },
+        {
+          "cell": "C15",
+          "label": "Elementary School",
           "json_path": null,
           "type": "number",
           "source": "external"
         },
         {
-          "cell": "E6",
-          "label": "Population (5 Mile)",
+          "cell": "D15",
+          "label": "High School",
           "json_path": null,
           "type": "number",
           "source": "external"
+        },
+        {
+          "cell": "C17",
+          "label": "Walk Score",
+          "json_path": "property_metrics.walk_score",
+          "type": "number",
+          "source": "pdf_extract"
+        },
+        {
+          "cell": "C18",
+          "label": "Transit Score",
+          "json_path": "property_metrics.transit_score",
+          "type": "number",
+          "source": "pdf_extract"
+        },
+        {
+          "cell": "C20",
+          "label": "Submarket Vacancy",
+          "json_path": "submarket.vacancy_rate",
+          "type": "percentage",
+          "source": "pdf_extract"
+        },
+        {
+          "cell": "C21",
+          "label": "Submarket Inventory",
+          "json_path": "submarket.inventory_units",
+          "type": "number",
+          "source": "pdf_extract"
+        },
+        {
+          "cell": "C22",
+          "label": "Submarket Delivered Units",
+          "json_path": "submarket.delivered_units",
+          "type": "number",
+          "source": "pdf_extract"
+        },
+        {
+          "cell": "C23",
+          "label": "Submarket Delivered %",
+          "json_path": "submarket.delivered_pct_of_inventory",
+          "type": "percentage",
+          "source": "pdf_extract"
+        },
+        {
+          "cell": "C24",
+          "label": "Submarket Construction Units",
+          "json_path": "submarket.construction_units",
+          "type": "number",
+          "source": "pdf_extract"
+        },
+        {
+          "cell": "C25",
+          "label": "Submarket Construction %",
+          "json_path": "submarket.construction_pct_of_inventory",
+          "type": "percentage",
+          "source": "pdf_extract"
         }
       ]
     }
   },
-  
   "transforms": {
     "divide_by_100": {
       "description": "Convert percentage from whole number to decimal",
@@ -307,7 +493,6 @@
       "formula": "Extract year and calculate difference from current year"
     }
   },
-  
   "source_types": {
     "pdf_extract": {
       "description": "Data available from Docling PDF extraction",
@@ -323,18 +508,9 @@
       "auto_fill": true
     }
   },
-  
   "summary": {
-    "total_mappable_fields": 6,
-    "total_external_fields": 12,
-    "sheets_with_mappings": ["Property Summary", "Unit Mix & Comps"],
-    "primary_data_sources": {
-      "property_info": "structured_data[0].property",
-      "owner_info": "structured_data[0].owner", 
-      "vacancy_info": "structured_data[0].vacancy",
-      "rent_info": "structured_data[0].asking_rents",
-      "unit_breakdown": "structured_data[0].unitBreakdown[1].rows"
-    }
-  }
+    "mapping_version": "2.0.0",
+    "note": "Mapped facts are filled only when available; drafts require remaining inputs and recalculation."
+  },
+  "template_sha256": "877b7e858375f770820c553d050302c6718f908f3c62dfcf44b82528c18cf6cf"
 }
-

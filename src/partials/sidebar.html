@@ -1,6 +1,6 @@
 <aside
   id="app-sidebar"
-  class="app-sidebar fixed inset-y-0 left-0 z-50 flex h-dvh w-[280px] shrink-0 flex-col overflow-hidden border-r border-gray-200 bg-white shadow-theme-xl lg:static lg:z-auto lg:h-screen lg:translate-x-0 lg:shadow-none dark:border-gray-800 dark:bg-gray-950"
+  class="app-sidebar shadow-theme-xl fixed inset-y-0 left-0 z-50 flex h-dvh w-[280px] shrink-0 flex-col overflow-hidden border-r border-gray-200 bg-white lg:static lg:z-auto lg:h-screen lg:translate-x-0 lg:shadow-none dark:border-gray-800 dark:bg-gray-950"
   :class="sidebarToggle ? 'translate-x-0 lg:w-[88px]' : '-translate-x-full lg:w-[232px]'"
   aria-label="Primary navigation"
   @keydown.escape.window="sidebarToggle = false"
@@ -15,14 +15,22 @@
       aria-label="Serafina dashboard"
       title="Serafina"
     >
-      <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-500 text-white shadow-theme-xs" aria-hidden="true">
+      <span
+        class="bg-brand-500 shadow-theme-xs flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white"
+        aria-hidden="true"
+      >
         <svg class="h-[22px] w-[22px]" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 2.75c.5 4.66 2.59 6.75 7.25 7.25-4.66.5-6.75 2.59-7.25 7.25C11.5 12.59 9.41 10.5 4.75 10 9.41 9.5 11.5 7.41 12 2.75Z" />
+          <path
+            d="M12 2.75c.5 4.66 2.59 6.75 7.25 7.25-4.66.5-6.75 2.59-7.25 7.25C11.5 12.59 9.41 10.5 4.75 10 9.41 9.5 11.5 7.41 12 2.75Z"
+          />
           <circle cx="18.25" cy="17.75" r="2" />
         </svg>
       </span>
       <span class="min-w-0" :class="sidebarToggle ? 'lg:hidden' : ''">
-        <span class="block truncate text-lg font-semibold tracking-[-0.02em] text-gray-900 dark:text-white">Serafina</span>
+        <span
+          class="block truncate text-lg font-semibold tracking-[-0.02em] text-gray-900 dark:text-white"
+          >Serafina</span
+        >
       </span>
     </a>
 
@@ -33,13 +41,26 @@
       aria-controls="app-sidebar"
       @click="sidebarToggle = false"
     >
-      <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
-        <path stroke-linecap="round" stroke-width="1.8" d="m6 6 12 12M18 6 6 18" />
+      <svg
+        class="h-6 w-6"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        aria-hidden="true"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-width="1.8"
+          d="m6 6 12 12M18 6 6 18"
+        />
       </svg>
     </button>
   </div>
 
-  <nav class="flex flex-1 flex-col overflow-y-auto px-3 pb-5 pt-2" aria-label="Serafina">
+  <nav
+    class="flex flex-1 flex-col overflow-y-auto px-3 pt-2 pb-5"
+    aria-label="Serafina"
+  >
     <ul class="flex flex-col gap-1.5">
       <li>
         <a
@@ -57,7 +78,9 @@
             fill="currentColor"
             aria-hidden="true"
           >
-            <path d="M3 6a3 3 0 0 1 3-3h2.25a3 3 0 0 1 3 3v2.25a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V6Zm9.75 0a3 3 0 0 1 3-3H18a3 3 0 0 1 3 3v2.25a3 3 0 0 1-3 3h-2.25a3 3 0 0 1-3-3V6ZM3 15.75a3 3 0 0 1 3-3h2.25a3 3 0 0 1 3 3V18a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3v-2.25Zm9.75 0a3 3 0 0 1 3-3H18a3 3 0 0 1 3 3V18a3 3 0 0 1-3 3h-2.25a3 3 0 0 1-3-3v-2.25Z" />
+            <path
+              d="M3 6a3 3 0 0 1 3-3h2.25a3 3 0 0 1 3 3v2.25a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V6Zm9.75 0a3 3 0 0 1 3-3H18a3 3 0 0 1 3 3v2.25a3 3 0 0 1-3 3h-2.25a3 3 0 0 1-3-3V6ZM3 15.75a3 3 0 0 1 3-3h2.25a3 3 0 0 1 3 3V18a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3v-2.25Zm9.75 0a3 3 0 0 1 3-3H18a3 3 0 0 1 3 3V18a3 3 0 0 1-3 3h-2.25a3 3 0 0 1-3-3v-2.25Z"
+            />
           </svg>
           <span :class="sidebarToggle ? 'lg:hidden' : ''">Dashboard</span>
         </a>
@@ -79,15 +102,46 @@
             fill="currentColor"
             aria-hidden="true"
           >
-            <path d="M11.47 2.22a.75.75 0 0 1 1.06 0l3 3a.75.75 0 0 1-1.06 1.06l-1.72-1.72V14a.75.75 0 0 1-1.5 0V4.56L9.53 6.28a.75.75 0 0 1-1.06-1.06l3-3Z" />
-            <path d="M6.75 9.75A2.25 2.25 0 0 0 4.5 12v6a2.25 2.25 0 0 0 2.25 2.25h10.5A2.25 2.25 0 0 0 19.5 18v-6a2.25 2.25 0 0 0-2.25-2.25h-1.5a.75.75 0 0 0 0 1.5h1.5a.75.75 0 0 1 .75.75v6a.75.75 0 0 1-.75.75H6.75A.75.75 0 0 1 6 18v-6a.75.75 0 0 1 .75-.75h1.5a.75.75 0 0 0 0-1.5h-1.5Z" />
+            <path
+              d="M11.47 2.22a.75.75 0 0 1 1.06 0l3 3a.75.75 0 0 1-1.06 1.06l-1.72-1.72V14a.75.75 0 0 1-1.5 0V4.56L9.53 6.28a.75.75 0 0 1-1.06-1.06l3-3Z"
+            />
+            <path
+              d="M6.75 9.75A2.25 2.25 0 0 0 4.5 12v6a2.25 2.25 0 0 0 2.25 2.25h10.5A2.25 2.25 0 0 0 19.5 18v-6a2.25 2.25 0 0 0-2.25-2.25h-1.5a.75.75 0 0 0 0 1.5h1.5a.75.75 0 0 1 .75.75v6a.75.75 0 0 1-.75.75H6.75A.75.75 0 0 1 6 18v-6a.75.75 0 0 1 .75-.75h1.5a.75.75 0 0 0 0-1.5h-1.5Z"
+            />
           </svg>
           <span :class="sidebarToggle ? 'lg:hidden' : ''">Upload files</span>
         </a>
       </li>
 
+      <li>
+        <a
+          href="reports.html"
+          class="menu-item group min-h-11"
+          :class="page === 'reports' ? 'menu-item-active' : 'menu-item-inactive'"
+          :aria-current="page === 'reports' ? 'page' : null"
+          title="Report evidence"
+          @click="sidebarToggle = false"
+        >
+          <svg
+            class="h-6 w-6 shrink-0"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            aria-hidden="true"
+          >
+            <path
+              d="M7 3h8l4 4v14H5V3h2Zm7 0v5h5M8 12h8M8 16h5"
+              stroke-width="1.7"
+              stroke-linejoin="round"
+            />
+          </svg>
+          <span :class="sidebarToggle ? 'lg:hidden' : ''">Report evidence</span>
+        </a>
+      </li>
     </ul>
-    <ul class="mt-auto flex flex-col gap-1.5 border-t border-gray-200 pt-4 dark:border-gray-800">
+    <ul
+      class="mt-auto flex flex-col gap-1.5 border-t border-gray-200 pt-4 dark:border-gray-800"
+    >
       <li>
         <a
           href="scorecard-config.html"
@@ -104,9 +158,13 @@
             fill="currentColor"
             aria-hidden="true"
           >
-            <path d="M18.75 12.75h1.5a.75.75 0 0 0 0-1.5h-1.5a.75.75 0 0 0 0 1.5ZM12 6a.75.75 0 0 1 .75-.75h7.5a.75.75 0 0 1 0 1.5h-7.5A.75.75 0 0 1 12 6ZM12 18a.75.75 0 0 1 .75-.75h7.5a.75.75 0 0 1 0 1.5h-7.5A.75.75 0 0 1 12 18ZM3.75 6.75h1.5a.75.75 0 1 0 0-1.5h-1.5a.75.75 0 0 0 0 1.5ZM5.25 18.75h-1.5a.75.75 0 0 1 0-1.5h1.5a.75.75 0 0 1 0 1.5ZM3 12a.75.75 0 0 1 .75-.75h7.5a.75.75 0 0 1 0 1.5h-7.5A.75.75 0 0 1 3 12ZM9 3.75a2.25 2.25 0 1 0 0 4.5 2.25 2.25 0 0 0 0-4.5ZM12.75 12a2.25 2.25 0 1 1 4.5 0 2.25 2.25 0 0 1-4.5 0ZM9 15.75a2.25 2.25 0 1 0 0 4.5 2.25 2.25 0 0 0 0-4.5Z" />
+            <path
+              d="M18.75 12.75h1.5a.75.75 0 0 0 0-1.5h-1.5a.75.75 0 0 0 0 1.5ZM12 6a.75.75 0 0 1 .75-.75h7.5a.75.75 0 0 1 0 1.5h-7.5A.75.75 0 0 1 12 6ZM12 18a.75.75 0 0 1 .75-.75h7.5a.75.75 0 0 1 0 1.5h-7.5A.75.75 0 0 1 12 18ZM3.75 6.75h1.5a.75.75 0 1 0 0-1.5h-1.5a.75.75 0 0 0 0 1.5ZM5.25 18.75h-1.5a.75.75 0 0 1 0-1.5h1.5a.75.75 0 0 1 0 1.5ZM3 12a.75.75 0 0 1 .75-.75h7.5a.75.75 0 0 1 0 1.5h-7.5A.75.75 0 0 1 3 12ZM9 3.75a2.25 2.25 0 1 0 0 4.5 2.25 2.25 0 0 0 0-4.5ZM12.75 12a2.25 2.25 0 1 1 4.5 0 2.25 2.25 0 0 1-4.5 0ZM9 15.75a2.25 2.25 0 1 0 0 4.5 2.25 2.25 0 0 0 0-4.5Z"
+            />
           </svg>
-          <span :class="sidebarToggle ? 'lg:hidden' : ''">Scorecard settings</span>
+          <span :class="sidebarToggle ? 'lg:hidden' : ''"
+            >Scorecard settings</span
+          >
         </a>
       </li>
 
@@ -126,8 +184,14 @@
             fill="currentColor"
             aria-hidden="true"
           >
-            <path fill-rule="evenodd" d="M5.625 1.5c-1.036 0-1.875.84-1.875 1.875v17.25c0 1.035.84 1.875 1.875 1.875h12.75c1.035 0 1.875-.84 1.875-1.875V12.75A3.75 3.75 0 0 0 16.5 9h-1.875a1.875 1.875 0 0 1-1.875-1.875V5.25A3.75 3.75 0 0 0 9 1.5H5.625ZM7.5 15a.75.75 0 0 1 .75-.75h7.5a.75.75 0 0 1 0 1.5h-7.5A.75.75 0 0 1 7.5 15Zm.75 2.25a.75.75 0 0 0 0 1.5H12a.75.75 0 0 0 0-1.5H8.25Z" clip-rule="evenodd" />
-            <path d="M12.97 1.82a5.23 5.23 0 0 1 1.28 3.43v1.88c0 .2.17.37.38.37h1.87a5.23 5.23 0 0 1 3.43 1.28 9.77 9.77 0 0 0-6.96-6.96Z" />
+            <path
+              fill-rule="evenodd"
+              d="M5.625 1.5c-1.036 0-1.875.84-1.875 1.875v17.25c0 1.035.84 1.875 1.875 1.875h12.75c1.035 0 1.875-.84 1.875-1.875V12.75A3.75 3.75 0 0 0 16.5 9h-1.875a1.875 1.875 0 0 1-1.875-1.875V5.25A3.75 3.75 0 0 0 9 1.5H5.625ZM7.5 15a.75.75 0 0 1 .75-.75h7.5a.75.75 0 0 1 0 1.5h-7.5A.75.75 0 0 1 7.5 15Zm.75 2.25a.75.75 0 0 0 0 1.5H12a.75.75 0 0 0 0-1.5H8.25Z"
+              clip-rule="evenodd"
+            />
+            <path
+              d="M12.97 1.82a5.23 5.23 0 0 1 1.28 3.43v1.88c0 .2.17.37.38.37h1.87a5.23 5.23 0 0 1 3.43 1.28 9.77 9.77 0 0 0-6.96-6.96Z"
+            />
           </svg>
           <span :class="sidebarToggle ? 'lg:hidden' : ''">Files</span>
         </a>

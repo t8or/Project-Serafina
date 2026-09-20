@@ -33,9 +33,9 @@ The supplied `clean-copy` skill is installed at `/Users/jish/.codex/skills/clean
 | `src/file-upload.html:337` | Local PDF analysis | cut | Rung 2: redundant heading in the processing modal. |
 | `src/file-upload.html:343` | Every PDF is processed by local Docling across all pages. Reference metrics are used only when a matching local snapshot has already been imported. | cut | Rungs 1–3: processing internals do not help the user operate this progress dialog. |
 
-Retained consequences include deletion recovery terms and processing failures. The review view adds “Missing inputs receive zero points in this scorecard” only when values are missing, because the current scoring service explicitly assigns zero to missing factors. This affects interpretation of the recommendation.
+Retained consequences include deletion recovery terms and processing failures. After consolidation with the current scoring service, incomplete assessments display “Insufficient data” and have no final score. The review explains that missing inputs must be completed before a score can be assigned. The initial pre-consolidation preview used the older zero-point behavior; that behavior is superseded.
 
-## Validation
+## Initial design validation (before consolidation)
 
 - Production Webpack build passed.
 - All 15 Node tests passed, including combined filters, sorting without mutating API results, null versus zero scores, empty results, duplicate-start prevention, and retry without duplicate uploads.
@@ -45,3 +45,7 @@ Retained consequences include deletion recovery terms and processing failures. T
 - Saved assessment API responses matched exactly before and after the work.
 
 No new documents were processed and no property records were changed during validation. This change does not implement inline input correction, manual approval states, or a new extraction/review architecture.
+
+## Consolidated report workflow
+
+The assessment design now runs with the complete report, asynchronous extraction, stricter score eligibility, workbook, and hosting implementation on `main`. Report evidence uses the same shell and styles, with contextual property and file links, question answering and source quotations, evidence search, original PDFs, JSON/CSV exports, and processing details. See [consolidation validation](CONSOLIDATION.md) for the current runtime and checks.

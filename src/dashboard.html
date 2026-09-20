@@ -596,13 +596,13 @@
                         Scorecard result
                       </p>
                       <p
-                        class="text-3xl font-bold"
+                        class="text-2xl font-semibold text-gray-700 dark:text-gray-200"
                         :class="{
                           'text-green-600 dark:text-green-400': selectedProperty?.decisionColor === 'green',
                           'text-yellow-600 dark:text-yellow-400': selectedProperty?.decisionColor === 'yellow',
                           'text-red-600 dark:text-red-400': selectedProperty?.decisionColor === 'red'
                         }"
-                        x-text="formatScore(selectedProperty?.score) + ' / 10'"
+                        x-text="selectedProperty?.score == null ? 'Not scored' : formatScore(selectedProperty.score) + ' / 10'"
                       ></p>
                     </div>
                     <div
@@ -626,7 +626,8 @@
                     x-text="getMissingCount(selectedProperty) + ' inputs missing'"
                   ></strong>
                   <span
-                    >Missing inputs receive zero points in this scorecard.</span
+                    >Complete the missing inputs before a score can be
+                    assigned.</span
                   >
                 </div>
                 <div>
@@ -772,6 +773,12 @@
                         />
                       </svg>
                     </button>
+                    <a
+                      x-show="!showingDeleted && selectedProperty?.id"
+                      :href="'reports.html?property=' + selectedProperty?.id"
+                      class="assessment-open"
+                      >Ask about this property</a
+                    >
                     <button
                       type="button"
                       x-show="nextAssessment"
@@ -1013,35 +1020,10 @@
 
           // Get aggregate groups filtered by decision type
           get displayAggregateGroups() {
-            if (!this.decisionFilter) return this.aggregateGroups;
-            // Filter aggregate data to show only the selected decision count
-            return this.aggregateGroups
-              .map((g) => {
-                if (this.decisionFilter === "green") {
-                  return {
-                    ...g,
-                    needsReview: 0,
-                    rejected: 0,
-                    total: g.moveForward,
-                  };
-                } else if (this.decisionFilter === "yellow") {
-                  return {
-                    ...g,
-                    moveForward: 0,
-                    rejected: 0,
-                    total: g.needsReview,
-                  };
-                } else if (this.decisionFilter === "red") {
-                  return {
-                    ...g,
-                    moveForward: 0,
-                    needsReview: 0,
-                    total: g.rejected,
-                  };
-                }
-                return g;
-              })
-              .filter((g) => g.total > 0);
+            return window.assessmentView.filterAssessmentGroups(
+              this.aggregateGroups,
+              this.decisionFilter,
+            );
           },
 
           // Get display summary for current filter
@@ -1544,6 +1526,10 @@
                 { name: "Move Forward", data: moveForwardData },
                 { name: "Needs Review", data: needsReviewData },
                 { name: "Rejected", data: rejectedData },
+                {
+                  name: "Insufficient data",
+                  data: displayGroups.map((g) => g.insufficientData),
+                },
               ],
               chart: {
                 type: "bar",
@@ -1571,7 +1557,7 @@
                   borderRadius: 4,
                 },
               },
-              colors: ["#22c55e", "#eab308", "#ef4444"],
+              colors: ["#22c55e", "#eab308", "#ef4444", "#98a2b3"],
               dataLabels: {
                 enabled: true,
                 formatter: (val) => (val > 0 ? val : ""),
@@ -1610,9 +1596,9 @@
 
           initPropertyScoresChart(chartEl) {
             // Individual property scores at deepest level (use filtered data if decision filter active)
-            const sortedProperties = [...this.displayProperties].sort(
-              (a, b) => (b.score || 0) - (a.score || 0),
-            );
+            const sortedProperties = this.displayProperties
+              .filter((p) => Number.isFinite(p.score))
+              .sort((a, b) => (b.score || 0) - (a.score || 0));
             const categories = sortedProperties.map(
               (p) => p.propertyName || "Unknown",
             );
@@ -1628,6 +1614,7 @@
 
             const options = {
               series: [{ name: "Score", data: scores }],
+              noData: { text: "No scored assessments in this selection" },
               chart: {
                 type: "bar",
                 height: 300,
@@ -1795,7 +1782,13 @@
                   ...p,
                   propertyName: p.name,
                   decisionColor:
-                    p.score >= 7 ? "green" : p.score >= 5.5 ? "yellow" : "red",
+                    p.score == null
+                      ? "gray"
+                      : p.score >= 7
+                        ? "green"
+                        : p.score >= 5.5
+                          ? "yellow"
+                          : "red",
                 }));
               } else {
                 throw new Error(

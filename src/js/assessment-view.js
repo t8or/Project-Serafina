@@ -38,3 +38,34 @@ export function filterAssessments(
     );
   return result.sort((a, b) => Number(b.id) - Number(a.id));
 }
+
+export function filterAssessmentGroups(groups, decision = null) {
+  const field = {
+    green: "moveForward",
+    yellow: "needsReview",
+    red: "rejected",
+    gray: "insufficientData",
+  }[decision];
+  return groups
+    .map((group) => {
+      const values = {
+        ...group,
+        insufficientData: Math.max(
+          0,
+          group.total - group.moveForward - group.needsReview - group.rejected,
+        ),
+      };
+      if (!field) return values;
+      const total = values[field];
+      return {
+        ...values,
+        moveForward: 0,
+        needsReview: 0,
+        rejected: 0,
+        insufficientData: 0,
+        [field]: total,
+        total,
+      };
+    })
+    .filter((group) => group.total > 0);
+}

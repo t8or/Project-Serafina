@@ -16,7 +16,10 @@ import json
 import sys
 import logging
 import re
-import shutil
+import os
+import math
+import uuid
+import hashlib
 from pathlib import Path
 from typing import Dict, Any, List, Optional, Tuple
 from datetime import datetime
@@ -88,6 +91,9 @@ class XLSXTemplateFiller:
                     "error": "No field mappings provided or loaded"
                 }
             
+            expected_digest = field_mappings.get('template_sha256')
+            if expected_digest and hashlib.sha256(Path(template_path).read_bytes()).hexdigest() != expected_digest:
+                raise ValueError('Template differs from the validated mapping; analyze and review its cell mappings first')
             logger.info(f"Filling template: {template_path}")
             
             # Copy template to output location
@@ -96,10 +102,13 @@ class XLSXTemplateFiller:
                 template_name = Path(template_path).stem
                 output_path = str(Path(template_path).parent / f"{template_name}_filled_{timestamp}.xlsx")
             
-            shutil.copy2(template_path, output_path)
-            
-            # Load the copied workbook
-            workbook = load_workbook(output_path)
+            if Path(output_path).resolve() == Path(template_path).resolve():
+                raise ValueError('Output cannot replace the source template')
+            if Path(output_path).exists():
+                raise ValueError('Output already exists; choose a new artifact name')
+            workbook = load_workbook(template_path)
+            formulas = {(sheet.title, cell.coordinate): cell.value for sheet in workbook
+                        for row in sheet for cell in row if cell.data_type == 'f'}
             
             # Extract the root data from JSON
             json_root = field_mappings.get("json_root", "structured_data[0]")
@@ -137,7 +146,7 @@ class XLSXTemplateFiller:
                 sheet = workbook[sheet_name]
                 
                 # Process single-cell mappings
-                if "mappings" in sheet_config:
+                if "mappings" in sheet_config and "array_source" not in sheet_config:
                     for mapping in sheet_config["mappings"]:
                         result = self._fill_cell(sheet, mapping, data, json_data)
                         self._add_to_report(fill_report, sheet_name, mapping, result)
@@ -146,9 +155,57 @@ class XLSXTemplateFiller:
                 if "array_source" in sheet_config:
                     self._fill_array_data(sheet, sheet_config, data, fill_report)
             
-            # Save the filled workbook
-            workbook.save(output_path)
-            logger.info(f"Saved filled template to: {output_path}")
+            if fill_report['errors']:
+                return {**fill_report, 'status': 'error', 'error': 'Workbook validation failed; no artifact published'}
+            if not fill_report['filled_fields']:
+                return {**fill_report, 'status': 'error', 'error': 'No supported source fields were mapped'}
+            if 'Unit Mix & Comps' in workbook.sheetnames:
+                workbook['Unit Mix & Comps']['B4'] = 'CoStar reported unit mix — actual rent roll required'
+            # The artifact itself carries readiness; file creation never implies investment readiness.
+            for sheet in workbook:
+                if sheet['A1'].value is None:
+                    sheet['A1'] = 'DRAFT — review remaining inputs, template assumptions, and recalculate'
+            audit = workbook.create_sheet('Serafina Extraction Review')
+            audit.append(['Status', 'DRAFT — review remaining inputs and recalculate in Excel'])
+            audit.append(['Mapping version', str(field_mappings.get('version', 'custom'))])
+            audit.append(['Source hash', str(json_data.get('source_sha256', 'Unversioned supplied data'))])
+            audit.append(['Source revision', str(json_data.get('report_revision_id', 'Unversioned supplied data'))])
+            audit.append(['Calculation status', 'Pending spreadsheet recalculation'])
+            audit.append(['Template assumptions', 'Unmapped template assumptions require review'])
+            audit.append(['Sheet', 'Cell', 'Disposition', 'Detail'])
+            for category in ['skipped_fields', 'external_fields', 'filled_fields']:
+                for item in fill_report[category]:
+                    audit.append([str(item.get('sheet', '')), str(item.get('cell', '')), category,
+                                  str(item.get('reason', item.get('label', '')))])
+            for row in audit:
+                for cell in row:
+                    if isinstance(cell.value, str): cell.data_type = 's'
+            audit.column_dimensions['A'].width = 32
+            audit.column_dimensions['B'].width = 72
+            if workbook.calculation:
+                workbook.calculation.fullCalcOnLoad = True
+                workbook.calculation.forceFullCalc = True
+            temporary = str(Path(output_path).with_name('.' + uuid.uuid4().hex + '.xlsx'))
+            try:
+                workbook.save(temporary)
+                verified = load_workbook(temporary)
+                for (sheet, cell), formula in formulas.items():
+                    if verified[sheet][cell].value != formula:
+                        raise ValueError(f'Template formula changed at {sheet}!{cell}')
+                for item in fill_report['filled_fields']:
+                    actual = verified[item['sheet']][item['cell']]
+                    numeric_equal = isinstance(actual.value, (int, float)) and isinstance(item['value'], (int, float)) and math.isclose(actual.value, item['value'], rel_tol=1e-12, abs_tol=1e-12)
+                    if (actual.value != item['value'] and not numeric_equal) or (isinstance(item['value'], str) and actual.data_type == 'f'):
+                        raise ValueError(f"Written value verification failed at {item['sheet']}!{item['cell']}")
+                verified.close()
+                os.link(temporary, output_path)
+                os.unlink(temporary)
+            finally:
+                if Path(temporary).exists(): Path(temporary).unlink()
+                workbook.close()
+            fill_report['readiness'] = 'draft'
+            fill_report['calculation_status'] = 'pending_recalculation'
+            logger.info(f"Saved verified draft to: {output_path}")
             
             # Generate summary
             fill_report["summary"] = {
@@ -184,6 +241,12 @@ class XLSXTemplateFiller:
         source = mapping.get("source", "pdf_extract")
         json_root_override = mapping.get("json_root_override")
         
+        if not cell_ref:
+            return {'status': 'error', 'error': 'Mapping has no target cell'}
+        target = sheet[cell_ref]
+        # Clear sample inputs even when this Report has no replacement value.
+        if target.data_type != 'f': target.value = None
+
         # Handle external fields (no json_path)
         if source == "external" or json_path is None:
             return {
@@ -233,7 +296,7 @@ class XLSXTemplateFiller:
                     "reason": "Cell contains formula, not overwriting"
                 }
             
-            cell.value = value
+            self._write_value(cell, value, mapping.get("type", "text"))
             
             return {
                 "status": "filled",
@@ -266,7 +329,7 @@ class XLSXTemplateFiller:
         
         # Clear the entire array range first (to remove stale template data)
         clear_columns = sheet_config.get("clear_columns", [col.get("column") for col in column_mappings if col.get("column")])
-        delete_empty_rows = sheet_config.get("delete_empty_rows", True)
+        delete_empty_rows = False  # Row shifts break formulas and cross-sheet references.
         
         # Find the "Total" row - this marks the end of unit mix data area
         # We should only clear/delete rows BEFORE the Total row
@@ -318,8 +381,8 @@ class XLSXTemplateFiller:
         
         # Process each row of data
         for row_idx, row_data in enumerate(array_data):
-            current_row = row_start + row_idx
-            
+            current_row = row_start + rows_to_fill
+
             # Skip summary/total rows (Totals, All X Beds, etc.)
             bed_value = row_data.get("bed", "")
             if isinstance(bed_value, str):
@@ -327,8 +390,11 @@ class XLSXTemplateFiller:
                 if "total" in bed_lower or "all" in bed_lower:
                     continue
             
+            if rows_to_fill >= max_rows:
+                fill_report['errors'].append({'sheet': sheet.title, 'error': 'Unit mix exceeds template capacity; no rows may be truncated'})
+                return
             rows_to_fill += 1
-            
+
             for col_mapping in column_mappings:
                 column = col_mapping.get("column")
                 json_field = col_mapping.get("json_field")
@@ -336,20 +402,23 @@ class XLSXTemplateFiller:
                 
                 if not column:
                     continue
-                
+                if col_mapping.get('source') == 'external':
+                    fill_report['external_fields'].append({'sheet': sheet_name, 'cell': f'{column}{current_row}', 'label': col_mapping.get('label'), 'notes': col_mapping.get('notes')})
+                    continue
+
                 # Handle special transforms
                 if transform == "bed_bath_label":
                     # Create unit type label like "2B/1Ba" from bed and bath values
                     bed = row_data.get("bed")
                     bath = row_data.get("bath")
                     if isinstance(bed, (int, float)) and isinstance(bath, (int, float)):
-                        value = f"{int(bed)}B/{int(bath)}Ba"
+                        value = f"{bed:g}B/{bath:g}Ba"
                     else:
                         continue
                 elif transform == "calc_occupied":
-                    # Calculate occupied units = total units - available units
+                    # Physical occupancy requires vacancy evidence; availability is not vacancy.
                     total_units = self._navigate_json_path(row_data, "unitMix.units")
-                    available_units = self._navigate_json_path(row_data, "availability.units")
+                    available_units = self._navigate_json_path(row_data, "vacancy.units")
                     if total_units is not None and available_units is not None:
                         value = int(total_units) - int(available_units)
                     else:
@@ -361,8 +430,11 @@ class XLSXTemplateFiller:
                     value = self._navigate_json_path(row_data, json_field)
                 
                 if value is None:
+                    fill_report['skipped_fields'].append({'sheet': sheet_name, 'cell': f'{column}{current_row}', 'label': col_mapping.get('label'), 'reason': 'No supporting source value'})
                     continue
-                
+                if transform and transform not in ('bed_bath_label', 'calc_occupied'):
+                    value = self._apply_transform(value, transform)
+
                 cell_ref = f"{column}{current_row}"
                 
                 try:
@@ -372,7 +444,7 @@ class XLSXTemplateFiller:
                     if cell.value and isinstance(cell.value, str) and cell.value.startswith("="):
                         continue
                     
-                    cell.value = value
+                    self._write_value(cell, value, col_mapping.get("type", "text"))
                     
                     fill_report["filled_fields"].append({
                         "sheet": sheet_name,
@@ -396,6 +468,16 @@ class XLSXTemplateFiller:
             # Delete rows from the first empty row
             sheet.delete_rows(first_empty_row, rows_to_delete)
     
+    def _write_value(self, cell, value, kind):
+        if kind in {'number', 'currency', 'percentage', 'calculated'}:
+            if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+                raise ValueError(f'Expected a finite number, got {value!r}')
+        elif not isinstance(value, (str, int, float)):
+            raise ValueError('Unsupported cell value')
+        cell.value = value
+        if isinstance(value, str):
+            cell.data_type = 's'  # Extracted text cannot create spreadsheet formulas.
+
     def _navigate_json_path(self, data: Any, path: str) -> Any:
         """
         Navigate a JSON path like 'property.no_of_units' or 'unitBreakdown[1].rows'.

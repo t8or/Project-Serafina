@@ -7,7 +7,8 @@
 
 import { db } from '../config/database.js';
 import fs from 'fs/promises';
-import { UPLOADS_DIR, resolveUploadPath } from '../config/runtime_paths.js';
+import path from 'node:path';
+import { UPLOADS_DIR, EXTRACTED_DIR, resolveUploadPath } from '../config/runtime_paths.js';
 
 /**
  * Normalize an address string for consistent matching.
@@ -69,7 +70,7 @@ class PropertyService {
   async findOrCreateByAddress(address, propertyName = null) {
     const normalizedAddr = buildNormalizedAddress(address);
     
-    if (!normalizedAddr) {
+    if (!normalizedAddr || !address?.street || !address?.city || !(address?.stateAbbr || address?.state)) {
       // If no address, create a new property without address matching
       return this.createProperty({ name: propertyName, address });
     }
@@ -289,7 +290,12 @@ class PropertyService {
     const { score, decision, decisionColor, breakdown } = scoreData;
 
     // Upsert: update if exists, insert if not
-    const result = await db.query(
+    const result = db.transaction(client => {
+      if (rawData?.reportRevisionId) {
+        const latest = client.query('SELECT id FROM report_revisions WHERE property_id = $1 ORDER BY id DESC LIMIT 1', [propertyId]).rows[0];
+        if (latest?.id !== rawData.reportRevisionId) throw new Error('Report revision changed during scoring; retry against current evidence');
+      }
+      return client.query(
       `INSERT INTO scores (
         property_id, score, decision, decision_color, breakdown, raw_data, config_snapshot
       ) VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -305,6 +311,7 @@ class PropertyService {
       RETURNING *`,
       [propertyId, score, decision, decisionColor, breakdown, rawData, config]
     );
+    });
 
     console.log(`[PropertyService] Saved score ${score} for property ${propertyId}`);
     return result.rows[0];
@@ -342,12 +349,10 @@ class PropertyService {
     const now = new Date();
 
     // Start transaction
-    const client = await db.connect();
-    try {
-      await client.query('BEGIN');
+    return db.transaction((client) => {
 
       // Soft delete property
-      const propertyResult = await client.query(
+      const propertyResult = client.query(
         `UPDATE properties SET deleted_at = $1, status = 'deleted' WHERE id = $2 RETURNING *`,
         [now, id]
       );
@@ -357,19 +362,19 @@ class PropertyService {
       }
 
       // Soft delete related documents
-      await client.query(
+      client.query(
         `UPDATE documents SET deleted_at = $1 WHERE property_id = $2`,
         [now, id]
       );
 
       // Soft delete related extracted files
-      await client.query(
+      client.query(
         `UPDATE extracted_files SET deleted_at = $1 WHERE property_id = $2`,
         [now, id]
       );
 
       // Soft delete related generated files
-      await client.query(
+      client.query(
         `UPDATE generated_files SET deleted_at = $1 WHERE property_id = $2`,
         [now, id]
       );
@@ -377,17 +382,12 @@ class PropertyService {
       // Note: We keep scores in the database for audit trail, 
       // they will be cascade deleted when property is permanently deleted
 
-      await client.query('COMMIT');
+
 
       console.log(`[PropertyService] Soft deleted property ${id} and related data`);
       return propertyResult.rows[0];
 
-    } catch (error) {
-      await client.query('ROLLBACK');
-      throw error;
-    } finally {
-      client.release();
-    }
+    });
   }
 
   /**
@@ -398,12 +398,10 @@ class PropertyService {
    * @returns {Promise<Object>} Restored property
    */
   async restore(id) {
-    const client = await db.connect();
-    try {
-      await client.query('BEGIN');
+    return db.transaction((client) => {
 
       // Restore property
-      const propertyResult = await client.query(
+      const propertyResult = client.query(
         `UPDATE properties SET deleted_at = NULL, status = 'active' WHERE id = $1 RETURNING *`,
         [id]
       );
@@ -413,34 +411,29 @@ class PropertyService {
       }
 
       // Restore related documents
-      await client.query(
+      client.query(
         `UPDATE documents SET deleted_at = NULL WHERE property_id = $1`,
         [id]
       );
 
       // Restore related extracted files
-      await client.query(
-        `UPDATE extracted_files SET deleted_at = NULL WHERE property_id = $1`,
+      client.query(
+        `UPDATE extracted_files SET deleted_at = NULL WHERE property_id = $1 AND superseded = 0`,
         [id]
       );
 
       // Restore related generated files
-      await client.query(
+      client.query(
         `UPDATE generated_files SET deleted_at = NULL WHERE property_id = $1`,
         [id]
       );
 
-      await client.query('COMMIT');
+
 
       console.log(`[PropertyService] Restored property ${id} and related data`);
       return propertyResult.rows[0];
 
-    } catch (error) {
-      await client.query('ROLLBACK');
-      throw error;
-    } finally {
-      client.release();
-    }
+    });
   }
 
   /**
@@ -451,37 +444,38 @@ class PropertyService {
    * @returns {Promise<boolean>} Success status
    */
   async permanentDelete(id) {
-    // Get all related data before deletion
-    const property = await this.getWithRelatedData(id);
-    if (!property) {
-      throw new Error(`Property ${id} not found`);
+    const snapshot = db.transaction((client) => {
+      if (!client.query('SELECT id FROM properties WHERE id = $1', [id]).rows.length) throw new Error(`Property ${id} not found`);
+      const revisions = client.query('SELECT * FROM report_revisions WHERE property_id = $1', [id]).rows;
+      const documents = client.query('SELECT * FROM documents WHERE property_id = $1', [id]).rows;
+      const extractedFiles = client.query('SELECT * FROM extracted_files WHERE property_id = $1', [id]).rows;
+      const generatedFiles = client.query('SELECT * FROM generated_files WHERE property_id = $1', [id]).rows;
+      const sourceFiles = client.query(`SELECT DISTINCT f.* FROM files f LEFT JOIN documents d ON d.storage_path=f.storage_path
+        LEFT JOIN report_revisions r ON r.file_id=f.id WHERE d.property_id=$1 OR r.property_id=$1`, [id]).rows;
+      for (const file of sourceFiles) {
+        if (client.query("SELECT id FROM extraction_jobs WHERE file_id=$1 AND status IN ('queued','running')", [file.id]).rows.length)
+          throw Object.assign(new Error('Wait for the active extraction before permanently deleting this property'), {statusCode: 409});
+      }
+      client.query('DELETE FROM report_revisions WHERE property_id = $1', [id]);
+      for (const table of ['generated_files', 'extracted_files', 'scores', 'documents']) client.query(`DELETE FROM ${table} WHERE property_id = $1`, [id]);
+      client.query('DELETE FROM properties WHERE id = $1', [id]);
+      for (const file of sourceFiles) {
+        const shared = client.query(`SELECT id FROM report_revisions WHERE file_id=$1 UNION ALL SELECT id FROM documents WHERE storage_path=$2`, [file.id,file.storage_path]).rows.length;
+        if (!shared) {
+          client.query('DELETE FROM extraction_jobs WHERE file_id=$1', [file.id]);
+          client.query('DELETE FROM files WHERE id=$1', [file.id]);
+        }
+      }
+      return {documents, extractedFiles, generatedFiles, revisions};
+    });
+    await this._deletePhysicalFiles(snapshot);
+    for (const revision of snapshot.revisions) {
+      await fs.unlink(resolveUploadPath(revision.evidence_path)).catch(error => {if(error.code !== 'ENOENT') throw error;});
+      if (/^[a-f0-9]{64}$/.test(revision.source_sha256) && !(await db.query('SELECT id FROM report_revisions WHERE source_sha256=$1', [revision.source_sha256])).rows.length) {
+        await fs.rm(path.join(EXTRACTED_DIR, '.checkpoints', revision.source_sha256), {recursive: true, force: true});
+      }
     }
-
-    const client = await db.connect();
-    try {
-      await client.query('BEGIN');
-
-      // Delete all related records (cascade should handle this, but being explicit)
-      await client.query(`DELETE FROM generated_files WHERE property_id = $1`, [id]);
-      await client.query(`DELETE FROM extracted_files WHERE property_id = $1`, [id]);
-      await client.query(`DELETE FROM scores WHERE property_id = $1`, [id]);
-      await client.query(`DELETE FROM documents WHERE property_id = $1`, [id]);
-      await client.query(`DELETE FROM properties WHERE id = $1`, [id]);
-
-      await client.query('COMMIT');
-
-      // Delete physical files (after database transaction succeeds)
-      await this._deletePhysicalFiles(property);
-
-      console.log(`[PropertyService] Permanently deleted property ${id} and all related data/files`);
-      return true;
-
-    } catch (error) {
-      await client.query('ROLLBACK');
-      throw error;
-    } finally {
-      client.release();
-    }
+    return true;
   }
 
   /**
@@ -515,6 +509,12 @@ class PropertyService {
 
     // Delete files (ignore errors for missing files)
     for (const filePath of filesToDelete) {
+      const storedPath = path.relative(UPLOADS_DIR, filePath);
+      const stillReferenced = (await db.query(`SELECT id FROM files WHERE storage_path=$1
+        UNION ALL SELECT id FROM documents WHERE storage_path=$1
+        UNION ALL SELECT id FROM extracted_files WHERE storage_path=$1
+        UNION ALL SELECT id FROM generated_files WHERE storage_path=$1`, [storedPath])).rows.length;
+      if (stillReferenced) continue;
       try {
         await fs.unlink(filePath);
         console.log(`[PropertyService] Deleted file: ${filePath}`);

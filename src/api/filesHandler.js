@@ -40,7 +40,7 @@ router.get('/extracted', async (req, res) => {
     
     // Get stats and content for all files
     const extractedFiles = await Promise.all(
-      files.map(async (file) => {
+      files.filter(file => !file.startsWith('.') && file.endsWith('.json')).map(async (file) => {
           const filePath = path.join(extractedDir, file);
           const stats = await fs.stat(filePath);
           let content;
@@ -92,6 +92,7 @@ router.get('/extracted', async (req, res) => {
 router.get('/:fileId/download', async (req, res) => {
   try {
     const { fileId } = req.params;
+    if (path.basename(fileId) !== fileId) return res.status(400).json({error: 'Invalid file identifier'});
     
     // Check if this is a file in the extracted directory
     const extractedDir = EXTRACTED_DIR;
@@ -123,51 +124,32 @@ router.get('/:fileId/download', async (req, res) => {
   }
 });
 
-// Delete a file
+// Referenced evidence is deleted through its Property lifecycle, never as a loose file.
 router.delete('/:fileId', async (req, res) => {
   try {
     const { fileId } = req.params;
-    
-    // Check if this is a file in the extracted directory
-    const extractedDir = EXTRACTED_DIR;
-    const extractedFilePath = path.join(extractedDir, fileId);
-    
-    try {
-      await fs.access(extractedFilePath);
-      await fs.unlink(extractedFilePath);
-      res.json({ success: true });
-      return;
-    } catch (error) {
-      // If not in extracted directory, try regular files
-      const file = await fileUploadService.getFileById(fileId);
-      if (!file) {
-        return res.status(404).json({
-          success: false,
-          error: 'File not found'
-        });
-      }
-
-      const filePath = resolveUploadPath(file.storage_path);
-      
-      // Delete from filesystem
-      try {
-        await fs.access(filePath);
-        await fs.unlink(filePath);
-      } catch (error) {
-        console.error('Error deleting file from filesystem:', error);
-      }
-
-      // Delete from database
-      await db.query('DELETE FROM files WHERE id = $1', [fileId]);
-      
-      res.json({ success: true });
-    }
-  } catch (error) {
-    console.error('Error deleting file:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to delete file'
+    if (path.basename(fileId) !== fileId) return res.status(400).json({error: 'Invalid file identifier'});
+    const extractedPath = path.join('extracted', fileId);
+    const retained = (await db.query(`SELECT id FROM extracted_files WHERE storage_path = $1
+      UNION ALL SELECT id FROM report_revisions WHERE evidence_path = $1`, [extractedPath])).rows;
+    if (retained.length) return res.status(409).json({error: 'This file belongs to retained report evidence. Manage it through the property.'});
+    const loosePath = path.join(EXTRACTED_DIR, fileId);
+    const loose = await fs.stat(loosePath).catch(error => {if(error.code !== 'ENOENT') throw error; return null;});
+    if (loose?.isFile()) { await fs.unlink(loosePath); return res.json({success: true}); }
+    const file = await fileUploadService.getFileById(fileId);
+    if (!file) return res.status(404).json({error: 'File not found'});
+    db.transaction(client => {
+      const references = client.query(`SELECT id FROM report_revisions WHERE file_id = $1
+        UNION ALL SELECT id FROM documents WHERE storage_path = $2
+        UNION ALL SELECT id FROM extraction_jobs WHERE file_id = $1 AND status IN ('queued','running')`, [file.id, file.storage_path]).rows;
+      if (references.length) throw Object.assign(new Error('This source is used by a report or active job. Manage it through the property.'), {statusCode: 409});
+      client.query('DELETE FROM extraction_jobs WHERE file_id = $1', [file.id]);
+      client.query('DELETE FROM files WHERE id = $1', [file.id]);
     });
+    await fs.unlink(resolveUploadPath(file.storage_path)).catch(error => {if(error.code !== 'ENOENT') throw error;});
+    res.json({success: true});
+  } catch (error) {
+    res.status(error.statusCode || 500).json({success: false, error: error.message});
   }
 });
 

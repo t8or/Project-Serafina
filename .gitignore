@@ -1,6 +1,15 @@
 node_modules
-package-lock.json
 /build
 uploads/
 .venv/
 .env
+
+__pycache__/
+*.pyc
+.DS_Store
+
+# Private transfer archives, keys, and Cloudflare local state
+*.saf
+*.saf.key
+.wrangler/
+.dev.vars
