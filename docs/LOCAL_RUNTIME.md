@@ -70,7 +70,31 @@ that carries checksums. Keep the application runtime download-free. -->
 
 ## Local reference data
 
-Live web scraping was intentionally removed. Import supplemental values through
+Extraction remains local. **Complete inputs** on a property opens
+`reference-inputs.html?property=<id>`. Paste a public Zillow apartment listing URL
+to read published Walk Score, Transit Score, and the mean of rated, assigned public
+schools. The reader checks the listing's street, city, and state against the
+property before returning draft values. It needs no account or API key. Missing
+values remain blank; blocked pages and layout changes produce an explicit error.
+
+The form also accepts sourced manual values. Crime uses the BestPlaces ZIP-code
+1–100 index, not city data or incidents per population. Renter households requires
+the existing 3-mile geography. Each value retains its source URL, checked date,
+scope, and notes. Saving creates a reference snapshot and recalculates the
+assessment atomically; subsequent rescoring and property workbook generation use
+the saved values. Concurrent edits require a reload rather than overwriting newer
+inputs.
+
+Agent/API workflow: `GET /api/reference-data/properties/:id` returns observations
+and the current `snapshotId`/`revisionId`. `POST .../:id/read-listing` accepts
+`{"url":"https://www.zillow.com/apartments/..."}` and returns draft observations.
+`POST .../:id` saves `{observations,snapshotId,revisionId}`. Observation keys are
+`renterHouseholdsPercent`, `violentCrimeRate`, `propertyCrimeRate`, `schoolRatings`,
+`walkScore`, and `transitScore`; use `null` to remove a value. Each observation
+contains `value`, `sourceUrl`, `observedAt`, `scope`, and optional `notes`. This is
+an explicit lookup, not a background crawler; it does not bypass access controls.
+
+For bulk local datasets, import supplemental values through
 `POST /api/reference-data/import` with this shape:
 
 ```json

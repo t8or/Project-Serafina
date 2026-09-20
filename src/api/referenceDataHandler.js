@@ -1,10 +1,12 @@
 /**
- * Local reference-data HTTP adapter. It never fetches public websites and never
- * accepts remote URLs, preserving offline operation.
+ * Reference snapshots and explicit, user-triggered public listing lookups.
  */
 
 import express from 'express';
+import { loadPropertyAssessment, saveReferenceInputs } from '../services/assessment_reference.js';
+import { readPublicListing } from '../services/public_listing.js';
 import { LocalReferenceData } from '../services/local_reference_data.js';
+import { ensureScoringConfigLoaded, getScoringService } from '../services/property_data_assembler.js';
 
 const router = express.Router();
 const referenceData = new LocalReferenceData();
@@ -38,6 +40,27 @@ router.get('/lookup', async (req, res) => {
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
+});
+
+router.get('/properties/:id', async (req, res) => {
+  try {
+    await ensureScoringConfigLoaded();
+    const ctx = await loadPropertyAssessment(Number(req.params.id));
+    res.json({success:true, property:{id:ctx.property.id,name:ctx.property.name,address:ctx.address},
+      snapshotId:ctx.reference.provenance?.snapshotId ?? null, revisionId:ctx.revision?.id ?? null,
+      observations:ctx.reference.data?.observations || {}, breakdown:getScoringService().calculateScore(ctx.projection).breakdown});
+  } catch(error) {res.status(400).json({success:false,error:error.message});}
+});
+router.post('/properties/:id/read-listing', async (req, res) => {
+  try {
+    const ctx = await loadPropertyAssessment(Number(req.params.id));
+    res.json({success:true,...await readPublicListing(req.body?.url,ctx.address)});
+  } catch(error) {res.status(400).json({success:false,error:error.message});}
+});
+router.post('/properties/:id', async (req, res) => {
+  try {
+    res.json({success:true,...await saveReferenceInputs(Number(req.params.id),req.body?.observations,req.body?.snapshotId,req.body?.revisionId)});
+  } catch(error) {res.status(400).json({success:false,error:error.message});}
 });
 
 export default router;

@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Complete inputs | Serafina</title></head>
+<body x-data="{page:'dashboard',loaded:true,darkMode:false,sidebarToggle:false}" x-init="darkMode=localStorage.getItem('darkMode')==='true';$watch('darkMode',value=>localStorage.setItem('darkMode',JSON.stringify(value)))" :class="{'dark bg-gray-900':darkMode}">
+<div class="flex h-screen overflow-hidden">
+<include src="./partials/sidebar.html"></include>
+<div class="relative flex flex-1 flex-col overflow-x-hidden overflow-y-auto">
+<include src="./partials/overlay.html"></include><include src="./partials/header.html"></include>
+<main class="reference-workspace mx-auto w-full max-w-screen-xl p-4 md:p-6 2xl:p-10" x-data="referenceInputs">
+<a href="dashboard.html" class="assessment-text-button">← Assessments</a>
+<div class="assessment-page-heading mt-5"><div><h1 class="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">Complete inputs</h1><p class="report-muted mt-2" x-text="address"></p></div></div>
+<p x-show="loading" role="status">Loading assessment…</p>
+<p x-cloak x-show="error" x-text="error" class="reference-notice report-error" role="alert"></p>
+<p x-cloak x-show="message" x-text="message" class="reference-notice" role="status"></p>
+<template x-if="property && !loading"><div>
+<section class="report-panel" aria-label="Listing lookup">
+<div class="reference-heading"><h2 class="text-base font-semibold text-gray-900 dark:text-white">Read a property listing</h2><a :href="listingSearch" target="_blank" rel="noopener noreferrer" class="assessment-text-button">Find listing ↗</a></div>
+<form @submit.prevent="readListing()" class="reference-listing-form">
+<div class="min-w-0 flex-1"><label for="listing-url">Zillow listing URL</label><input id="listing-url" type="url" x-model="listing" required placeholder="https://www.zillow.com/apartments/…" :disabled="busy || saving" /></div>
+<button type="submit" class="report-primary-button" :disabled="busy || saving" x-text="busy ? 'Reading…' : 'Read listing'"></button>
+</form>
+<p class="report-muted mt-3 text-sm">Fills Walk Score, Transit Score, and the average rating of assigned public schools when published.</p>
+<p x-show="unavailable.length" class="report-muted mt-3 text-sm" x-text="'Not published: ' + unavailable.map(key => fields.find(f => f.key === key)?.label).join(', ') + '.'"></p>
+</section>
+<form @submit.prevent="save()">
+<div class="reference-heading my-6"><h2 class="text-base font-semibold text-gray-900 dark:text-white">Reference inputs</h2><span class="report-muted text-sm" x-text="savedCount + ' of 6 filled'"></span></div>
+<div class="reference-input-grid"><template x-for="field in fields" :key="field.key">
+<section class="report-panel reference-input" :aria-label="field.label">
+<div class="reference-heading"><label :for="'value-'+field.key" class="font-semibold" x-text="field.label"></label><a :href="searchLink(field)" target="_blank" rel="noopener noreferrer" class="assessment-text-button">Look up ↗</a></div>
+<p class="report-muted mt-1 text-xs" x-text="field.scopeLabel"></p>
+<div class="reference-value"><input :id="'value-'+field.key" type="number" step="any" :min="field.min" :max="field.max" x-model="field.value" :disabled="busy || saving" placeholder="Missing" @input="field.method='manual';delete field.sourceHash"/><span x-text="field.unit"></span></div>
+<label :for="'source-'+field.key" class="text-xs report-muted">Source URL</label>
+<input :id="'source-'+field.key" type="url" x-model="field.sourceUrl" :required="field.value !== '' && field.value != null" :disabled="busy || saving" placeholder="https://…" @input="field.method='manual';delete field.sourceHash" />
+<div class="reference-source-meta"><a x-show="sourceLink(field.sourceUrl)" :href="sourceLink(field.sourceUrl)" target="_blank" rel="noopener noreferrer" class="assessment-text-button">View source ↗</a><label class="report-muted text-xs">Checked <input type="date" x-model="field.observedAt" :required="field.value !== '' && field.value != null" :disabled="busy || saving" /></label></div>
+<details class="mt-3"><summary class="report-muted text-xs">Source notes</summary><textarea class="mt-2" x-model="field.notes" :aria-label="field.label + ' source notes'" maxlength="2000" rows="3" :disabled="busy || saving"></textarea></details>
+</section></template></div>
+<div class="reference-save"><p class="report-muted text-sm" x-text="remainingCount ? remainingCount + (remainingCount === 1 ? ' assessment input missing.' : ' assessment inputs missing.') : 'All assessment inputs are present.'"></p><button type="submit" class="report-primary-button" :disabled="busy || saving" x-text="saving ? 'Saving…' : 'Save inputs'"></button></div>
+</form>
+</div></template>
+</main></div></div></body></html>

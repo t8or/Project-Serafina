@@ -8,6 +8,8 @@
  */
 
 import express from 'express';
+import { LocalReferenceData } from '../services/local_reference_data.js';
+import { AddressExtractor } from '../services/address_extractor.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
@@ -203,7 +205,7 @@ router.post('/template', async (req, res) => {
           console.warn(`[FillHandler] Could not load ${row.storage_path}: ${e.message}`);
         }
       }
-      dataToUse = await assembleFillPayload(sections);
+      dataToUse = await assembleFillPayload(sections, {reference:await new LocalReferenceData().lookup(new AddressExtractor().extractFromSubjectProperty(sections.subject_property))});
       dataSource = 'property_sections';
     } else if (jsonPath) {
       const resolvedJsonPath = localFile(EXTRACTED_DIR, jsonPath);
@@ -234,7 +236,7 @@ router.post('/template', async (req, res) => {
         const section = JSON.parse(await fs.readFile(localFile(EXTRACTED_DIR, path.basename(sectionPath)), 'utf8'));
         sections[section.section] = section;
       }
-      dataToUse = await assembleFillPayload(sections, {projection: revision.projection_json});
+      dataToUse = await assembleFillPayload(sections, {projection: revision.projection_json, reference:await new LocalReferenceData().lookup(new AddressExtractor().extractFromSubjectProperty(sections.subject_property))});
       dataToUse.report_revision_id = revision.id;
       resolvedPropertyId = revision.property_id;
       dataSource = 'report_revision';

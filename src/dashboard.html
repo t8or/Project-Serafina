@@ -394,7 +394,7 @@
                               x-show="getMissingCount(property) > 0"
                               class="assessment-missing-link"
                               @click="showPropertyDetails(property, true)"
-                              :aria-label="'Review ' + getMissingCount(property) + ' missing inputs for ' + property.propertyName"
+                              :aria-label="'Review ' + getMissingCount(property) + (getMissingCount(property) === 1 ? ' missing input for ' : ' missing inputs for ') + property.propertyName"
                               x-text="getMissingCount(property) + ' missing'"
                             ></button>
                             <span
@@ -623,7 +623,7 @@
                   class="assessment-evidence-note"
                 >
                   <strong
-                    x-text="getMissingCount(selectedProperty) + ' inputs missing'"
+                    x-text="getMissingCount(selectedProperty) + (getMissingCount(selectedProperty) === 1 ? ' input missing' : ' inputs missing')"
                   ></strong>
                   <span
                     >Complete the missing inputs before a score can be
@@ -667,7 +667,7 @@
                           <!-- Factor Name -->
                           <td
                             class="py-2 text-sm text-gray-700 dark:text-gray-300"
-                            x-text="factor.name"
+                            x-text="({violentCrimeRate:'Violent crime index',propertyCrimeRate:'Property crime index'})[factor.key] || factor.name"
                           ></td>
                           <!-- Figure Value (auto width, right-aligned) -->
                           <td
@@ -779,6 +779,7 @@
                       class="assessment-open"
                       >Ask about this property</a
                     >
+                    <a x-show="!showingDeleted && selectedProperty?.id" :href="'reference-inputs.html?property=' + selectedProperty?.id" class="report-primary-button">Complete inputs</a>
                     <button
                       type="button"
                       x-show="nextAssessment"
@@ -1745,7 +1746,7 @@
 
             const scoreFactors = ["walkScore", "transitScore", "schoolRatings"];
             if (scoreFactors.includes(key)) {
-              return Math.round(value).toString();
+              return key === "schoolRatings" ? value.toFixed(1) : Math.round(value).toString();
             }
 
             if (Number.isInteger(value)) return value.toString();

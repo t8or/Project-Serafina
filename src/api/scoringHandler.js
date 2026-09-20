@@ -8,6 +8,7 @@
  */
 
 import express from 'express';
+import { recalculateProperty } from '../services/assessment_reference.js';
 import { ScoringService, DEFAULT_SCORECARD_CONFIG } from '../services/scoring_service.js';
 import { AddressExtractor } from '../services/address_extractor.js';
 import { PropertyService } from '../services/property_service.js';
@@ -758,47 +759,7 @@ router.post('/rescore', async (req, res) => {
 
     for (const property of dbProperties) {
       try {
-        const revision = (await db.query('SELECT id FROM report_revisions WHERE property_id = $1 ORDER BY id DESC LIMIT 1', [property.id])).rows[0];
-        // Load extracted files for this property
-        const extractedFiles = await db.query(
-          'SELECT * FROM extracted_files WHERE property_id = $1 AND deleted_at IS NULL',
-          [property.id]
-        );
-
-        const sections = {};
-        for (const ef of extractedFiles.rows) {
-          try {
-            const filePath = resolveUploadPath(ef.storage_path);
-            const content = await fs.readFile(filePath, 'utf-8');
-            sections[ef.section_type] = JSON.parse(content);
-          } catch (e) {
-            console.warn(`[Rescore] Could not load ${ef.storage_path}: ${e.message}`);
-          }
-        }
-
-        const subjectData = sections.subject_property;
-        const address = subjectData ? addressExtractor.extractFromSubjectProperty(subjectData) : {
-          street: property.address_street,
-          city: property.address_city,
-          state: property.address_state,
-          stateAbbr: property.address_state_abbr,
-          zipCode: property.address_zip,
-          fullAddress: property.address_full
-        };
-
-        const propertyData = assemblePropertyData(sections, address);
-        if (revision) propertyData.reportRevisionId = revision.id;
-
-        // Recalculate score
-        const scoreResult = scoringService.calculateScore(propertyData);
-
-        // Save new score
-        await propertyService.saveScore(
-          property.id,
-          scoreResult,
-          propertyData,
-          scoringService.getConfig()
-        );
+        await recalculateProperty(property.id);
 
         rescored++;
       } catch (e) {

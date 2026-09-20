@@ -203,13 +203,20 @@ export async function assembleFillPayload(sections, options = {}) {
   const address = new AddressExtractor().extractFromSubjectProperty(sections.subject_property);
   const subject = transformed.structured_data[0];
   const property = subject.property;
-  const projection = options.projection || assemblePropertyData(sections, address);
+  const reference = options.reference || {available:false};
+  const projection = options.projection ? structuredClone(options.projection) : assemblePropertyData(sections, address, reference.available ? reference.data : undefined);
+  if (options.projection && reference.available) {
+    projection.external = reference.data;
+    projection.demographics = assemblePropertyData(sections, address, reference.data).demographics;
+  }
   const oneMile = extractDemographicsFromDocling(sections.demographics, null, 1);
   const fiveMile = extractDemographicsFromDocling(sections.demographics, null, 5);
   subject.demographics = {...oneMile, ...fiveMile, ...projection.demographics};
   subject.submarket = projection.submarket;
   subject.external = projection.external;
-  subject.property_metrics = projection.property;
+  subject.property_metrics = {...projection.property,
+    ...(Number.isFinite(projection.external?.walkScore?.walk_score) ? {walk_score:projection.external.walkScore.walk_score} : {}),
+    ...(Number.isFinite(projection.external?.walkScore?.transit_score) ? {transit_score:projection.external.walkScore.transit_score} : {})};
   if (subject.unitBreakdown?.length) {
     subject.unitBreakdownSourceTables = subject.unitBreakdown;
     subject.unitBreakdown = [{...subject.unitBreakdown[0], rows: subject.unitBreakdown.flatMap(table => table.rows || [])}];

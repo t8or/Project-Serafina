@@ -6,6 +6,7 @@ import { initializeContentPage } from "./content.js";
 import { restoreDialogFocus, trapDialogFocus } from "./dialog.js";
 import { initializeFileUpload } from "./upload.js";
 import { initializeReportsPage } from "./reports.js";
+import { initializeReferenceInputs } from "./reference-inputs.js";
 import * as assessmentView from "./assessment-view.js";
 
 window.assessmentView = assessmentView;
@@ -39,6 +40,7 @@ Alpine.plugin(persist);
 Alpine.data("contentPage", initializeContentPage);
 Alpine.data("fileUpload", initializeFileUpload);
 Alpine.data("reportsWorkspace", initializeReportsPage);
+Alpine.data("referenceInputs", initializeReferenceInputs);
 
 window.Alpine = Alpine;
 Alpine.start();

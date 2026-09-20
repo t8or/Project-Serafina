@@ -37,6 +37,7 @@ const APP_HTML_FILES = new Set([
   'scorecard-config.html',
   'content.html',
   'reports.html',
+  'reference-inputs.html',
   '404.html',
 ]);
 

@@ -71,7 +71,7 @@ class LocalReferenceData {
     const result = await db.query(
       `SELECT id, source, as_of, imported_at
        FROM reference_snapshots
-       ORDER BY as_of DESC, imported_at DESC`
+       ORDER BY as_of DESC, imported_at DESC, id DESC`
     );
     return result.rows;
   }
@@ -85,7 +85,7 @@ class LocalReferenceData {
     const snapshots = await db.query(
       `SELECT id, source, as_of, imported_at, records_json
        FROM reference_snapshots
-       ORDER BY as_of DESC, imported_at DESC`
+       ORDER BY as_of DESC, imported_at DESC, id DESC`
     );
 
     for (const snapshot of snapshots.rows) {

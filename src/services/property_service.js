@@ -6,6 +6,7 @@
  */
 
 import { db } from '../config/database.js';
+import { normalizeReferenceAddress } from './local_reference_data.js';
 import fs from 'fs/promises';
 import path from 'node:path';
 import { UPLOADS_DIR, EXTRACTED_DIR, resolveUploadPath } from '../config/runtime_paths.js';
@@ -291,6 +292,14 @@ class PropertyService {
 
     // Upsert: update if exists, insert if not
     const result = db.transaction(client => {
+      if (rawData && Object.hasOwn(rawData, 'referenceSnapshotId')) {
+        const property = client.query('SELECT * FROM properties WHERE id=$1 AND deleted_at IS NULL', [propertyId]).rows[0];
+        if (!property) throw new Error('Property no longer exists');
+        const address = {street:property.address_street,city:property.address_city,stateAbbr:property.address_state_abbr,zipCode:property.address_zip};
+        const snapshots = client.query('SELECT id,records_json FROM reference_snapshots ORDER BY as_of DESC, imported_at DESC, id DESC').rows;
+        const latest = snapshots.find(s => s.records_json.some(r => normalizeReferenceAddress(r.address) === normalizeReferenceAddress(address)));
+        if ((latest?.id ?? null) !== rawData.referenceSnapshotId) throw new Error('Reference inputs changed during scoring; retry against current inputs');
+      }
       if (rawData?.reportRevisionId) {
         const latest = client.query('SELECT id FROM report_revisions WHERE property_id = $1 ORDER BY id DESC LIMIT 1', [propertyId]).rows[0];
         if (latest?.id !== rawData.reportRevisionId) throw new Error('Report revision changed during scoring; retry against current evidence');
